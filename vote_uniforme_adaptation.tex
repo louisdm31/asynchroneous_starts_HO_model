@@ -1,0 +1,105 @@
+\documentclass{article}
+\usepackage{amsmath}
+\usepackage{algpseudocode}
+\usepackage{amssymb}
+\usepackage{dsfont}
+\usepackage[left=2cm, right=2cm, top=2cm]{geometry}
+\usepackage[utf8]{inputenc}
+
+\title{Adaptation de l'algorithme de vote uniforme}
+\date{30 mars 2020}
+\author{Louis Penet de Monterno}
+
+\begin{document}
+  \maketitle
+
+  Je propose une adaptation de l'algorithme de vote uniforme, où les processus réveillés suivent le même algorithme que dans le cas avec départs synchrones. Je fais la supposition que les processus endormis stockent les messages qu'ils reçoivent dans une file d'attente. Cela est réaliste dans les systèmes réels, et cette supposition est plausible dans le cadre de la preuve de la proposition 5. Au moment où un processus se réveille, il va " revivre le film " de tous ce qui s'est passé pendant son sommeil. 
+
+  \begin{algorithmic}
+	  \Function{émission}{}
+		  \If{t = 2 $\Phi$ - 1}
+
+			  envoyer $x_i$ à tous
+		  \Else
+
+			  envoyer $(x_i, vote_i)$ à tous
+
+		  \EndIf
+	  \EndFunction
+  \end{algorithmic}
+
+  \begin{algorithmic}
+
+	  \Function{réception}{$(x_k, vote_k)$}
+		  \If{t = 2 $\Phi$ - 1}
+			  \State $x_i \gets min(x_k)$
+			  \If{$\exists x, \forall k, x_k = x$}
+			  \Comment{$x_k$ tous identiques, aucun $\bot$ reçu}
+				  \State $vote_i = x$
+			  \EndIf
+		  \Else
+			  \If{$\exists k, (x_k, vote_k) \neq (*, ?)$}
+			  \Comment{Au moins un vote reçu}
+				  \State $x_i = x_k$
+			  \Else
+				  \State $x_i \gets min(x_k)$
+			  \EndIf
+			  \If{$\exists x \neq ?, \forall k, vote_k = x$}
+			  \Comment{$vote_k$ tous identiques, aucun $\bot$ reçu}
+				  \State DECIDE(x)
+			  \EndIf
+		  \EndIf
+	  \EndFunction
+
+  \end{algorithmic}
+
+  \begin{algorithmic}
+	  \Function{réveil}{file}
+		  \ForAll{$(x_k, vote_k)_l \in file$}
+			  \State RÉCEPTION($(x_k, vote_k)_l$)
+			  \Comment{rejoue tous les rounds stockés dans la file d'attente}
+		  \EndFor
+	  \EndFunction
+	  
+  \end{algorithmic}
+
+\section{hypothèses}
+
+\begin{description}
+
+	\item[$\bullet$] Les processus endormis stockent les messages reçus dans une file d'attente.
+	\item[$\bullet$] Tous les processus endormis se réveillent en temps fini.
+	\item[$\bullet$] $\mathds{G} \in \mathcal{P}_{no_split} \bigcap \mathcal{P}_{unif^\infty}$
+
+\end{description}
+
+\section{preuve}
+
+\subsection{validité / irrévocabilité }
+
+triviale
+
+\subsection{terminaison}
+
+Il suffit d'appliquer la preuve de l'algorithme avec départs synchrones, en prenant comme round de départ le round à partir duquel tous les processus sont réveillés.
+
+\subsection{accord}
+
+Soit $p_1$ le premier processus qui décide.
+
+Dans le cas où un processus $p_2$ décide en même temps, comme $\mathds{G} \in \mathcal{P}_{no_split}$, il existe un $p_{12}$ réveillé qui a transmis à $p_1$ et $p_2$ un même vote. Donc $p_1$ et $p_2$ votent la même valeur.
+
+Soit $p_3$ un processus quelquonque, réveillé ou non. $\mathds{G} \in \mathcal{P}_{no_split}$, donc il existe un $p_{13}$ réveillé qui a transmis à $p_1$ et $p_3$ un même vote $vote_{13}$. $p_3$ ne peut pas avoir reçu un vote $vote_4$ contraire à $vote_{13}$, puisque le graphe de communication était non-éclaté au round impair précédent.
+
+Si $p_3$ était réveillé, on a donc, à la fin du round pair, $x_3 = vote_1$. Si $p_3$ n'était pas réveillé, il aurait à son réveil exécuté l'instruction $x_3 = vote_1$. Donc à la fin du round pair dans lequel $p_1$ décide, tous les processus ont $vote_1$ comme valeur dans leurs variables $x_k$ respectives. Donc aucun processus ne peut décider une valeur autre que $vote_1$.
+
+\section{Élimination de la dépendance au numéro de round}
+
+Dans le cadre d'un départ asynchrone, les processus ne connaissent pas la parité du numéro de round au moment où ils entrent dans le système. Pour contourner ce problème, il suffit que chaque processus envisage les deux possibilités. Ainsi, ils executent en parallèle deux instanciations du même algorithe, avec des parité opposés.
+
+Les messages envoyés sont donc dans le format $(x_{p1}, (x_{p2}, vote_p))$.
+
+Ainsi, à l'échelle macroscopique, l'algorithme de consensus est exécuté deux fois en parallèle, de façon indépendante. À la fin, chaque processus décide deux valeurs, il suffit alors de prendre le minimum des deux. L'accord sur chacune des deux instanciations s'étend ainsi à l'algorithme total.
+
+
+\end{document}

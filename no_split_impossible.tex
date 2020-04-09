@@ -1,0 +1,57 @@
+\documentclass{article}
+\usepackage{amsmath}
+\usepackage{algpseudocode}
+\usepackage{amssymb}
+\usepackage{dsfont}
+\usepackage[left=2cm, right=2cm, top=2cm]{geometry}
+\usepackage[utf8]{inputenc}
+
+\title{Consensus avec départs asynchrones dans un système non-éclaté, et infiniment souvent uniforme}
+\date{7 avril 2020}
+\author{Louis Penet de Monterno}
+
+\begin{document}
+  \maketitle
+
+  \textbf{Théorème.} Il n'existe pas d'algorithme de consensus tolérant les départs asynchrones
+  correct et vivace sous le prédicat $\mathcal{P}_{no-split} \bigcap \mathcal{P}_{S-unif^\infty}$
+
+  \textbf{Preuve.}
+
+  On se place dans le cas du consensus binaire, avec $ | \Pi | = 2$.
+  La preuve est généralisable avec $n > 2$.
+
+  Soient deux processus $p_1$, $p_2$. On suppose d'abord que :
+
+  \begin{description}
+
+	  \item[$\bullet$] $p_1$ et $p_2$ se réveillent dès le round 0.
+	  \item[$\bullet$] $ HO(p_1, n) = \{ p_1 \}$ et $HO(p_2, n) = \{ p_1, p_2\}$.
+
+  \end{description}
+
+  Cette configuration vérifie le prédicat en hypothèse.
+  La vivacité implique que $p_1$ décide au bout d'un temps, noté t.
+
+  \vspace{1cm}
+  On se place dans une autre configuration vérifiant :
+
+  \begin{description}
+
+	  \item[$\bullet$] $p_1$ se réveille dès le round 0.
+	  \item[$\bullet$] $p_2$ se réveillent au round t+2.
+	  \item[$\bullet$] $\forall n \in \mathds{N} \leq t+1 , 
+		  HO(p_1, n) = \{ p_1 \}$ et $HO(p_2, n) = \{ p_1, p_2\}$.
+	  \item[$\bullet$] $\forall n \in \mathds{N} > t+1 ,
+		  HO(p_2, n) = \{ p_2 \}$ et $HO(p_1, n) = \{ p_1, p_2\}$.
+
+  \end{description}
+
+  Pendant les t premiers rounds, du point de vue de $p_1$,
+  cette configuration est indistingable de la précédente.
+  Donc $p_1$ décidera au round t. Quand $p_2$ se réveille au round t+2,
+  $p_1$ a déjà décidé, mais $p_2$ n'a aucun moyen de connaître cette valeur.
+  Donc l'accord est impossible à garantir.
+
+
+\end{document}
