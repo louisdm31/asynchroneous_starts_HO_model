@@ -185,7 +185,7 @@ text \<open>
 \<close>
 
 datatype 'msg message = Content "'msg" | Bot | Void
-
+datatype 'pst proc_state = Active "'pst" | Aslept
 
 record ('proc, 'pst, 'msg) CHOAlgorithm =
   CinitState ::  "'proc \<Rightarrow> 'pst \<Rightarrow> 'proc \<Rightarrow> bool"
@@ -272,7 +272,8 @@ text \<open>
 definition SHOmsgVectors where
   "SHOmsgVectors A r p cfg tstart HOp SHOp \<equiv>
    {\<mu>. (\<forall>q. q \<in> HOp \<longleftrightarrow> \<mu> q \<noteq> Void)
-     \<and> (\<forall>q. q \<in> SHOp \<inter> HOp \<longrightarrow> tstart q \<le> r \<longrightarrow> \<mu> q = Content (sendMsg A q p (cfg q)))
+     \<and> (\<forall>q. q \<in> SHOp \<inter> HOp \<longrightarrow> tstart q \<le> r \<longrightarrow> (\<exists>s. cfg q = Active s \<and>
+                                                \<mu> q = Content (sendMsg A q p s)))
      \<and> (\<forall>q. q \<in> SHOp \<inter> HOp \<longrightarrow> tstart q > r \<longrightarrow> \<mu> q = Bot)}"
 
 text \<open>
@@ -283,14 +284,21 @@ text \<open>
 \<close>
 
 definition CSHOnextConfig where
-  "CSHOnextConfig A r cfg HO SHO coord cfg' \<equiv>
-   \<forall>p. \<exists>\<mu> \<in> SHOmsgVectors A p cfg (HO p) (SHO p).
-          CnextState A p (cfg p) \<mu> (coord p) (cfg' p)"
+  "CSHOnextConfig A r cfg tstart HO SHO coord cfg' \<equiv>
+   \<forall>p.  ( \<exists>s.  cfg  p = Active s \<longrightarrow>
+         (\<exists>s'. cfg' p = Active s' \<and>
+         (\<exists>\<mu> \<in> SHOmsgVectors A r p cfg tstart (HO p) (SHO p). CnextState A p s \<mu> (coord p) s'))) \<and>
+        (cfg  p = Aslept \<longrightarrow> (if tstart p = r then \<exists>s. cfg' p = Active s \<and> CinitState A p s (coord p) else
+         cfg' p = Aslept))"
+
+definition CHOasyncinitConfig where
+  "CHOasyncinitConfig A rho coord \<equiv>
+  \<forall>p. \<exists>n. (\<forall>m < n. rho m p = Aslept) \<and> (\<exists>s. rho n p = Active s \<and> CinitState A p s (coord p))"
 
 definition CSHORun where
-  "CSHORun A rho HOs SHOs coords \<equiv>
-     CHOinitConfig A (rho 0) (coords 0)
-   \<and> (\<forall>r. CSHOnextConfig A r (rho r) (HOs r) (SHOs r) (coords (Suc r))
+  "CSHORun A rho tstart HOs SHOs coords \<equiv>
+     CHOasyncinitConfig A rho coords
+   \<and> (\<forall>r. CSHOnextConfig A r (rho r) tstart (HOs r) (SHOs r) (coords (Suc r))
                              (rho (Suc r)))"
 
 text \<open>
