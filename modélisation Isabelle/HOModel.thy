@@ -39,6 +39,8 @@ text \<open>
   above formulation is appropriate in this framework.
 \<close>
 
+
+
 type_synonym
   ('proc,'pst) run = "nat \<Rightarrow> 'proc \<Rightarrow> 'pst"
 
@@ -182,10 +184,13 @@ text \<open>
   We represent an algorithm by a record as follows.
 \<close>
 
+datatype 'msg message = Content "'msg" | Bot | Void
+
+
 record ('proc, 'pst, 'msg) CHOAlgorithm =
   CinitState ::  "'proc \<Rightarrow> 'pst \<Rightarrow> 'proc \<Rightarrow> bool"
-  sendMsg ::   "nat \<Rightarrow> 'proc \<Rightarrow> 'proc \<Rightarrow> 'pst \<Rightarrow> 'msg"
-  CnextState :: "nat \<Rightarrow> 'proc \<Rightarrow> 'pst \<Rightarrow> ('proc \<Rightarrow> 'msg option) \<Rightarrow> 'proc \<Rightarrow> 'pst \<Rightarrow> bool"
+  sendMsg ::   "'proc \<Rightarrow> 'proc \<Rightarrow> 'pst \<Rightarrow> 'msg"
+  CnextState :: "'proc \<Rightarrow> 'pst \<Rightarrow> ('proc \<Rightarrow> 'msg message) \<Rightarrow> 'proc \<Rightarrow> 'pst \<Rightarrow> bool"
 
 text \<open>
   For non-coordinated HO algorithms, the coordinator argument of functions
@@ -196,14 +201,14 @@ text \<open>
 definition isNCAlgorithm where
   "isNCAlgorithm alg \<equiv> 
       (\<forall>p st crd crd'. CinitState alg p st crd = CinitState alg p st crd')
-   \<and> (\<forall>r p st msgs crd crd' st'. CnextState alg r p st msgs crd st'
-                               = CnextState alg r p st msgs crd' st')"
+   \<and> (\<forall>p st msgs crd crd' st'. CnextState alg p st msgs crd st'
+                               = CnextState alg p st msgs crd' st')"
 
 definition initState where
   "initState alg p st \<equiv> CinitState alg p st undefined"
 
 definition nextState where
-  "nextState alg r p st msgs st' \<equiv> CnextState alg r p st msgs undefined st'"
+  "nextState alg p st msgs st' \<equiv> CnextState alg p st msgs undefined st'"
 
 text \<open>
   A \emph{heard-of assignment} associates a set of processes with each
@@ -246,8 +251,12 @@ text \<open>
   local states to every process).
 \<close>
 
+(*definition CHOinitConfig where
+  "CHOinitConfig A cfg (coord::'proc coord) \<equiv> \<forall>p. CinitState A p (cfg p) (coord p)"*)
+
 definition CHOinitConfig where
-  "CHOinitConfig A cfg (coord::'proc coord) \<equiv> \<forall>p. CinitState A p (cfg p) (coord p)"
+ "CHOinitConfig A cfg (tstart::'proc \<Rightarrow> nat) (coord::'proc coord) \<equiv>
+\<forall>p. if tstart p > 0 then cfg p = Bot else CinitState A p (cfg p) (coord p)"
 
 text \<open>
   Given the current configuration \<open>cfg\<close> and the HO and SHO sets \<open>HOp\<close>
@@ -261,9 +270,10 @@ text \<open>
 \<close>
 
 definition SHOmsgVectors where
-  "SHOmsgVectors A r p cfg HOp SHOp \<equiv>
-   {\<mu>. (\<forall>q. q \<in> HOp \<longleftrightarrow> \<mu> q \<noteq> None)
-     \<and> (\<forall>q. q \<in> SHOp \<inter> HOp \<longrightarrow> \<mu> q = Some (sendMsg A r q p (cfg q)))}"
+  "SHOmsgVectors A r p cfg tstart HOp SHOp \<equiv>
+   {\<mu>. (\<forall>q. q \<in> HOp \<longleftrightarrow> \<mu> q \<noteq> Void)
+     \<and> (\<forall>q. q \<in> SHOp \<inter> HOp \<longrightarrow> tstart q \<le> r \<longrightarrow> \<mu> q = Content (sendMsg A q p (cfg q)))
+     \<and> (\<forall>q. q \<in> SHOp \<inter> HOp \<longrightarrow> tstart q > r \<longrightarrow> \<mu> q = Bot)}"
 
 text \<open>
   Predicate \<open>CSHOnextConfig\<close> uses the preceding function and the algorithm's
@@ -274,8 +284,8 @@ text \<open>
 
 definition CSHOnextConfig where
   "CSHOnextConfig A r cfg HO SHO coord cfg' \<equiv>
-   \<forall>p. \<exists>\<mu> \<in> SHOmsgVectors A r p cfg (HO p) (SHO p).
-          CnextState A r p (cfg p) \<mu> (coord p) (cfg' p)"
+   \<forall>p. \<exists>\<mu> \<in> SHOmsgVectors A p cfg (HO p) (SHO p).
+          CnextState A p (cfg p) \<mu> (coord p) (cfg' p)"
 
 definition CSHORun where
   "CSHORun A rho HOs SHOs coords \<equiv>
