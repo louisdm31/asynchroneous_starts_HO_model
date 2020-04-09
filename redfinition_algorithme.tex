@@ -54,12 +54,12 @@
 \section{Définition d'une exécution}
 
 On définit une exécution comme la donnée d'un tuple
-$((\sigma_p)_{p \in \Pi}, \mathds{G}, (in_p)_{p \in \Pi})$ où :
+$((s_p)_{p \in \Pi}, \mathds{G}, (in_p)_{p \in \Pi})$ où :
 
 \begin{description}
 
-	\item[$\bullet$] $(\sigma_p)_{p \in \Pi}$ donne le round auquel les processus déparrent.
-		$\sigma_p \in \mathds{N}$.
+	\item[$\bullet$] $(s_p)_{p \in \Pi}$ donne le round auquel les processus déparrent.
+		$s_p \in \mathds{N}$.
 	\item[$\bullet$] $\mathds{G}$ est le graphe dynamique indexé sur $\mathds{N}$.
 	\item[$\bullet$] $in_p$ est l'état initial de p, vérifiant $\forall p \in \Pi, in_p \in init_p$.
 
@@ -67,19 +67,19 @@ $((\sigma_p)_{p \in \Pi}, \mathds{G}, (in_p)_{p \in \Pi})$ où :
 
 \section{Sémantique des exécutions}
 
-Une excécution $((\sigma_p)_{p \in \Pi}, \mathds{G}, (in_p)_{p \in \Pi})$ détermine inductivement
-$\Gamma(n)$ l'état de chaque processus à chaque round :
+Une excécution $((s_p)_{p \in \Pi}, \mathds{G}, (in_p)_{p \in \Pi})$ détermine inductivement
+$\Gamma_p(n)$ l'état de chaque processus à chaque round :
 
 \begin{description}
 
 	\item[$\bullet$] $\forall p \in \Pi,  n \in \mathds{N},
-		n < \sigma_p \Rightarrow \Gamma(n) = sleep_p$.
-	\item[$\bullet$] $\forall p \in \Pi, \Gamma(\sigma_p) = in_p$.
-	\item[$\bullet$] $\forall p \in \Pi,  n \in \mathds{N}, n \geq \sigma_p \Rightarrow
-		\Gamma(n+1) = T_p \Gamma(n) V_p^n$ où $V_p^n$ est l'ensemble des messages reçus par p.
+		n < s_p \Rightarrow \Gamma_p(n) = sleep_p$.
+	\item[$\bullet$] $\forall p \in \Pi, \Gamma_p(s_p) = in_p$.
+	\item[$\bullet$] $\forall p \in \Pi,  n \in \mathds{N}, n \geq s_p \Rightarrow
+		\Gamma_p(n+1) = T_p (\Gamma_p(n) ,V_p^n)$ où $V_p^n$ est l'ensemble des messages reçus par p.
 	\item[$\bullet$] $V_p^n(q)$ non défini si $q \notin HO(p, n)$.
-	\item[$\bullet$] $V_p^n(q) = \bot$ si $n < \sigma_q$.
-	\item[$\bullet$] $V_p^n(q) = S_p \Gamma(n)$ sinon.
+	\item[$\bullet$] $V_p^n(q) = \bot$ si $n < s_q$.
+	\item[$\bullet$] $V_p^n(q) = S_p (\Gamma_p(n))$ sinon.
 
 \end{description}
 \end{document}
