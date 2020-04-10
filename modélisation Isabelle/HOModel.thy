@@ -251,13 +251,6 @@ text \<open>
   local states to every process).
 \<close>
 
-(*definition CHOinitConfig where
-  "CHOinitConfig A cfg (coord::'proc coord) \<equiv> \<forall>p. CinitState A p (cfg p) (coord p)"*)
-
-definition CHOinitConfig where
- "CHOinitConfig A cfg (tstart::'proc \<Rightarrow> nat) (coord::'proc coord) \<equiv>
-\<forall>p. if tstart p > 0 then cfg p = Bot else CinitState A p (cfg p) (coord p)"
-
 text \<open>
   Given the current configuration \<open>cfg\<close> and the HO and SHO sets \<open>HOp\<close>
   and \<open>SHOp\<close> for process \<open>p\<close> at round \<open>r\<close>, the function
@@ -270,11 +263,10 @@ text \<open>
 \<close>
 
 definition SHOmsgVectors where
-  "SHOmsgVectors A r p cfg tstart HOp SHOp \<equiv>
+  "SHOmsgVectors A r p cfg HOp SHOp \<equiv>
    {\<mu>. (\<forall>q. q \<in> HOp \<longleftrightarrow> \<mu> q \<noteq> Void)
-     \<and> (\<forall>q. q \<in> SHOp \<inter> HOp \<longrightarrow> tstart q \<le> r \<longrightarrow> (\<exists>s. cfg q = Active s \<and>
-                                                \<mu> q = Content (sendMsg A q p s)))
-     \<and> (\<forall>q. q \<in> SHOp \<inter> HOp \<longrightarrow> tstart q > r \<longrightarrow> \<mu> q = Bot)}"
+     \<and> (\<forall>q. q \<in> SHOp \<inter> HOp \<longrightarrow> (\<exists>s. cfg q = Active s \<longrightarrow> \<mu> q = Content (sendMsg A q p s)))
+     \<and> (\<forall>q. q \<in> SHOp \<inter> HOp \<longrightarrow>      cfg q = Aslept   \<longrightarrow> \<mu> q = Bot)}"
 
 text \<open>
   Predicate \<open>CSHOnextConfig\<close> uses the preceding function and the algorithm's
@@ -284,21 +276,18 @@ text \<open>
 \<close>
 
 definition CSHOnextConfig where
-  "CSHOnextConfig A r cfg tstart HO SHO coord cfg' \<equiv>
+  "CSHOnextConfig A r cfg HO SHO coord cfg' \<equiv>
    \<forall>p.  ( \<exists>s.  cfg  p = Active s \<longrightarrow>
          (\<exists>s'. cfg' p = Active s' \<and>
-         (\<exists>\<mu> \<in> SHOmsgVectors A r p cfg tstart (HO p) (SHO p). CnextState A p s \<mu> (coord p) s'))) \<and>
-        (cfg  p = Aslept \<longrightarrow> (if tstart p = r then \<exists>s. cfg' p = Active s \<and> CinitState A p s (coord p) else
-         cfg' p = Aslept))"
+         (\<exists>\<mu> \<in> SHOmsgVectors A r p cfg (HO p) (SHO p). CnextState A p s \<mu> (coord p) s')))"
 
-definition CHOasyncinitConfig where
-  "CHOasyncinitConfig A rho coord \<equiv>
-  \<forall>p. \<exists>n. (\<forall>m < n. rho m p = Aslept) \<and> (\<exists>s. rho n p = Active s \<and> CinitState A p s (coord p))"
+definition CHOinitConfig where
+  "CHOinitConfig A rho coord \<equiv>
+  \<forall>p. \<exists>n. (\<forall>m < n. rho m p = Aslept) \<and> (\<exists>s. rho n p = Active s \<and> CinitState A p s (coord s p))"
 
 definition CSHORun where
-  "CSHORun A rho tstart HOs SHOs coords \<equiv>
-     CHOasyncinitConfig A rho coords
-   \<and> (\<forall>r. CSHOnextConfig A r (rho r) tstart (HOs r) (SHOs r) (coords (Suc r))
+  "CSHORun A rho HOs SHOs coords \<equiv> CHOinitConfig A rho coords
+   \<and> (\<forall>r. CSHOnextConfig A r (rho r) (HOs r) (SHOs r) (coords (Suc r))
                              (rho (Suc r)))"
 
 text \<open>
@@ -306,12 +295,11 @@ text \<open>
   are irrelevant. We define similar functions that omit that argument, and relate
   them to the above utility functions for these algorithms.
 \<close>
-
 definition HOinitConfig where
-  "HOinitConfig A cfg \<equiv> CHOinitConfig A cfg (\<lambda>q. undefined)"
+  "HOinitConfig A cfg \<equiv> CHOinitConfig A cfg (\<lambda>n. \<lambda>q. undefined)"
 
 lemma HOinitConfig_eq:
-  "HOinitConfig A cfg = (\<forall>p. initState A p (cfg p))"
+  "HOinitConfig A cfg = (\<forall>p. \<exists>n. (\<forall>m < n. cfg m p = Aslept) \<and> (\<exists>s. cfg n p = Active s \<and> initState A p s))"
   by (auto simp: HOinitConfig_def CHOinitConfig_def initState_def)
 
 definition SHOnextConfig where
@@ -319,9 +307,10 @@ definition SHOnextConfig where
    CSHOnextConfig A r cfg HO SHO (\<lambda>q. undefined) cfg'"
 
 lemma SHOnextConfig_eq:
-  "SHOnextConfig A r cfg HO SHO cfg' =
-   (\<forall>p. \<exists>\<mu> \<in> SHOmsgVectors A r p cfg (HO p) (SHO p).
-             nextState A r p (cfg p) \<mu> (cfg' p))"
+  "SHOnextConfig A r cfg HO SHO cfg' = (
+    \<forall>p.  (\<exists>s.  cfg  p = Active s \<longrightarrow>
+         (\<exists>s'. cfg' p = Active s' \<and>
+         (\<exists>\<mu> \<in> SHOmsgVectors A r p cfg (HO p) (SHO p). nextState A p s \<mu> s'))))"
   by (auto simp: SHOnextConfig_def CSHOnextConfig_def SHOmsgVectors_def nextState_def)
 
 definition SHORun where
@@ -330,7 +319,7 @@ definition SHORun where
 
 lemma SHORun_eq:
   "SHORun A rho HOs SHOs =
-     (HOinitConfig A (rho 0)
+     (HOinitConfig A rho
    \<and> (\<forall>r. SHOnextConfig A r (rho r) (HOs r) (SHOs r) (rho (Suc r))))"
   by (auto simp: SHORun_def CSHORun_def HOinitConfig_def SHOnextConfig_def)
 
@@ -345,9 +334,15 @@ text \<open>
   and the HO sets.
 \<close>
 
+fun HOrcvMsgs_q :: "'proc \<Rightarrow> ('proc, 'b, 'c) CHOAlgorithm \<Rightarrow> nat \<Rightarrow> 'proc \<Rightarrow>
+                        'proc set \<Rightarrow> 'pst proc_state \<Rightarrow> 'msg message" where
+ "HOrcvMsgs_q q A r p HO (Active s) = Content (sendMsg A q p s)" |
+ "HOrcvMsgs_q q A r p HO Aslept = Bot"
+
 definition HOrcvdMsgs where
   "HOrcvdMsgs A r p HO cfg \<equiv>
-   \<lambda>q. if q \<in> HO then Some (sendMsg A r q p (cfg q)) else None"
+   \<lambda>q. if q \<in> HO then HOrcvMsgs_q q A r p HO (cfg q) else Void"
+
 
 lemma SHOmsgVectors_HO:
   "SHOmsgVectors A r p cfg HO HO = {HOrcvdMsgs A r p HO cfg}"
