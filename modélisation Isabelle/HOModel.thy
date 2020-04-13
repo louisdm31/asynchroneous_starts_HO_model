@@ -262,12 +262,6 @@ text \<open>
   processes \<open>q \<in> HOp - SHOp\<close>, \<open>p\<close> may receive some arbitrary value.
 \<close>
 
-definition SHOmsgVectors where
-  "SHOmsgVectors A p cfg HOp SHOp \<equiv>
-   {\<mu>. (\<forall>q. q \<in> HOp \<longleftrightarrow> \<mu> q \<noteq> Void)
-     \<and> (\<forall>q. q \<in> SHOp \<inter> HOp \<longrightarrow> (\<exists>s. cfg q = Active s \<longrightarrow> \<mu> q = Content (sendMsg A q p s)))
-     \<and> (\<forall>q. q \<in> SHOp \<inter> HOp \<longrightarrow>      cfg q = Aslept   \<longrightarrow> \<mu> q = Bot)}"
-
 text \<open>
   Predicate \<open>CSHOnextConfig\<close> uses the preceding function and the algorithm's
   \<open>CnextState\<close> function to characterize the possible successor configurations
@@ -275,19 +269,27 @@ text \<open>
   executions \<open>rho\<close> of an HO algorithm.
 \<close>
 
-definition CSHOnextConfig where
-  "CSHOnextConfig A cfg HO SHO coord cfg' \<equiv>
+fun HOrcvMsgs_q :: "'proc \<Rightarrow> ('proc, 'pst, 'msg) CHOAlgorithm  \<Rightarrow> 'proc \<Rightarrow>
+                         'pst proc_state \<Rightarrow> 'msg message" where
+ "HOrcvMsgs_q q A p (Active s) = Content (sendMsg A q p s)" |
+ "HOrcvMsgs_q q A p Aslept = Bot"
+
+definition HOrcvdMsgs where
+  "HOrcvdMsgs A p HO cfg \<equiv>
+   \<lambda>q. if q \<in> HO then HOrcvMsgs_q q A p (cfg q) else Void"
+
+definition CHOnextConfig where
+  "CHOnextConfig A cfg HO coord cfg' \<equiv>
    \<forall>p s.    cfg  p = Active s \<longrightarrow>
-         (\<exists>s'. cfg' p = Active s' \<and>
-         (\<exists>\<mu> \<in> SHOmsgVectors A p cfg (HO p) (SHO p). CnextState A p s \<mu> (coord p) s'))"
+         (\<exists>s'. cfg' p = Active s' \<and> CnextState A p s (HOrcvdMsgs A p (HO p) cfg) (coord p) s')"
 
 definition CHOinitConfig where
   "CHOinitConfig A rho coord \<equiv>
   \<forall>p. \<exists>n. (\<forall>m < n. rho m p = Aslept) \<and> (\<exists>s. rho n p = Active s \<and> CinitState A p s (coord n p))"
 
-definition CSHORun where
-  "CSHORun A rho HOs SHOs coords \<equiv> CHOinitConfig A rho coords
-   \<and> (\<forall>r. CSHOnextConfig A (rho r) (HOs r) (SHOs r) (coords (Suc r))
+definition CHORun where
+  "CHORun A rho HOs coords \<equiv> CHOinitConfig A rho coords
+   \<and> (\<forall>r. CHOnextConfig A (rho r) (HOs r) (coords (Suc r))
                              (rho (Suc r)))"
 
 text \<open>
@@ -302,26 +304,19 @@ lemma HOinitConfig_eq:
   "HOinitConfig A cfg = (\<forall>p. \<exists>n. (\<forall>m < n. cfg m p = Aslept) \<and> (\<exists>s. cfg n p = Active s \<and> initState A p s))"
   by (auto simp: HOinitConfig_def CHOinitConfig_def initState_def)
 
-definition SHOnextConfig where
-  "SHOnextConfig A cfg HO SHO cfg' \<equiv>
-   CSHOnextConfig A cfg HO SHO (\<lambda>q. undefined) cfg'"
+definition HOnextConfig where
+  "HOnextConfig A cfg HO cfg' \<equiv>
+   CHOnextConfig A cfg HO (\<lambda>q. undefined) cfg'"
 
-lemma SHOnextConfig_eq:
-  "SHOnextConfig A cfg HO SHO cfg' = (
-    \<forall>p s.   cfg  p = Active s \<longrightarrow>
-         (\<exists>s'. cfg' p = Active s' \<and>
-         (\<exists>\<mu> \<in> SHOmsgVectors A p cfg (HO p) (SHO p). nextState A p s \<mu> s')))"
-  by (auto simp: SHOnextConfig_def CSHOnextConfig_def SHOmsgVectors_def nextState_def)
+definition HORun where
+  "HORun A rho HOs \<equiv>
+   CHORun A rho HOs (\<lambda>r q. undefined)"
 
-definition SHORun where
-  "SHORun A rho HOs SHOs \<equiv>
-   CSHORun A rho HOs SHOs (\<lambda>r q. undefined)"
-
-lemma SHORun_eq:
-  "SHORun A rho HOs SHOs =
+lemma HORun_eq:
+  "HORun A rho HOs =
      (HOinitConfig A rho
-   \<and> (\<forall>r. SHOnextConfig A (rho r) (HOs r) (SHOs r) (rho (Suc r))))"
-  by (auto simp: SHORun_def CSHORun_def HOinitConfig_def SHOnextConfig_def)
+   \<and> (\<forall>r. HOnextConfig A (rho r) (HOs r) (rho (Suc r))))"
+  by (auto simp: HORun_def CHORun_def HOinitConfig_def HOnextConfig_def)
 
 text \<open>
   Algorithms designed to tolerate benign failures are not subject to
@@ -333,78 +328,6 @@ text \<open>
   in a benign execution is uniquely determined from the current configuration
   and the HO sets.
 \<close>
-
-fun HOrcvMsgs_q :: "'proc \<Rightarrow> ('proc, 'pst, 'msg) CHOAlgorithm  \<Rightarrow> 'proc \<Rightarrow>
-                         'pst proc_state \<Rightarrow> 'msg message" where
- "HOrcvMsgs_q q A p (Active s) = Content (sendMsg A q p s)" |
- "HOrcvMsgs_q q A p Aslept = Bot"
-
-definition HOrcvdMsgs where
-  "HOrcvdMsgs A p HO cfg \<equiv>
-   \<lambda>q. if q \<in> HO then HOrcvMsgs_q q A p (cfg q) else Void"
-
-
-lemma SHOmsgVectors_HO:
-  "SHOmsgVectors A p cfg HO HO = {HOrcvdMsgs A p HO cfg}"
-proof
-  fix \<mu>
-  assume "\<mu> \<in> SHOmsgVectors A p cfg HO HO"
-  hence void:"\<forall>q. q \<in> HO \<longleftrightarrow> \<mu> q \<noteq> Void" and
-     act:"\<forall>q s. q \<in> HO \<inter> HO \<longrightarrow> (\<exists>s. cfg q = Active s \<longrightarrow> \<mu> q = Content (sendMsg A q p s))" and
-     asl:"\<forall>q. q \<in> HO \<inter> HO \<longrightarrow>      cfg q = Aslept   \<longrightarrow> \<mu> q = Bot" by (auto simp:SHOmsgVectors_def)
-  from void have "\<forall>q. q \<notin> HO \<longrightarrow> \<mu> q =  HOrcvdMsgs A p HO cfg q" by 
-  from act have "\<forall>q \<in> HO \<inter> HO. \<forall> s. cfg q = Active s \<longrightarrow> \<mu> q = HOrcvdMsgs A p HO cfg q" by 
-  from asl have "\<forall>q \<in> HO \<inter> HO. cfg q = Aslept   \<longrightarrow> \<mu> q =  HOrcvdMsgs A p HO cfg q" by 
-  from void and act and asl show  "\<mu> \<in> {HOrcvdMsgs A p HO cfg}" by 
-
-  unfolding SHOmsgVectors_def HOrcvdMsgs_def by (auto simp:SHOmsgVectors_def HOrcvdMsgs_def)
-
-text \<open>With coordinators\<close>
-
-definition CHOnextConfig where
-  "CHOnextConfig A cfg HO coord cfg' \<equiv> 
-   CSHOnextConfig A cfg HO HO coord cfg'"
-
-lemma CHOnextConfig_eq:
-  "CHOnextConfig A cfg HO coord cfg' =
-   (\<forall>p. \<exists>s. cfg p = Active s \<longrightarrow> (\<exists>s'. cfg' p = Active s' \<and>
-                     CnextState A p s (HOrcvMsgs A p (HO p) cfg) (coord p) s'))"
-proof
-  assume "CHOnextConfig A cfg HO coord cfg'"
-  hence "\<forall>p.  (\<exists>s.  cfg  p = Active s \<longrightarrow>
-         (\<exists>s'. cfg' p = Active s' \<and>
-         (\<exists>\<mu> \<in> SHOmsgVectors A p cfg (HO p) (HO p).
-         CnextState A p s \<mu> (coord p) s')))" by (auto simp:CHOnextConfig_def CSHOnextConfig_def)
-
-  by (auto simp: CHOnextConfig_def CSHOnextConfig_def SHOmsgVectors_HO)
-
-definition CHORun where
-  "CHORun A rho HOs coords \<equiv> CSHORun A rho HOs HOs coords"
-
-lemma CHORun_eq:
-  "CHORun A rho HOs coords = 
-     (CHOinitConfig A (rho 0) (coords 0)
-      \<and> (\<forall>r. CHOnextConfig A r (rho r) (HOs r) (coords (Suc r)) (rho (Suc r))))"
-  by (auto simp: CHORun_def CSHORun_def CHOinitConfig_def CHOnextConfig_def)
-
-text \<open>Without coordinators\<close>
-definition HOnextConfig where
-  "HOnextConfig A r cfg HO cfg' \<equiv> SHOnextConfig A r cfg HO HO cfg'"
-
-lemma HOnextConfig_eq:
-  "HOnextConfig A r cfg HO cfg' =
-   (\<forall>p. nextState A r p (cfg p) (HOrcvdMsgs A r p (HO p) cfg) (cfg' p))"
-  by (auto simp: HOnextConfig_def SHOnextConfig_eq SHOmsgVectors_HO)
-
-definition HORun where
-  "HORun A rho HOs \<equiv> SHORun A rho HOs HOs"
-
-lemma HORun_eq:
-  "HORun A rho HOs = 
-   (  HOinitConfig A (rho 0)
-    \<and> (\<forall>r. HOnextConfig A r (rho r) (HOs r) (rho (Suc r))))"
-  by (auto simp: HORun_def SHORun_eq HOnextConfig_def)
-
 
 text \<open>
   The following derived proof rules are immediate consequences of
@@ -451,14 +374,5 @@ record ('proc, 'pst, 'msg) HOMachine = "('proc, 'pst, 'msg) CHOAlgorithm" +
 record ('proc, 'pst, 'msg) CHOMachine = "('proc, 'pst, 'msg) CHOAlgorithm" +
   CHOcommPerRd::"nat \<Rightarrow> 'proc HO \<Rightarrow> 'proc coord \<Rightarrow> bool"
   CHOcommGlobal::"(nat \<Rightarrow> 'proc HO) \<Rightarrow> (nat \<Rightarrow> 'proc coord) \<Rightarrow> bool"
-
-record ('proc, 'pst, 'msg) SHOMachine = "('proc, 'pst, 'msg) CHOAlgorithm" +
-  SHOcommPerRd::"('proc HO) \<Rightarrow> ('proc HO) \<Rightarrow> bool"
-  SHOcommGlobal::"(nat \<Rightarrow> 'proc HO) \<Rightarrow> (nat \<Rightarrow> 'proc HO) \<Rightarrow> bool"
-
-record ('proc, 'pst, 'msg) CSHOMachine = "('proc, 'pst, 'msg) CHOAlgorithm" +
-  CSHOcommPerRd::"('proc HO) \<Rightarrow> ('proc HO) \<Rightarrow> 'proc coord \<Rightarrow> bool"
-  CSHOcommGlobal::"(nat \<Rightarrow> 'proc HO) \<Rightarrow> (nat \<Rightarrow> 'proc HO)
-                                     \<Rightarrow> (nat \<Rightarrow> 'proc coord) \<Rightarrow> bool"
 
 end \<comment> \<open>theory HOModel\<close>

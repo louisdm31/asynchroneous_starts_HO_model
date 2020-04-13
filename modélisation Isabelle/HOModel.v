@@ -31,30 +31,26 @@ Definition nextState alg p st msgs st' := CnextState alg p st msgs undefined st'
 Definition HO := proc -> Ensemble proc.
 Definition coord := proc -> proc.
 
-Definition SHOmsgVectors A p cfg HOp SHOp :=
-  { mu : proc -> message | (forall q, set_In q HOp <-> mu q <> Void) /\
-      forall q, set_In q (set_inter proc_dec HOp SHOp) -> match cfg q with
-  | Active s => mu q = Content (SendMsg A q p s)
-  | _ => mu q = Bot end}.
+Definition HOrcvMsgs A p HO cfg := fun q : proc =>
+  match set_In_dec proc_dec q HO with
+  | left _ => 
+    match cfg q with
+    | Active s =>  Content (SendMsg A q p s)
+    | Aslept => Bot end
+  | right _ => Void end.
 
-Definition forall_proc (A:CHOAlgorith) (f:proc -> bool) : bool :=
-  let fix forall_proc_ (l:set proc) f  := match l with
-  | nil => true
-  | cons a ar => andb (f a) (forall_proc_ ar f) end in forall_proc_ (Proc_set A) f. 
-
-Definition CSHOnextConfig A cfg HO SHO coord cfg' : bool :=
-   forall_proc A (fun p => match cfg p with
+Definition CHOnextConfig A cfg HO coord cfg' : bool :=
+   forallb (fun p => match cfg p with
   | Active s => match cfg' p with
-    | Active s' => exists mu : (SHOmsgVectors A p cfg (HO p) (SHO p)),
-           CnextState A p s (proj1_sig mu) (coord p) s' = true
-    | _ => False end
-  | _ => True end).
+    | Active s' => CnextState A p s (HOrcvMsgs A p (HO p) cfg) (coord p) s'
+    | _ => false end
+  | _ => true end) (Proc_set A).
 
 Definition CHOinitConfig A rho coord :=
-  forall_proc A (fun p => (exists n : nat, (forall m, m < n -> rho m p = Aslept) /\
+  forallb (fun p => (exists n : nat, (forall m, m < n -> rho m p = Aslept) /\
   match rho n p with 
   |Active s => CinitState A p s (coord n p) = true
-  | _ => False end)).
+  | _ => False end)) (Proc_set A).
 
 Definition CSHORun A rho HOs SHOs coords :=
   CHOinitConfig A rho coords
@@ -90,14 +86,6 @@ Lemma SHORun_eq : forall A rho HOs SHOs, SHORun A rho HOs SHOs =
   (HOinitConfig A rho /\ (forall r, SHOnextConfig A (rho r) (HOs r) (SHOs r) (rho (S r)))).
 trivial.
 Qed.
-
-Definition HOrcvMsgs A p (HO:set proc) cfg := fun q : proc =>
-  match set_In_dec proc_dec q HO with
-  | left _ => 
-    match cfg q with
-    | Active s =>  Content (SendMsg A q p s)
-    | Aslept => Bot end
-  | right _ => Void end.
 
 Lemma SHOmsgVectors_HO : forall A p cfg HO,
   forall mu : SHOmsgVectors A p cfg HO HO, proj1_sig mu = HOrcvMsgs A p HO cfg.
