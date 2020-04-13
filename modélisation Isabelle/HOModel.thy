@@ -280,12 +280,12 @@ definition HOrcvdMsgs where
 
 definition CHOnextConfig where
   "CHOnextConfig A cfg HO coord cfg' \<equiv>
-   \<forall>p s.    cfg  p = Active s \<longrightarrow>
+   \<forall>p s.       cfg  p = Active s \<longrightarrow>
          (\<exists>s'. cfg' p = Active s' \<and> CnextState A p s (HOrcvdMsgs A p (HO p) cfg) (coord p) s')"
 
 definition CHOinitConfig where
   "CHOinitConfig A rho coord \<equiv>
-  \<forall>p. \<exists>n. (\<forall>m < n. rho m p = Aslept) \<and> (\<exists>s. rho n p = Active s \<and> CinitState A p s (coord n p))"
+  \<forall>p (n::nat) s. (n > 0 \<longrightarrow> rho (n-1) p = Aslept) \<longrightarrow> rho n p = Active s \<longrightarrow> CinitState A p s (coord n p)"
 
 definition CHORun where
   "CHORun A rho HOs coords \<equiv> CHOinitConfig A rho coords
@@ -301,7 +301,8 @@ definition HOinitConfig where
   "HOinitConfig A cfg \<equiv> CHOinitConfig A cfg (\<lambda>n. \<lambda>q. undefined)"
 
 lemma HOinitConfig_eq:
-  "HOinitConfig A cfg = (\<forall>p. \<exists>n. (\<forall>m < n. cfg m p = Aslept) \<and> (\<exists>s. cfg n p = Active s \<and> initState A p s))"
+  "HOinitConfig A rho = (\<forall>p (n::nat) s. (n > 0 \<longrightarrow> rho (n-1) p = Aslept) \<longrightarrow>
+                                        rho n p = Active s \<longrightarrow> initState A p s)"
   by (auto simp: HOinitConfig_def CHOinitConfig_def initState_def)
 
 definition HOnextConfig where
@@ -317,17 +318,6 @@ lemma HORun_eq:
      (HOinitConfig A rho
    \<and> (\<forall>r. HOnextConfig A (rho r) (HOs r) (rho (Suc r))))"
   by (auto simp: HORun_def CHORun_def HOinitConfig_def HOnextConfig_def)
-
-text \<open>
-  Algorithms designed to tolerate benign failures are not subject to
-  message corruption, and therefore the SHO sets are irrelevant (more formally,
-  each SHO set equals the corresponding HO set). We define corresponding
-  special cases of the definitions of successor configurations and of runs,
-  and prove that these are equivalent to simpler definitions that will be more
-  useful in proofs. In particular, the vector of messages received by a process
-  in a benign execution is uniquely determined from the current configuration
-  and the HO sets.
-\<close>
 
 text \<open>
   The following derived proof rules are immediate consequences of
