@@ -277,9 +277,9 @@ text \<open>
 
 definition CSHOnextConfig where
   "CSHOnextConfig A cfg HO SHO coord cfg' \<equiv>
-   \<forall>p.  ( \<exists>s.  cfg  p = Active s \<longrightarrow>
+   \<forall>p s.    cfg  p = Active s \<longrightarrow>
          (\<exists>s'. cfg' p = Active s' \<and>
-         (\<exists>\<mu> \<in> SHOmsgVectors A p cfg (HO p) (SHO p). CnextState A p s \<mu> (coord p) s')))"
+         (\<exists>\<mu> \<in> SHOmsgVectors A p cfg (HO p) (SHO p). CnextState A p s \<mu> (coord p) s'))"
 
 definition CHOinitConfig where
   "CHOinitConfig A rho coord \<equiv>
@@ -308,9 +308,9 @@ definition SHOnextConfig where
 
 lemma SHOnextConfig_eq:
   "SHOnextConfig A cfg HO SHO cfg' = (
-    \<forall>p.  (\<exists>s.  cfg  p = Active s \<longrightarrow>
+    \<forall>p s.   cfg  p = Active s \<longrightarrow>
          (\<exists>s'. cfg' p = Active s' \<and>
-         (\<exists>\<mu> \<in> SHOmsgVectors A p cfg (HO p) (SHO p). nextState A p s \<mu> s'))))"
+         (\<exists>\<mu> \<in> SHOmsgVectors A p cfg (HO p) (SHO p). nextState A p s \<mu> s')))"
   by (auto simp: SHOnextConfig_def CSHOnextConfig_def SHOmsgVectors_def nextState_def)
 
 definition SHORun where
@@ -346,6 +346,17 @@ definition HOrcvdMsgs where
 
 lemma SHOmsgVectors_HO:
   "SHOmsgVectors A p cfg HO HO = {HOrcvdMsgs A p HO cfg}"
+proof
+  fix \<mu>
+  assume "\<mu> \<in> SHOmsgVectors A p cfg HO HO"
+  hence void:"\<forall>q. q \<in> HO \<longleftrightarrow> \<mu> q \<noteq> Void" and
+     act:"\<forall>q s. q \<in> HO \<inter> HO \<longrightarrow> (\<exists>s. cfg q = Active s \<longrightarrow> \<mu> q = Content (sendMsg A q p s))" and
+     asl:"\<forall>q. q \<in> HO \<inter> HO \<longrightarrow>      cfg q = Aslept   \<longrightarrow> \<mu> q = Bot" by (auto simp:SHOmsgVectors_def)
+  from void have "\<forall>q. q \<notin> HO \<longrightarrow> \<mu> q =  HOrcvdMsgs A p HO cfg q" by 
+  from act have "\<forall>q \<in> HO \<inter> HO. \<forall> s. cfg q = Active s \<longrightarrow> \<mu> q = HOrcvdMsgs A p HO cfg q" by 
+  from asl have "\<forall>q \<in> HO \<inter> HO. cfg q = Aslept   \<longrightarrow> \<mu> q =  HOrcvdMsgs A p HO cfg q" by 
+  from void and act and asl show  "\<mu> \<in> {HOrcvdMsgs A p HO cfg}" by 
+
   unfolding SHOmsgVectors_def HOrcvdMsgs_def by (auto simp:SHOmsgVectors_def HOrcvdMsgs_def)
 
 text \<open>With coordinators\<close>
