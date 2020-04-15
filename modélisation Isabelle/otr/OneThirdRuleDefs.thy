@@ -138,8 +138,8 @@ text \<open>
 \<close>
 
 definition OTR_nextState where
-  "OTR_nextState r p (st::('val::linorder) pstate) msgs st' \<equiv> 
-   if (2*N) div 3 < card {q. msgs q \<noteq> None}
+  "OTR_nextState p (st::('val::linorder) pstate) msgs st' \<equiv> 
+   if (2*N) div 3 < card {q. msgs q \<noteq> Void \<and> msgs q \<noteq> Bot}
    then st' = \<lparr> x = Min {v . MFR msgs v},
           decide = (if (\<exists>v. TwoThirds msgs v)
                     then Some (\<some>v. TwoThirds msgs v)
@@ -153,7 +153,7 @@ text \<open>
 \<close>
 
 definition OTR_sendMsg where
-  "OTR_sendMsg r p q st \<equiv> x st"
+  "OTR_sendMsg p q st \<equiv> x st"
 
 subsection \<open>Communication Predicate for \emph{One-Third Rule}\<close>
 
@@ -186,7 +186,7 @@ definition OTR_HOMachine where
   "OTR_HOMachine =
     \<lparr> CinitState =  (\<lambda> p st crd. OTR_initState p st),
      sendMsg =  OTR_sendMsg,
-     CnextState = (\<lambda> r p st msgs crd st'. OTR_nextState r p st msgs st'),
+     CnextState = (\<lambda> p st msgs crd st'. OTR_nextState p st msgs st'),
      HOcommPerRd = OTR_commPerRd,
      HOcommGlobal = OTR_commGlobal \<rparr>"
 

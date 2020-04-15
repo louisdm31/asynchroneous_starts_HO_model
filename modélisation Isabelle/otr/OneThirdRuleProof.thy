@@ -20,14 +20,19 @@ text \<open>
   new values.
 \<close>
 
-definition VInv where
+definition VInv :: "(nat \<Rightarrow> 'proc \<Rightarrow> 'val pstate proc_state) \<Rightarrow> nat \<Rightarrow> bool" where
   "VInv rho n \<equiv>
-   let xinit = (range (x \<circ> (rho 0)))
-   in  range (x \<circ> (rho n)) \<subseteq> xinit
-     \<and> range (decide \<circ> (rho n)) \<subseteq> {None} \<union> (Some ` xinit)"
+   let xinit =  {x s | s. \<exists>p. getInitValue rho p = Active s}
+   in \<forall>p. rho n p \<noteq> Aslept \<longrightarrow> (\<exists>s. rho n p = Active s \<and> x      s \<in> xinit)
+                           \<longrightarrow> (\<exists>s. rho n p = Active s \<and> decide s \<in> {None} \<union> (Some ` xinit))"
+
+fun machine_to_algo :: "('proc, 'pst, 'msg) HOMachine \<Rightarrow> ('proc, 'pst, 'msg) CHOAlgorithm" where
+"machine_to_algo \<lparr> CinitState = cin, sendMsg = sen, CnextState = nex,
+HOcommPerRd = per, HOcommGlobal = glo\<rparr> = \<lparr> CinitState = cin, sendMsg = sen, CnextState = nex\<rparr>"
 
 lemma vinv_invariant:
-  assumes run:"HORun OTR_M rho HOs"
+  assumes not_inf:"\<forall>p. \<exists>n. rho n p \<noteq> Aslept"
+  and run:"HORun OTR_M rho HOs"
   shows "VInv rho n"
 proof (induct n)
   from run show "VInv rho 0"

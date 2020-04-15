@@ -287,6 +287,10 @@ definition CHOinitConfig where
   "CHOinitConfig A rho coord \<equiv>
   \<forall>p (n::nat) s. (n > 0 \<longrightarrow> rho (n-1) p = Aslept) \<longrightarrow> rho n p = Active s \<longrightarrow> CinitState A p s (coord n p)"
 
+definition getInitValue :: "(nat \<Rightarrow> 'proc \<Rightarrow> 'pst proc_state) \<Rightarrow> 'proc \<Rightarrow> 'pst proc_state" where
+  "getInitValue rho p \<equiv>
+    rho (Min {n. rho n p \<noteq> Aslept }) p"
+
 definition CHORun where
   "CHORun A rho HOs coords \<equiv> CHOinitConfig A rho coords
    \<and> (\<forall>r. CHOnextConfig A (rho r) (HOs r) (coords (Suc r))
@@ -309,7 +313,8 @@ definition HOnextConfig where
   "HOnextConfig A cfg HO cfg' \<equiv>
    CHOnextConfig A cfg HO (\<lambda>q. undefined) cfg'"
 
-definition HORun where
+definition HORun :: "('proc, 'pst, 'msg) CHOAlgorithm \<Rightarrow>
+                      (nat \<Rightarrow> 'proc \<Rightarrow> 'pst proc_state) \<Rightarrow> (nat \<Rightarrow> 'proc \<Rightarrow> 'proc set) \<Rightarrow> bool" where
   "HORun A rho HOs \<equiv>
    CHORun A rho HOs (\<lambda>r q. undefined)"
 
