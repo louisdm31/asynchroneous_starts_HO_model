@@ -26,19 +26,49 @@ definition VInv :: "(nat \<Rightarrow> 'proc \<Rightarrow> 'val pstate proc_stat
    in \<forall>p. rho n p \<noteq> Aslept \<longrightarrow> (\<exists>s. rho n p = Active s \<and> x      s \<in> xinit)
                            \<longrightarrow> (\<exists>s. rho n p = Active s \<and> decide s \<in> {None} \<union> (Some ` xinit))"
 
-fun machine_to_algo :: "('proc, 'pst, 'msg) HOMachine \<Rightarrow> ('proc, 'pst, 'msg) CHOAlgorithm" where
-"machine_to_algo \<lparr> CinitState = cin, sendMsg = sen, CnextState = nex,
-HOcommPerRd = per, HOcommGlobal = glo\<rparr> = \<lparr> CinitState = cin, sendMsg = sen, CnextState = nex\<rparr>"
-
 lemma vinv_invariant:
   assumes not_inf:"\<forall>p. \<exists>n. rho n p \<noteq> Aslept"
-  and run:"HORun OTR_M rho HOs"
+  and run:"HORun (CHOAlgorithm OTR_M) rho HOs"
   shows "VInv rho n"
-proof (induct n)
-  from run show "VInv rho 0"
-    by (simp add: HORun_eq HOinitConfig_eq OTR_HOMachine_def initState_def
-                  OTR_initState_def VInv_def image_def)
-next
+proof -
+  have "\<forall> p::'a. \<forall>s::'b pstate. \<forall>n::nat. rho n p = Active s \<longrightarrow>
+      (\<exists> m q ss. (m = 0 \<or> rho (m-1) q = Aslept) \<and> rho m q = Active ss \<and> x ss = x s)"
+  proof
+    fix p :: 'a
+    show "\<forall>s::'b pstate. \<forall>n::nat. rho n p = Active s \<longrightarrow>
+      (\<exists> m q ss. (m = 0 \<or> rho (m-1) q = Aslept) \<and> rho m q = Active ss \<and> x ss = x s)"
+    proof
+      fix s :: "'b pstate "
+      show " \<forall>n::nat. rho n p = Active s \<longrightarrow>
+      (\<exists> m q ss. (m = 0 \<or> rho (m-1) q = Aslept) \<and> rho m q = Active ss \<and> x ss = x s)"
+       proof
+        fix n :: nat
+        show "rho n p = Active s \<longrightarrow>
+            (\<exists> m q ss. (m = 0 \<or> rho (m-1) q = Aslept) \<and> rho m q = Active ss \<and> x ss = x s)"
+        proof (induction n)
+          case 0
+          show ?case
+          proof
+            assume  pst:"rho 0 p = Active s"
+            hence "0 = 0 \<and> rho 0 p = Active s \<and> x s = x s" by auto
+            thus "\<exists> m q ss. (m = 0 \<or> rho (m-1) q = Aslept) \<and> rho m q = Active ss \<and> x ss = x s" by auto
+          qed
+        next
+          case (Suc n)
+          show ?case
+          proof
+            have "CHOnextConfig (CHOAlgorithm OTR_M) (rho n) (HOs n) (\<lambda>l. undefined) (rho (Suc n))"
+              using run by (auto simp:HORun_def CHORun_def)
+            thus "\<exists> m q ss. (m = 0 \<or> rho (m-1) q = Aslept) \<and> rho m q = Active ss \<and> x ss = x s"
+            proof (cases (rho n p))
+              case Aslept
+
+
+
+ assume pst:"rho n p = Active s"
+    have "(\<exists> m q ss. (m = 0 \<or> rho (m-1) q = Aslept) \<and> rho m q = Active ss \<and> x ss = x s )"
+   
+
   fix m
   assume ih: "VInv rho m"
   let ?xinit = "range (x \<circ> (rho 0))"
