@@ -28,7 +28,9 @@ definition VInv :: "(nat \<Rightarrow> Proc \<Rightarrow> ('val::linorder) pstat
 
 lemma vinv_invariant:
   assumes not_inf:"\<forall>p. \<exists>n. rho n p \<noteq> Aslept"
-  and run:"HORun ((CHOAlgorithm OTR_M)::(Proc, 'val::linorder pstate, 'val) CHOAlgorithm) rho HOs"
+  and run:"HORun (\<lparr> CinitState = CinitState OTR_M, sendMsg = sendMsg OTR_M, CnextState = CnextState OTR_M \<rparr>
+                  ::(Proc, 'val::linorder pstate, 'val) CHOAlgorithm)
+                  rho HOs"
     (is "HORun ?A rho HOs")
   shows "VInv rho n"
 proof -
@@ -68,8 +70,9 @@ proof -
               hence "\<exists> m. (rho (m-1) p = Aslept) \<and> rho m p = Active s \<and> x s = x s" by blast
               thus "\<exists> m q ss. (m = 0 \<or> rho (m-1) q = Aslept) \<and> rho m q = Active ss \<and> x ss = x s" by auto
             next
-              assume "\<exists>ss. rho n p = Active ss"
-              then obtain ss where "rho n p = Active ss" by auto
+              assume "rho n p \<noteq> Aslept" (is "?st \<noteq> Aslept")
+              hence "\<exists>ss. rho n p = Active ss" by (cases ?st) auto
+              then obtain ss where actt:"rho n p = Active ss" by auto
               hence "\<exists>s'. rho (Suc n) p = Active s' \<and>
                       CnextState ?A p ss (HOrcvdMsgs ?A p (HOs n p) (rho n)) undefined s'"
                 (is "\<exists>s'. _ \<and> CnextState ?A p ss ?rcvd undefined s'")
@@ -78,10 +81,48 @@ proof -
                       CnextState ?A p ss ?rcvd undefined s'" by auto
               hence "s = s'" using pst by auto
               hence nst:"CnextState ?A p ss ?rcvd undefined s" using nxx by auto
-              have "CnextState (CHOAlgorithm OTR_M)  = (\<lambda> p st msgs crd st'. OTR_nextState p st msgs st')"
-                by (auto simp:OTR_HOMachine_def)
               hence "OTR_nextState p ss ?rcvd s" by (auto simp:OTR_HOMachine_def)
+              hence "(s \<noteq> ss \<and> x s = Min {v. MFR ?rcvd v}) \<or> s = ss" by (auto simp:OTR_nextState_def)
+              thus "\<exists> m q ss. (m = 0 \<or> rho (m-1) q = Aslept) \<and> rho m q = Active ss \<and> x ss = x s"
+              proof
+                assume "s = ss"
+                hence "\<exists>m q ss. (m = 0 \<or> rho (m - 1) q = Aslept) \<and> rho m q = Active ss \<and> x ss = x s"
+                  using actt Suc.IH by auto
+                thus ?thesis using Suc.IH by auto
+              next
+                assume dans:"s \<noteq> ss \<and> x s =  Min {v. MFR ?rcvd v}" (is "_ \<and> x s = Min ?ens")
+                have "card ?ens = 1 \<or> card ?ens = 0 \<or> card ?ens > 1"
+                  by auto
+                hence "MFR ?rcvd ((x s)::'val::linorder)"
+                proof 
+                  assume "card ?ens = 1"
+                  hence "\<exists>sss. ?ens = {sss}" using card_def using card_1_singletonE by blast
+                  hence "?ens = {x s}" unfolding Min_def using dans by force
+                  hence ?thesis by auto
+                next
+                  assume "card ?ens = 0"
+                  have "card ?ens > 0"
+                  proof -
+                    assume "card ?ens = 0"
+                    have "\<forall>v. v \<notin> ?ens"
+                    proof (rule ccontr)
+                      assume "\<not> (\<forall>v. v \<notin> ?ens)"
+                      hence "\<exists>v. v \<in> ?ens" by auto
+                      then obtain v where "v \<in> ?ens" by auto
+                      hence "v \<in> ?ens" by auto
+                      hence "card ?ens > 0" 
 
+                      hence "{v} \<subset> ?ens"
+                        by (metis \<open>card {v. MFR ?rcvd v} = 0\<close> card_Suc_eq card_empty
+                                empty_iff empty_subsetI insert_subset less_le)
+                      hence "card {v} \<le> card ?ens" by 
+
+                    hence "?ens = {}" 
+                    hence "{v. MFR ?rcvd v} = {}" by auto
+                    hence "\<forall>v. \<not> (MFR ?rcvd v)" by blast
+                    hence "\<forall>vv vvv. card (HOV ?rcvd vv) \<le> card (HOV ?rcvd vvv)" unfolding MFR_def by auto
+                    have "s \<noteq> ss" using dans by auto
+                  hence "False" unfolding Min_def using dans by force
 
 
 
