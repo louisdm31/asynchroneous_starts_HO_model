@@ -20,7 +20,7 @@ text \<open>
   new values.
 \<close>
 
-definition VInv :: "(nat \<Rightarrow> 'proc \<Rightarrow> 'val pstate proc_state) \<Rightarrow> nat \<Rightarrow> bool" where
+definition VInv :: "(nat \<Rightarrow> Proc \<Rightarrow> ('val::linorder) pstate proc_state) \<Rightarrow> nat \<Rightarrow> bool" where
   "VInv rho n \<equiv>
    let xinit =  {x s | s. \<exists>p. getInitValue rho p = Active s}
    in \<forall>p. rho n p \<noteq> Aslept \<longrightarrow> (\<exists>s. rho n p = Active s \<and> x      s \<in> xinit)
@@ -28,17 +28,18 @@ definition VInv :: "(nat \<Rightarrow> 'proc \<Rightarrow> 'val pstate proc_stat
 
 lemma vinv_invariant:
   assumes not_inf:"\<forall>p. \<exists>n. rho n p \<noteq> Aslept"
-  and run:"HORun (CHOAlgorithm OTR_M) rho HOs"
+  and run:"HORun ((CHOAlgorithm OTR_M)::(Proc, 'val::linorder pstate, 'val) CHOAlgorithm) rho HOs"
+    (is "HORun ?A rho HOs")
   shows "VInv rho n"
 proof -
-  have "\<forall> p::'a. \<forall>s::'b pstate. \<forall>n::nat. rho n p = Active s \<longrightarrow>
+  have "\<forall> p::Proc. \<forall>s::'val pstate. \<forall>n::nat. rho n p = Active s \<longrightarrow>
       (\<exists> m q ss. (m = 0 \<or> rho (m-1) q = Aslept) \<and> rho m q = Active ss \<and> x ss = x s)"
   proof
-    fix p :: 'a
-    show "\<forall>s::'b pstate. \<forall>n::nat. rho n p = Active s \<longrightarrow>
+    fix p :: Proc
+    show "\<forall>s::'val pstate. \<forall>n::nat. rho n p = Active s \<longrightarrow>
       (\<exists> m q ss. (m = 0 \<or> rho (m-1) q = Aslept) \<and> rho m q = Active ss \<and> x ss = x s)"
     proof
-      fix s :: "'b pstate "
+      fix s :: "'val pstate "
       show " \<forall>n::nat. rho n p = Active s \<longrightarrow>
       (\<exists> m q ss. (m = 0 \<or> rho (m-1) q = Aslept) \<and> rho m q = Active ss \<and> x ss = x s)"
        proof
@@ -57,11 +58,30 @@ proof -
           case (Suc n)
           show ?case
           proof
-            have "CHOnextConfig (CHOAlgorithm OTR_M) (rho n) (HOs n) (\<lambda>l. undefined) (rho (Suc n))"
+            assume pst:"rho (Suc n) p = Active s"
+            have nex:"CHOnextConfig ?A (rho n) (HOs n) (\<lambda>l. undefined) (rho (Suc n))"
               using run by (auto simp:HORun_def CHORun_def)
             thus "\<exists> m q ss. (m = 0 \<or> rho (m-1) q = Aslept) \<and> rho m q = Active ss \<and> x ss = x s"
-            proof (cases (rho n p))
-              case Aslept
+            proof (cases)
+              assume "rho n p = Aslept"
+              hence "rho ((Suc n)-1) p = Aslept \<and> rho (Suc n) p = Active s \<and> x s = x s" using pst by auto
+              hence "\<exists> m. (rho (m-1) p = Aslept) \<and> rho m p = Active s \<and> x s = x s" by blast
+              thus "\<exists> m q ss. (m = 0 \<or> rho (m-1) q = Aslept) \<and> rho m q = Active ss \<and> x ss = x s" by auto
+            next
+              assume "\<exists>ss. rho n p = Active ss"
+              then obtain ss where "rho n p = Active ss" by auto
+              hence "\<exists>s'. rho (Suc n) p = Active s' \<and>
+                      CnextState ?A p ss (HOrcvdMsgs ?A p (HOs n p) (rho n)) undefined s'"
+                (is "\<exists>s'. _ \<and> CnextState ?A p ss ?rcvd undefined s'")
+                using nex by (auto simp:CHOnextConfig_def)
+              then obtain s' where nxx:"rho (Suc n) p = Active s'\<and>
+                      CnextState ?A p ss ?rcvd undefined s'" by auto
+              hence "s = s'" using pst by auto
+              hence nst:"CnextState ?A p ss ?rcvd undefined s" using nxx by auto
+              have "CnextState (CHOAlgorithm OTR_M)  = (\<lambda> p st msgs crd st'. OTR_nextState p st msgs st')"
+                by (auto simp:OTR_HOMachine_def)
+              hence "OTR_nextState p ss ?rcvd s" by (auto simp:OTR_HOMachine_def)
+
 
 
 

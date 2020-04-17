@@ -274,7 +274,9 @@ fun HOrcvMsgs_q :: "'proc \<Rightarrow> ('proc, 'pst, 'msg) CHOAlgorithm  \<Righ
  "HOrcvMsgs_q q A p (Active s) = Content (sendMsg A q p s)" |
  "HOrcvMsgs_q q A p Aslept = Bot"
 
-definition HOrcvdMsgs where
+definition HOrcvdMsgs :: "('proc, 'pst, 'a) CHOAlgorithm \<Rightarrow> 'proc \<Rightarrow>
+                          'proc set \<Rightarrow> ('proc \<Rightarrow> 'pst proc_state)
+                          \<Rightarrow> 'proc \<Rightarrow> 'a message" where
   "HOrcvdMsgs A p HO cfg \<equiv>
    \<lambda>q. if q \<in> HO then HOrcvMsgs_q q A p (cfg q) else Void"
 
@@ -369,5 +371,6 @@ record ('proc, 'pst, 'msg) HOMachine = "('proc, 'pst, 'msg) CHOAlgorithm" +
 record ('proc, 'pst, 'msg) CHOMachine = "('proc, 'pst, 'msg) CHOAlgorithm" +
   CHOcommPerRd::"nat \<Rightarrow> 'proc HO \<Rightarrow> 'proc coord \<Rightarrow> bool"
   CHOcommGlobal::"(nat \<Rightarrow> 'proc HO) \<Rightarrow> (nat \<Rightarrow> 'proc coord) \<Rightarrow> bool"
+
 
 end \<comment> \<open>theory HOModel\<close>

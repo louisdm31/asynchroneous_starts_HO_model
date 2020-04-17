@@ -190,6 +190,8 @@ definition OTR_HOMachine where
      HOcommPerRd = OTR_commPerRd,
      HOcommGlobal = OTR_commGlobal \<rparr>"
 
+
+
 abbreviation "OTR_M \<equiv> OTR_HOMachine::(Proc, 'val::linorder pstate, 'val) HOMachine"
 
 end
