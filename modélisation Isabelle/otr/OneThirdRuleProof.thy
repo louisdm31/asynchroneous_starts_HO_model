@@ -81,7 +81,7 @@ proof -
                       CnextState ?A p ss ?rcvd undefined s'" by auto
               hence "s = s'" using pst by auto
               hence nst:"CnextState ?A p ss ?rcvd undefined s" using nxx by auto
-              hence "OTR_nextState p ss ?rcvd s" by (auto simp:OTR_HOMachine_def)
+              hence otrn:"OTR_nextState p ss ?rcvd s" by (auto simp:OTR_HOMachine_def)
               hence "(s \<noteq> ss \<and> x s = Min {v. MFR ?rcvd v}) \<or> s = ss" by (auto simp:OTR_nextState_def)
               thus "\<exists> m q ss. (m = 0 \<or> rho (m-1) q = Aslept) \<and> rho m q = Active ss \<and> x ss = x s"
               proof
@@ -91,6 +91,22 @@ proof -
                 thus ?thesis using Suc.IH by auto
               next
                 assume dans:"s \<noteq> ss \<and> x s =  Min {v. MFR ?rcvd v}" (is "_ \<and> x s = Min ?ens")
+                hence "card {q. ?rcvd q \<noteq> Bot \<and> ?rcvd q \<noteq> Void} > (2*N) div 3"
+                proof
+                  have "\<forall>msgs st st'. OTR_nextState p (st::('val::linorder) pstate) msgs st' \<longrightarrow>
+                      (2*N) div 3 \<ge> card {q. msgs q \<noteq> Void \<and> msgs q \<noteq> Bot} \<longrightarrow> st = st'"
+                    by (auto simp:OTR_nextState_def)
+                  hence "(2*N) div 3 \<ge> card {q. ?rcvd q \<noteq> Void \<and> ?rcvd q \<noteq> Bot} \<longrightarrow> s = ss"
+                    using otrn by auto
+                  hence " (card {q. ?rcvd q \<noteq> Void \<and> ?rcvd q \<noteq> Bot} > (2*N) div 3)" using dans by auto                
+                  thus ?thesis by (metis (no_types, lifting) Collect_cong)
+                qed
+                hence "card {q. ?rcvd q \<noteq> Bot \<and> ?rcvd q \<noteq> Void} > 0" by auto
+                (*hence "finite {q. ?rcvd q \<noteq> Bot \<and> ?rcvd q \<noteq> Void}" using finite by blast
+                hence "finite {q. ?rcvd q \<noteq> Void}" using finite_code by blast*)
+                hence "\<exists>q. q \<in> {q. ?rcvd q \<noteq> Bot \<and> ?rcvd q \<noteq> Void}" by (simp add: less_le)
+                then obtain q where "?rcvd q \<noteq> Void \<and> ?rcvd q \<noteq> Bot" by auto
+                hence excont:"\<exists>v. ?rcvd q = Content v" (is "\<exists>v. ?q = _") by (cases ?q) auto
                 have "card ?ens = 1 \<or> card ?ens = 0 \<or> card ?ens > 1"
                   by auto
                 hence "MFR ?rcvd ((x s)::'val::linorder)"
@@ -100,28 +116,45 @@ proof -
                   hence "?ens = {x s}" unfolding Min_def using dans by force
                   hence ?thesis by auto
                 next
-                  assume "card ?ens = 0"
-                  have "card ?ens > 0"
-                  proof -
-                    assume "card ?ens = 0"
-                    have "\<forall>v. v \<notin> ?ens"
-                    proof (rule ccontr)
-                      assume "\<not> (\<forall>v. v \<notin> ?ens)"
-                      hence "\<exists>v. v \<in> ?ens" by auto
-                      then obtain v where "v \<in> ?ens" by auto
-                      hence "v \<in> ?ens" by auto
-                      hence "card ?ens > 0" 
+                  assume zer:"card ?ens = 0"
+                  hence "?ens = {} \<or> infinite ?ens" by (simp add:card_eq_0_iff)
+                  have "\<forall>v. v \<notin> ?ens"
+                  proof cases
+                    assume "?ens = {}"
+                    thus ?thesis by auto
+                  next
+                    assume infens:"infinite ?ens"
+                    have "\<exists>v. ?rcvd q = Content v" using excont by auto
+                    hence "\<exists>v. q \<in> HOV ?rcvd v" using HOV_def by (simp add: HOV_def)
+                    hence exval:"\<exists>v. card (HOV ?rcvd v) \<ge> 1"
+                      by (metis One_nat_def Suc_leI card_eq_0_iff empty_iff finite_code not_gr_zero)
+                    hence "\<forall>qq. MFR ?rcvd qq \<longrightarrow> card (HOV ?rcvd qq) \<ge> 1"
+                      using MFR_def order.trans by fastforce
+                    moreover have "\<forall>qq. card (HOV ?rcvd qq) \<ge> 1 \<longrightarrow> (\<exists>pp. ?rcvd pp = Content qq)"
+                      using HOV_def
+                      by (smt Collect_empty_eq One_nat_def card.empty nat.simps(3) zero_order(2))
+                    ultimately have "\<forall>qq. MFR ?rcvd qq \<longrightarrow> (\<exists>pp. ?rcvd pp = Content qq)" by auto
+                    hence "?ens \<subseteq> {qq. \<exists>pp. ?rcvd pp = Content qq}" by auto
+                    hence "infinite {qq. \<exists>pp. ?rcvd pp = Content qq}"
+                      using infens rev_finite_subset by blast
+                    hence "False"
+                    proof
+                      have "finite {pp :: Proc. True}" by auto
+                      hence "finite {v. \<exists>p. ?rcvd p = v}" by (smt Collect_cong finite_image_set)
+                      hence "\<not> infinite {v. \<exists>p. ?rcvd p = Content v}"
+                      proof
+                        assume "infinite {v. \<exists>p. ?rcvd p = Content v}"
+                        hence  "infinite (Content` {v. \<exists>p. ?rcvd p = Content v})"
+                          by sledgehamme
+                        moreover have "Content` {v. \<exists>p. ?rcvd p = Content v} \<subseteq> {v. \<exists>p. ?rcvd p = v}"
+                          by blast
+                        ultimately have "infinite {v. \<exists>p. ?rcvd p = v}"
+                    hence "infinite {pp. \<exists>qq. ?rcvd pp = Content qq}"
+                  qed
 
-                      hence "{v} \<subset> ?ens"
-                        by (metis \<open>card {v. MFR ?rcvd v} = 0\<close> card_Suc_eq card_empty
-                                empty_iff empty_subsetI insert_subset less_le)
-                      hence "card {v} \<le> card ?ens" by 
-
-                    hence "?ens = {}" 
-                    hence "{v. MFR ?rcvd v} = {}" by auto
-                    hence "\<forall>v. \<not> (MFR ?rcvd v)" by blast
-                    hence "\<forall>vv vvv. card (HOV ?rcvd vv) \<le> card (HOV ?rcvd vvv)" unfolding MFR_def by auto
-                    have "s \<noteq> ss" using dans by auto
+                  hence "\<forall>v. \<not> (MFR ?rcvd v)" by blast
+                  hence "\<forall>vv vvv. card (HOV ?rcvd vv) \<le> card (HOV ?rcvd vvv)" unfolding MFR_def by auto
+                  have "s \<noteq> ss" using dans by auto
                   hence "False" unfolding Min_def using dans by force
 
 
