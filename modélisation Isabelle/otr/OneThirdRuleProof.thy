@@ -1,5 +1,5 @@
 theory OneThirdRuleProof
-imports OneThirdRuleDefs "../Reduction" "../Majorities"
+imports OneThirdRuleDefs 
 begin
 
 text \<open>
@@ -184,28 +184,22 @@ proof -
                   thus ?thesis by (metis (no_types, lifting) Collect_cong)
                 qed
                 hence "card {q. ?rcvd q \<noteq> Bot \<and> ?rcvd q \<noteq> Void} > 0" by auto
-                (*hence "finite {q. ?rcvd q \<noteq> Bot \<and> ?rcvd q \<noteq> Void}" using finite by blast
-                hence "finite {q. ?rcvd q \<noteq> Void}" using finite_code by blast*)
-                hence "\<exists>q. q \<in> {q. ?rcvd q \<noteq> Bot \<and> ?rcvd q \<noteq> Void}" by (simp add: less_le)
-                then obtain q where "?rcvd q \<noteq> Void \<and> ?rcvd q \<noteq> Bot" by auto
+                then obtain q where "?rcvd q \<noteq> Void \<and> ?rcvd q \<noteq> Bot" by (auto simp: less_le)
                 hence excont:"\<exists>v. ?rcvd q = Content v" (is "\<exists>v. ?q = _") by (cases ?q) auto
-                have "card ?ens = 1 \<or> card ?ens = 0 \<or> card ?ens > 1"
-                  by auto
+                have "\<exists>v. q \<in> (HOV ?rcvd v)" using excont HOV_def by fastforce
+                then obtain v where cardun:"card (HOV ?rcvd v) > 0" using less_Suc_eq_0_disj by fastforce
+                have "card ?ens = 1 \<or> card ?ens = 0 \<or> card ?ens > 1" by auto
                 hence "MFR ?rcvd ((x s)::'val::linorder)"
-                proof 
-                  assume "card ?ens = 1"
-                  hence "\<exists>sss. ?ens = {sss}" using card_def using card_1_singletonE by blast
-                  hence "?ens = {x s}" unfolding Min_def using dans by force
-                  hence ?thesis by auto
-                next
+                proof cases
                   assume zer:"card ?ens = 0"
-                  hence "?ens = {} \<or> infinite ?ens" by (simp add:card_eq_0_iff)
-                  have "\<forall>v. v \<notin> ?ens"
+                  hence vidinfi:"?ens = {} \<or> infinite ?ens" by (simp add:card_eq_0_iff)
+                  hence "\<forall>v. v \<notin> ?ens"
                   proof cases
                     assume "?ens = {}"
                     thus ?thesis by auto
                   next
-                    assume infens:"infinite ?ens"
+                    assume "?ens \<noteq> {}"
+                    hence infens:"infinite ?ens" using vidinfi by blast
                     have "\<exists>v. ?rcvd q = Content v" using excont by auto
                     hence "\<exists>v. q \<in> HOV ?rcvd v" using HOV_def by (simp add: HOV_def)
                     hence exval:"\<exists>v. card (HOV ?rcvd v) \<ge> 1"
@@ -217,7 +211,7 @@ proof -
                       by (smt Collect_empty_eq One_nat_def card.empty nat.simps(3) zero_order(2))
                     ultimately have "\<forall>qq. MFR ?rcvd qq \<longrightarrow> (\<exists>pp. ?rcvd pp = Content qq)" by auto
                     hence "?ens \<subseteq> {qq. \<exists>pp. ?rcvd pp = Content qq}" by auto
-                    hence "infinite {qq. \<exists>pp. ?rcvd pp = Content qq}"
+                    hence infini:"infinite {qq. \<exists>pp. ?rcvd pp = Content qq}"
                       using infens rev_finite_subset by blast
 
                     have "finite {pp :: Proc. True}" by auto
@@ -227,17 +221,29 @@ proof -
                     ultimately have fincontens:"finite {Content v | v.  \<exists>p. ?rcvd p = Content v}"
                       by (meson rev_finite_subset)
                     moreover have "\<forall>vv1 vv2. Content vv1 = Content vv2 \<longrightarrow> vv1 = vv2" by auto
-                    ultimately have "finite {v. \<exists>p. ?rcvd p = Content v}" using tiroir2  by auto
-
-                   
-                    hence "infinite {pp. \<exists>qq. ?rcvd pp = Content qq}"
+                    ultimately have "finite {v. \<exists>p. ?rcvd p = Content v}" using tiroir2  by force
+                    hence "False" using infini by auto
+                    thus ?thesis by auto
                   qed
-
-                  hence "\<forall>v. \<not> (MFR ?rcvd v)" by blas
-                  hence "\<forall>vv vvv. card (HOV ?rcvd vv) \<le> card (HOV ?rcvd vvv)" unfolding MFR_def by auto
-                  have "s \<noteq> ss" using dans by auto
-                  hence "False" unfolding Min_def using dans by force
-
+                  hence "\<forall>v. \<not> (MFR ?rcvd v)" by simp
+                  hence "False" using MFR_exists by fastforce
+                  thus ?thesis by auto
+                next
+                  assume "card ?ens \<noteq> 0"
+                  hence "finite ?ens" by (meson card_infinite)
+                  thus ?thesis using Min_in \<open>card ?ens \<noteq> 0\<close> dans by auto
+                qed
+                hence "card (HOV ?rcvd (x s)) \<ge> card (HOV ?rcvd v)" using MFR_def by fastforce
+                hence "card (HOV ?rcvd (x s)) > 0" using cardun MFR_def by auto
+                then obtain emet where rcemet:"?rcvd emet = Content (x s)"
+                  by (auto simp:HOV_def card_gt_0_iff)
+                hence "rho n emet \<noteq> Aslept" using HOrcvdMsgs_def
+                  by (metis HOrcvMsgs_q.simps(2) message.distinct(1) message.distinct(3))
+                then obtain semet where "rho n emet = Active semet" by (cases "rho n emet") auto
+                hence "x semet = x s" using rcemet
+                  by (simp add: HOrcvdMsgs_def OTR_HOMachine_def OTR_sendMsg_def)
+                hence "(\<exists> m q ss. (m = 0 \<or> rho (m-1) q = Aslept) \<and> rho m q = Active ss \<and> x ss = x semet )"
+                  using Suc.IH by 
 
 
  assume pst:"rho n p = Active s"
