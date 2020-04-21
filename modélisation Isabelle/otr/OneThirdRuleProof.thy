@@ -23,8 +23,7 @@ text \<open>
 definition VInv :: "(nat \<Rightarrow> Proc \<Rightarrow> ('val::linorder) pstate proc_state) \<Rightarrow> nat \<Rightarrow> bool" where
   "VInv rho n \<equiv>
    let xinit =  {x s | s. \<exists>p. getInitValue rho p = Active s}
-   in \<forall>p. rho n p \<noteq> Aslept \<longrightarrow> (\<exists>s. rho n p = Active s \<and> x      s \<in> xinit)
-                           \<longrightarrow> (\<exists>s. rho n p = Active s \<and> decide s \<in> {None} \<union> (Some ` xinit))"
+   in \<forall>p s. rho n p = Active s \<longrightarrow> (x s \<in> xinit \<and> decide s \<in> {None} \<union> (Some ` xinit))"
 
 lemma tiroir: assumes fini:"finite {v. E v}" shows "finite {f v | v. E v}"
 proof -
@@ -116,7 +115,7 @@ lemma vinv_invariant:
     (is "HORun ?A rho HOs")
   shows "VInv rho n"
 proof -
-  have "\<forall> p::Proc. \<forall>s::'val pstate. \<forall>n::nat. rho n p = Active s \<longrightarrow>
+  have pro:"\<forall> p::Proc. \<forall>s::'val pstate. \<forall>n::nat. rho n p = Active s \<longrightarrow>
       (\<exists> m q ss. (m = 0 \<or> rho (m-1) q = Aslept) \<and> rho m q = Active ss \<and> x ss = x s)"
   proof
     fix p :: Proc
@@ -130,7 +129,7 @@ proof -
         fix n :: nat
         show "rho n p = Active s \<longrightarrow>
             (\<exists> m q ss. (m = 0 \<or> rho (m-1) q = Aslept) \<and> rho m q = Active ss \<and> x ss = x s)"
-        proof (induction n)
+        proof (induction n arbitrary:s p)
           case 0
           show ?case
           proof
@@ -239,16 +238,48 @@ proof -
                   by (auto simp:HOV_def card_gt_0_iff)
                 hence "rho n emet \<noteq> Aslept" using HOrcvdMsgs_def
                   by (metis HOrcvMsgs_q.simps(2) message.distinct(1) message.distinct(3))
-                then obtain semet where "rho n emet = Active semet" by (cases "rho n emet") auto
-                hence "x semet = x s" using rcemet
+                then obtain semet where semetdef:"rho n emet = Active semet" by (cases "rho n emet") auto
+                hence "\<exists> m q ss. (m = 0 \<or> rho (m-1) q = Aslept) \<and> rho m q = Active ss \<and> x ss = x semet"
+                  using Suc.IH by auto
+                moreover have "x semet = x s" using rcemet semetdef
                   by (simp add: HOrcvdMsgs_def OTR_HOMachine_def OTR_sendMsg_def)
-                hence "(\<exists> m q ss. (m = 0 \<or> rho (m-1) q = Aslept) \<and> rho m q = Active ss \<and> x ss = x semet )"
-                  using Suc.IH by 
+                ultimately show "\<exists> m q ss. (m = 0 \<or> rho (m-1) q = Aslept) \<and> rho m q = Active ss \<and> x ss = x s"
+                  by auto
+              qed
+            qed
+          qed
+        qed
+      qed
+    qed
+  qed
+  let ?xinit = "{x s | s. \<exists>p. getInitValue rho p = Active s}"
+  have "\<forall>p s. rho n p = Active s \<longrightarrow>
+      (x s \<in> ?xinit \<and> decide s \<in> {None} \<union> (Some ` ?xinit))"
+  proof
+    fix p
+    show "\<forall>s. rho n p = Active s \<longrightarrow>
+      (x s \<in> ?xinit) \<and> decide s \<in> {None} \<union> (Some ` ?xinit)"
+    proof
+      fix s
+      show "rho n p = Active s \<longrightarrow>
+      (x s \<in> ?xinit) \<and> decide s \<in> {None} \<union> (Some ` ?xinit)"
+      proof
+        assume "rho n p = Active s"
+        then obtain m q ss where "m = 0 \<or> rho (m-1) q = Aslept"
+                              and qact:"rho m q = Active ss" and "x ss = x s"
+          using pro by meson
+        hence "Active ss = getInitValue rho q"
+        proof cases
+          assume "m = 0"
+          hence nonasl:"\<forall>n. rho n q \<noteq> Aslept" using nonAsleepAgain qact run HORun_def
+            by (metis add.right_neutral proc_state.distinct(1))
+          hence "{n + 1 | n. rho n q = Aslept } \<union> {0} = {0}" by simp
+          hence "0 = Max ({n + 1 | n. rho n q = Aslept } \<union> {0})" using qact by (metis Max_singleton)
+          hence "rho 0 q = getInitValue rho q" by (simp add: nonasl getInitValue_def)
+          thus ?thesis using qact by (simp add: \<open>m = 0\<close>)
+        next
+        show "x s \<in> ?xinit \<and> decide s \<in> {None} \<union> (Some ` ?xinit)"
 
-
- assume pst:"rho n p = Active s"
-    have "(\<exists> m q ss. (m = 0 \<or> rho (m-1) q = Aslept) \<and> rho m q = Active ss \<and> x ss = x s )"
-   
 
   fix m
   assume ih: "VInv rho m"

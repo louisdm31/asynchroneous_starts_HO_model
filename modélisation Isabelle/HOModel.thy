@@ -290,13 +290,28 @@ definition CHOinitConfig where
   \<forall>p (n::nat) s. (n > 0 \<longrightarrow> rho (n-1) p = Aslept) \<longrightarrow> rho n p = Active s \<longrightarrow> CinitState A p s (coord n p)"
 
 definition getInitValue :: "(nat \<Rightarrow> 'proc \<Rightarrow> 'pst proc_state) \<Rightarrow> 'proc \<Rightarrow> 'pst proc_state" where
-  "getInitValue rho p \<equiv>
-    rho (Min {n. rho n p \<noteq> Aslept }) p"
+  "getInitValue rho p \<equiv> if \<forall>n. rho n p = Aslept then Aslept else
+    rho (Max ({n + 1 | n. rho n p = Aslept } \<union> {0})) p"
+
 
 definition CHORun where
   "CHORun A rho HOs coords \<equiv> CHOinitConfig A rho coords
    \<and> (\<forall>r. CHOnextConfig A (rho r) (HOs r) (coords (Suc r))
                              (rho (Suc r)))"
+
+lemma nonAsleepAgain : assumes "rho n p \<noteq> Aslept" and "CHORun A rho HO coord"
+  shows "rho ((m::nat)+n) p \<noteq> Aslept"
+proof (induction m)
+  case 0
+  show "rho (0+n) p \<noteq> Aslept" using assms by auto
+next
+  case (Suc x)
+  assume "rho (x+n) p \<noteq> Aslept"
+  hence "\<exists>s. rho (x + n) p = Active s" by (cases "rho (x+n) p") auto
+  hence "\<exists>s. rho (Suc x + n) p = Active s"
+    using assms CHORun_def CHORun_def CHOnextConfig_def by (metis add.commute add_Suc_right)
+  then show ?case by (cases "rho (Suc x + n) p") auto
+qed
 
 text \<open>
   For non-coordinated algorithms. the \<open>coord\<close> arguments of the above functions
