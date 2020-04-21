@@ -40,7 +40,7 @@ text \<open>
 
 record 'val pstate =
   x :: "'val"
-  decide :: "'val option"
+  decide :: bool
 
 text \<open>
   The initial value of field \<open>x\<close> is unconstrained, but no decision
@@ -48,7 +48,7 @@ text \<open>
 \<close>
 
 definition OTR_initState where
-  "OTR_initState p st \<equiv> decide st = None"
+  "OTR_initState p st \<equiv> decide st = False"
 
 text \<open>
   Given a vector \<open>msgs\<close> of values (possibly null) received from 
@@ -141,9 +141,7 @@ definition OTR_nextState where
   "OTR_nextState p (st::('val::linorder) pstate) msgs st' \<equiv> 
    if (2*N) div 3 < card {q. msgs q \<noteq> Void \<and> msgs q \<noteq> Bot}
    then st' = \<lparr> x = Min {v . MFR msgs v},
-          decide = (if (\<exists>v. TwoThirds msgs v)
-                    then Some (\<some>v. TwoThirds msgs v)
-                    else decide st) \<rparr>
+          decide = \<exists>v. TwoThirds msgs v \<rparr>
    else st' = st"
 
 text \<open>

@@ -23,7 +23,7 @@ text \<open>
 definition VInv :: "(nat \<Rightarrow> Proc \<Rightarrow> ('val::linorder) pstate proc_state) \<Rightarrow> nat \<Rightarrow> bool" where
   "VInv rho n \<equiv>
    let xinit =  {x s | s. \<exists>p. getInitValue rho p = Active s}
-   in \<forall>p s. rho n p = Active s \<longrightarrow> (x s \<in> xinit \<and> decide s \<in> {None} \<union> (Some ` xinit))"
+   in \<forall>p s. rho n p = Active s \<longrightarrow> x s \<in> xinit"
 
 lemma tiroir: assumes fini:"finite {v. E v}" shows "finite {f v | v. E v}"
 proof -
@@ -253,16 +253,13 @@ proof -
     qed
   qed
   let ?xinit = "{x s | s. \<exists>p. getInitValue rho p = Active s}"
-  have "\<forall>p s. rho n p = Active s \<longrightarrow>
-      (x s \<in> ?xinit \<and> decide s \<in> {None} \<union> (Some ` ?xinit))"
+  have "\<forall>p s. rho n p = Active s \<longrightarrow> x s \<in> ?xinit"
   proof
     fix p
-    show "\<forall>s. rho n p = Active s \<longrightarrow>
-      (x s \<in> ?xinit) \<and> decide s \<in> {None} \<union> (Some ` ?xinit)"
+    show "\<forall>s. rho n p = Active s \<longrightarrow> x s \<in> ?xinit"
     proof
       fix s
-      show "rho n p = Active s \<longrightarrow>
-      (x s \<in> ?xinit) \<and> decide s \<in> {None} \<union> (Some ` ?xinit)"
+      show "rho n p = Active s \<longrightarrow> x s \<in> ?xinit"
       proof
         assume "rho n p = Active s"
         then obtain m q ss where toto:"m = 0 \<or> rho (m-1) q = Aslept"
@@ -295,107 +292,13 @@ proof -
           hence "rho m q = getInitValue rho q" by (simp add:getInitValue_def)
           thus "Active ss = getInitValue rho q" using qact by auto
         qed
-
-
-        show "x s \<in> ?xinit \<and> decide s \<in> {None} \<union> (Some ` ?xinit)"
-
-
-  fix m
-  assume ih: "VInv rho m"
-  let ?xinit = "range (x \<circ> (rho 0))"
-  have "range (x \<circ> (rho (Suc m))) \<subseteq> ?xinit"
-  proof (clarsimp cong del: image_cong_simp)
-    fix p
-    from run
-    have nxt: "OTR_nextState m p (rho m p) 
-                        (HOrcvdMsgs OTR_M m p (HOs m p) (rho m))
-                        (rho (Suc m) p)"
-          (is "OTR_nextState _ _ ?st ?msgs ?st'")
-     by (simp add: HORun_eq HOnextConfig_eq OTR_HOMachine_def nextState_def)
-    show "x ?st' \<in> ?xinit"
-    proof (cases "(2*N) div 3 < card (HOs m p)")
-      case True
-      hence HO: "HOs m p \<noteq> {}" by auto
-      let ?MFRs = "{v. MFR ?msgs v}"
-      have "Min ?MFRs \<in> ?MFRs"
-      proof (rule Min_in)
-        from HO have "?MFRs \<subseteq> (the \<circ> ?msgs)`(HOs m p)"
-          by (auto simp: image_def intro: MFR_in_msgs)
-        thus "finite ?MFRs" by (auto elim: finite_subset)
-      next
-        from MFR_exists show "?MFRs \<noteq> {}" by auto
+        hence "x ss \<in> ?xinit" by force
+        thus "x s \<in> ?xinit" using \<open>x ss = x s\<close> by auto
       qed
-      with HO have "\<exists>q \<in> HOs m p. Min ?MFRs = the (?msgs q)"
-        by (intro MFR_in_msgs) auto
-      hence "\<exists>q \<in> HOs m p. Min ?MFRs = x (rho m q)"
-        by (auto simp: HOrcvdMsgs_def OTR_HOMachine_def OTR_sendMsg_def)
-     moreover
-      from True nxt have "x ?st' = Min ?MFRs"
-        by (simp add: OTR_nextState_def HOrcvdMsgs_def)
-     ultimately
-        show ?thesis using ih by (auto simp: VInv_def image_def)
-    next
-      case False
-      with nxt ih show ?thesis
-        by (auto simp: OTR_nextState_def VInv_def HOrcvdMsgs_def Let_def)
     qed
   qed
-  moreover
-  have "\<forall>p. decide ((rho (Suc m)) p) \<in> {None} \<union> (Some ` ?xinit)"
-  proof
-    fix p
-    from run
-    have nxt: "OTR_nextState m p (rho m p) 
-                        (HOrcvdMsgs OTR_M m p (HOs m p) (rho m))
-                        (rho (Suc m) p)"
-          (is "OTR_nextState _ _ ?st ?msgs ?st'")
-      by (simp add: HORun_eq HOnextConfig_eq OTR_HOMachine_def nextState_def)
-    show "decide ?st' \<in> {None} \<union> (Some ` ?xinit)"
-    proof (cases "(2*N) div 3 < card {q. ?msgs q \<noteq> None}")
-      assume HO: "(2*N) div 3 < card {q. ?msgs q \<noteq> None}"
-      show ?thesis
-      proof (cases "\<exists>v. TwoThirds ?msgs v")
-        case True
-        let ?dec = "\<some>v. TwoThirds ?msgs v"
-        from True have "TwoThirds ?msgs ?dec" by (rule someI_ex)
-        hence "HOV ?msgs ?dec \<noteq> {}" by (auto simp add: TwoThirds_def)
-        then obtain q where "x (rho m q) = ?dec"
-          by (auto simp: HOV_def HOrcvdMsgs_def OTR_HOMachine_def
-                         OTR_sendMsg_def)
-        from sym[OF this] nxt ih show ?thesis
-          by (auto simp: OTR_nextState_def VInv_def image_def)
-      next
-        case False
-        with HO nxt ih show ?thesis
-          by (auto simp: OTR_nextState_def VInv_def HOrcvdMsgs_def image_def)
-      qed
-    next
-      case False
-      with nxt ih show ?thesis
-        by (auto simp: OTR_nextState_def VInv_def image_def)
-    qed
-  qed
-  hence "range (decide \<circ> (rho (Suc m))) \<subseteq> {None} \<union> (Some ` ?xinit)" by auto
-  ultimately
-  show "VInv rho (Suc m)" by (auto simp: VInv_def image_def)
+  thus ?thesis using VInv_def by auto
 qed
-
-text \<open>
-  Integrity is an immediate consequence.
-\<close>
-theorem OTR_integrity:
-  assumes run:"HORun OTR_M rho HOs" and dec: "decide (rho n p) = Some v"
-  shows "\<exists>q. v = x (rho 0 q)"
-proof -
-  let ?xinit = "range (x \<circ> (rho 0))"
-  from run have "VInv rho n" by (rule vinv_invariant)
-  hence "range (decide \<circ> (rho n)) \<subseteq> {None} \<union> (Some ` ?xinit)"
-    by (auto simp: VInv_def Let_def)
-  hence "decide ((rho n) p) \<in> {None} \<union> (Some ` ?xinit)"
-    by (auto simp: image_def)
-  with dec show ?thesis by auto
-qed
-
 
 subsection \<open>Proof of Agreement\<close>
 
