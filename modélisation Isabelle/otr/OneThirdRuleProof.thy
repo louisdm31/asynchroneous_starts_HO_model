@@ -265,11 +265,11 @@ proof -
       (x s \<in> ?xinit) \<and> decide s \<in> {None} \<union> (Some ` ?xinit)"
       proof
         assume "rho n p = Active s"
-        then obtain m q ss where "m = 0 \<or> rho (m-1) q = Aslept"
+        then obtain m q ss where toto:"m = 0 \<or> rho (m-1) q = Aslept"
                               and qact:"rho m q = Active ss" and "x ss = x s"
           using pro by meson
-        hence "Active ss = getInitValue rho q"
-        proof cases
+        from toto have "Active ss = getInitValue rho q"
+        proof (rule disjE)
           assume "m = 0"
           hence nonasl:"\<forall>n. rho n q \<noteq> Aslept" using nonAsleepAgain qact run HORun_def
             by (metis add.right_neutral proc_state.distinct(1))
@@ -278,6 +278,25 @@ proof -
           hence "rho 0 q = getInitValue rho q" by (simp add: nonasl getInitValue_def)
           thus ?thesis using qact by (simp add: \<open>m = 0\<close>)
         next
+          assume "rho (m-1) q = Aslept"
+          hence masl:"m \<in> {n + 1 | n. rho n q = Aslept }" by (smt CollectI One_nat_def Suc_leI
+                le_add_diff_inverse2 not_gr_zero not_less_zero proc_state.simps(3) qact zero_less_diff)
+          have "\<forall>n. n \<ge> m \<longrightarrow> rho n q \<noteq> Aslept" using nonAsleepAgain qact
+            by (metis HORun_def le_add_diff_inverse2 proc_state.simps(3) run)
+          hence "{n. rho n q = Aslept } \<subseteq> {n. n < m}" by (meson Collect_mono not_le_imp_less)
+          hence bornensl:"{n + 1 | n. rho n q = Aslept } \<subseteq> {n. n \<le> m}" (is "?ensl \<subseteq> _")
+            using discrete by auto
+          moreover from this have "finite ?ensl" using rev_finite_subset by auto
+          ultimately have "Max {n + 1 | n. rho n q = Aslept } = m"
+            using Max_def masl Max_in Max_ge \<open>finite ?ensl\<close> by fastforce
+          hence "Max (?ensl \<union> {0}) = m"
+          by (smt Max_ge Max_in Un_empty Un_insert_right \<open>finite ?ensl\<close> antisym
+              finite_insert insertCI insertE le_zero_eq masl sup_bot.right_neutral)
+          hence "rho m q = getInitValue rho q" by (simp add:getInitValue_def)
+          thus "Active ss = getInitValue rho q" using qact by auto
+        qed
+
+
         show "x s \<in> ?xinit \<and> decide s \<in> {None} \<union> (Some ` ?xinit)"
 
 
