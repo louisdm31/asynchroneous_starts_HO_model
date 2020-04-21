@@ -25,33 +25,6 @@ definition VInv :: "(nat \<Rightarrow> Proc \<Rightarrow> ('val::linorder) pstat
    let xinit =  {x s | s. \<exists>p. getInitValue rho p = Active s}
    in \<forall>p s. rho n p = Active s \<longrightarrow> x s \<in> xinit"
 
-lemma tiroir: assumes fini:"finite {v. E v}" shows "finite {f v | v. E v}"
-proof -
-  have "card {v. E v} \<ge> 0" (is "?cardens \<ge> 0") by auto
-  thus "finite {f v | v. E v}"
-  proof (induction ?cardens)
-    case 0
-    hence "{v. E v} = {}" using fini by auto
-    hence "{f v | v. E v} = {}" by auto
-    thus "finite {f v | v. E v}"  by auto
-  next
-    case (Suc crd)
-    hence "card {v. E v} > 0" by auto
-    hence "\<exists>vv. vv \<in> {v. E v}"
-      by (metis less_irrefl sum_bounded_above_strict sum_constant)
-    then obtain vv where vvin:"vv \<in> {v. E v}" by auto
-    have "\<forall>v. E v = (\<lambda>t. if t = vv then True else E t) v" using vvin by simp
-    hence "{v. E v} = {v. (\<lambda>t. if t = vv then True else E t) v}" by blast
-    hence dehorsvv:"{v. E v} = {v. (\<lambda>t. if t = vv then False else E t) v} \<union> {vv}" by auto
-    hence "finite {v. (\<lambda>t. if t = vv then False else E t) v}" using fini by auto
-    hence "finite {f v | v. (\<lambda>t. if t = vv then False else E t) v}" by auto
-    hence "finite ({f v | v. (\<lambda>t. if t = vv then False else E t) v} \<union> {f vv})" by auto
-    moreover have "{f v | v. E v} = {f v | v. (\<lambda>t. if t = vv then False else E t) v} \<union> {f vv}"
-      using vvin by auto
-    ultimately show "finite {f v | v. E v}" by simp
-  qed
-qed
-
 lemma tiroir2: assumes inject:"\<forall>v1 v2. f v1 = f v2 \<longrightarrow> v1 = v2"
   shows "finite {f v | v. E v} \<longrightarrow> finite {v. E v}"
 proof -
