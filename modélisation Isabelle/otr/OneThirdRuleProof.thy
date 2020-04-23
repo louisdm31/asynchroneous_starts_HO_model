@@ -30,6 +30,57 @@ definition HOMachine_to_Algorithm :: "(Proc, 'val::linorder pstate, 'val) HOMach
                                       (Proc, 'val::linorder pstate, 'val) CHOAlgorithm" where
 "HOMachine_to_Algorithm mach = \<lparr> CinitState = CinitState mach, sendMsg = sendMsg mach, CnextState = CnextState mach \<rparr>"
 
+lemma MFR_finite : assumes "v = Min {v. MFR msgs v}" (is "v = Min ?ens")
+  and "msgs q = Content s"
+  shows "MFR msgs v"
+proof -
+  have "card ?ens = 1 \<or> card ?ens = 0 \<or> card ?ens > 1" by auto
+  thus ?thesis
+  proof cases
+    assume zer:"card ?ens = 0"
+    hence vidinfi:"?ens = {} \<or> infinite ?ens" by (simp add:card_eq_0_iff)
+    hence "\<forall>v. v \<notin> ?ens"
+    proof cases
+      assume "?ens = {}"
+      thus ?thesis by auto
+    next
+      assume "?ens \<noteq> {}"
+      hence infens:"infinite ?ens"  using vidinfi by blast
+      hence "q \<in> HOV msgs s" using HOV_def MFR_def assms by force
+      hence exval:"\<exists>v. card (HOV msgs v) \<ge> 1"
+        by (metis One_nat_def Suc_leI card_eq_0_iff empty_iff finite_code not_gr_zero)
+      hence "\<forall>qq. MFR msgs qq \<longrightarrow> card (HOV msgs qq) \<ge> 1"
+        using MFR_def order.trans by fastforce
+      moreover have "\<forall>qq. card (HOV msgs qq) \<ge> 1 \<longrightarrow> (\<exists>pp. msgs pp = Content qq)"
+        using HOV_def
+        by (smt Collect_empty_eq One_nat_def card.empty nat.simps(3) zero_order(2))
+      ultimately have "\<forall>qq. MFR msgs qq \<longrightarrow> (\<exists>pp. msgs pp = Content qq)" by auto
+      hence "?ens \<subseteq> {qq. \<exists>pp. msgs pp = Content qq}" by auto
+      hence infini:"infinite {qq. \<exists>pp. msgs pp = Content qq}"
+        using infens rev_finite_subset by blast
+
+      have "finite {pp :: Proc. True}" by auto
+      hence "finite {msgs p | p. True}" using tiroir by blast
+      hence "finite {v. \<exists>p. msgs p = v}" by (smt Collect_cong finite_image_set)
+      moreover have "{Content v | v.  \<exists>p. msgs p = Content v} \<subseteq> {v. \<exists>p. msgs p = v}"
+        by blast
+      ultimately have fincontens:"finite {Content v | v.  \<exists>p. msgs p = Content v}"
+        by (meson rev_finite_subset)
+      moreover have "\<forall>vv1 vv2. Content vv1 = Content vv2 \<longrightarrow> vv1 = vv2" by auto
+      ultimately have "finite {v. \<exists>p. msgs p = Content v}" using tiroir2  by force
+      hence "False" using infini by auto
+      thus ?thesis by auto
+    qed
+    hence "\<forall>v. \<not> (MFR msgs v)" by simp
+    hence "False" using MFR_exists by fastforce
+    thus ?thesis by auto
+  next
+    assume "card ?ens \<noteq> 0"
+    hence "finite ?ens" by (meson card_infinite)
+    thus ?thesis using Min_in \<open>card ?ens \<noteq> 0\<close> assms by auto
+  qed
+qed
+
 lemma vinv_invariant:
   assumes not_inf:"\<forall>p. \<exists>n. rho n p \<noteq> Aslept"
   and run:"HORun (HOMachine_to_Algorithm OTR_M) rho HOs" (is "HORun ?A rho HOs")
@@ -104,55 +155,10 @@ proof -
                 qed
                 hence "card {q. ?rcvd q \<noteq> Bot \<and> ?rcvd q \<noteq> Void} > 0" by auto
                 then obtain q where "?rcvd q \<noteq> Void \<and> ?rcvd q \<noteq> Bot" by (auto simp: less_le)
-                hence excont:"\<exists>v. ?rcvd q = Content v" (is "\<exists>v. ?q = _") by (cases ?q) auto
+                hence excont:"\<exists>v. ?rcvd q = Content v" by (cases "?rcvd q") auto
                 have "\<exists>v. q \<in> (HOV ?rcvd v)" using excont HOV_def by fastforce
                 then obtain v where cardun:"card (HOV ?rcvd v) > 0" using less_Suc_eq_0_disj by fastforce
-                have "card ?ens = 1 \<or> card ?ens = 0 \<or> card ?ens > 1" by auto
-                hence "MFR ?rcvd (x s)"
-                proof cases
-                  assume zer:"card ?ens = 0"
-                  hence vidinfi:"?ens = {} \<or> infinite ?ens" by (simp add:card_eq_0_iff)
-                  hence "\<forall>v. v \<notin> ?ens"
-                  proof cases
-                    assume "?ens = {}"
-                    thus ?thesis by auto
-                  next
-                    assume "?ens \<noteq> {}"
-                    hence infens:"infinite ?ens" using vidinfi by blast
-                    have "\<exists>v. ?rcvd q = Content v" using excont by auto
-                    hence "\<exists>v. q \<in> HOV ?rcvd v" using HOV_def by (simp add: HOV_def)
-                    hence exval:"\<exists>v. card (HOV ?rcvd v) \<ge> 1"
-                      by (metis One_nat_def Suc_leI card_eq_0_iff empty_iff finite_code not_gr_zero)
-                    hence "\<forall>qq. MFR ?rcvd qq \<longrightarrow> card (HOV ?rcvd qq) \<ge> 1"
-                      using MFR_def order.trans by fastforce
-                    moreover have "\<forall>qq. card (HOV ?rcvd qq) \<ge> 1 \<longrightarrow> (\<exists>pp. ?rcvd pp = Content qq)"
-                      using HOV_def
-                      by (smt Collect_empty_eq One_nat_def card.empty nat.simps(3) zero_order(2))
-                    ultimately have "\<forall>qq. MFR ?rcvd qq \<longrightarrow> (\<exists>pp. ?rcvd pp = Content qq)" by auto
-                    hence "?ens \<subseteq> {qq. \<exists>pp. ?rcvd pp = Content qq}" by auto
-                    hence infini:"infinite {qq. \<exists>pp. ?rcvd pp = Content qq}"
-                      using infens rev_finite_subset by blast
-
-                    have "finite {pp :: Proc. True}" by auto
-                    hence "finite {?rcvd p | p. True}" using tiroir by blast
-                    hence "finite {v. \<exists>p. ?rcvd p = v}" by (smt Collect_cong finite_image_set)
-                    moreover have "{Content v | v.  \<exists>p. ?rcvd p = Content v} \<subseteq> {v. \<exists>p. ?rcvd p = v}"
-                      by blast
-                    ultimately have fincontens:"finite {Content v | v.  \<exists>p. ?rcvd p = Content v}"
-                      by (meson rev_finite_subset)
-                    moreover have "\<forall>vv1 vv2. Content vv1 = Content vv2 \<longrightarrow> vv1 = vv2" by auto
-                    ultimately have "finite {v. \<exists>p. ?rcvd p = Content v}" using tiroir2  by force
-                    hence "False" using infini by auto
-                    thus ?thesis by auto
-                  qed
-                  hence "\<forall>v. \<not> (MFR ?rcvd v)" by simp
-                  hence "False" using MFR_exists by fastforce
-                  thus ?thesis by auto
-                next
-                  assume "card ?ens \<noteq> 0"
-                  hence "finite ?ens" by (meson card_infinite)
-                  thus ?thesis using Min_in \<open>card ?ens \<noteq> 0\<close> dans by auto
-                qed
+                hence "MFR ?rcvd (x s)" using MFR_finite excont dans by auto
                 hence "card (HOV ?rcvd (x s)) \<ge> card (HOV ?rcvd v)" using MFR_def by fastforce
                 hence "card (HOV ?rcvd (x s)) > 0" using cardun MFR_def by auto
                 then obtain emet where rcemet:"?rcvd emet = Content (x s)"
@@ -266,17 +272,50 @@ proof -
 qed
 
 lemma A1:
-  assumes run:"HORun OTR_M rho HOs"
-  and dec: "decide (rho (Suc n) p) = Some v"
-  and chg: "decide (rho (Suc n) p) \<noteq> decide (rho n p)" (is "decide ?st' \<noteq> decide ?st")
-  shows "(2*N) div 3 < card { q . x (rho n q) = v }"
+  assumes run:"HORun (HOMachine_to_Algorithm OTR_M) rho HOs" (is "HORun ?A _ _")
+  and dec1: "rho n       p = Active \<lparr> x = v1, decide = True \<rparr>" (is "_ = Active ?ss")
+  and dec2: "rho (Suc n) p = Active \<lparr> x = v2, decide = True \<rparr>" (is "_ = Active ?st")
+  and chg:"v1 \<noteq> v2"
+  shows "(2*N) div 3 < card { q . \<exists>b. (rho n q) = Active \<lparr> x = v2, decide = b \<rparr> }"
 proof -
-  from run chg
-  have "TwoThirds (HOrcvdMsgs OTR_M n p (HOs n p) (rho n)) 
-                  (the (decide ?st'))"
-    (is "TwoThirds ?msgs _")
-    by (rule nextState_decide)
-  with dec have "TwoThirds ?msgs v" by simp
+  have "OTR_nextState p ?ss (HOrcvdMsgs ?A p (HOs n p) (rho n)) ?st" (is "OTR_nextState p ?ss ?rcvd ?st")
+    using assms unfolding HORun_def CHORun_def HOnextConfig_def CHOnextConfig_def HOMachine_to_Algorithm_def OTR_HOMachine_def
+    by fastforce
+  moreover have "?ss \<noteq> ?st" using assms by auto
+  ultimately have maj:"(2*N) div 3 < card {q. ?rcvd q \<noteq> Void \<and> ?rcvd q \<noteq> Bot}"
+      and exmaj:"\<exists>vv. TwoThirds ?rcvd vv"
+      and v2mfr:"v2 = Min {v. MFR ?rcvd v}" by (auto simp:OTR_nextState_def)
+  hence "TwoThirds ?rcvd v2"
+  proof -
+    from exmaj obtain vv where majvv:"TwoThirds ?rcvd vv" by auto
+    moreover have "vv = v2"
+    proof (rule ccontr)
+      assume "\<not> vv = v2"
+      then obtain q where "?rcvd q \<noteq> Void \<and> ?rcvd q \<noteq> Bot" using maj by (smt Collect_empty_eq card.empty not_less0)
+      hence "\<exists>v. ?rcvd q = Content v" by (cases "?rcvd q") auto
+      hence "MFR ?rcvd v2" using v2mfr MFR_finite maj by auto
+      hence "card (HOV ?rcvd v2) \<ge> card (HOV ?rcvd vv)" by (simp add:MFR_def)
+
+      moreover have "HOV ?rcvd v2 \<inter> HOV ?rcvd vv = {}" by (smt CollectD HOV_def \<open>vv \<noteq> v2\<close> disjoint_iff_not_equal message.inject)
+      hence "card (HOV ?rcvd v2 \<union> HOV ?rcvd vv) = card (HOV ?rcvd v2) + card (HOV ?rcvd vv)" (is "?cardunion = _")
+        by (simp add: card_Un_disjoint)
+
+      moreover have "\<forall>k. k > (2*N) div 3 \<longrightarrow> 2*k > N" by auto
+      hence "2 * card (HOV ?rcvd vv) > N" using majvv TwoThirds_def by fastforce
+
+      ultimately have "?cardunion > N" by auto
+      thus "False" by (meson card_mono finite leD le_iff_sup sup_top_right)
+    qed
+    ultimately show ?thesis by auto
+  qed
+  thus ?thesis by sledgehamm
+
+
+      hence "card (HOV ?rcvd v2 \<union> HOV ?rcvd vv) \<ge> (2*N) div 3 + (2*N) div 3"
+        by (smt TwoThirds_def \<open>card (HOV ?rcvd vv) \<le> card (HOV?rcvd v2)\<close> add_le_mono less_or_eq_imp_le majvv order.trans)
+
+            hence "card (HOV ?rcvd v2 \<union> HOV ?rcvd vv) > N" by sledgehamme
+
   hence "(2*N) div 3 < card { q . ?msgs q = Some v }"
     by (simp add: TwoThirds_def HOV_def)
   moreover
