@@ -233,19 +233,29 @@ text \<open>
 \<close>
 
 lemma nextState_change:
-  assumes "HORun \<lparr> CinitState = CinitState OTR_M, sendMsg = sendMsg OTR_M, CnextState = CnextState OTR_M \<rparr> rho HOs"
+  assumes "HORun (HOMachine_to_Algorithm OTR_M) rho HOs" (is "HORun ?A _ _")
       and "\<not> ((2*N) div 3 
-              < card {q.  (HOrcvdMsgs OTR_M n p (HOs n p) (rho n)) q \<noteq> Void \<and>
-                          (HOrcvdMsgs OTR_M n p (HOs n p) (rho n)) q \<noteq> Bot })"
-  shows "rho (Suc n) p = rho n p"
-  using assms
-  by (auto simp: HORun_eq HOnextConfig_eq OTR_HOMachine_def
-                 nextState_def OTR_nextState_def)
+              < card {q.  (HOrcvdMsgs (HOMachine_to_Algorithm OTR_M) p (HOs n p) (rho n)) q \<noteq> Void \<and>
+                          (HOrcvdMsgs (HOMachine_to_Algorithm OTR_M) p (HOs n p) (rho n)) q \<noteq> Bot })"
+  shows "rho n p = Aslept \<or> rho (Suc n) p = rho n p"
+proof (cases "rho n p")
+  case (Active ss)
+  then obtain st where "rho (Suc n) p = Active st" using HORun_def CHOnextConfig_def by (metis CHORun_def assms(1))
+  hence "OTR_nextState p ss (HOrcvdMsgs ?A p (HOs n p) (rho n)) st" (is "OTR_nextState p ss ?rcvd st")
+    using assms unfolding HORun_def CHORun_def HOnextConfig_def CHOnextConfig_def 
+    by (smt Active CHOAlgorithm.simps(3) HOMachine_to_Algorithm_def OTR_HOMachine_def proc_state.inject)
+  moreover have "\<not> (2*N) div 3 < card {q. ?rcvd q \<noteq> Void \<and> ?rcvd q \<noteq> Bot}" using assms by auto
+  ultimately have "ss = st" by (simp add:OTR_nextState_def)
+  thus ?thesis by (simp add: Active \<open>rho (Suc n) p = Active st\<close>)
+next
+  case (Aslept)
+  thus ?thesis by auto
+qed
 
 lemma nextState_decide:
-  assumes run:"HORun OTR_M rho HOs"
-  and chg: "decide (rho (Suc n) p) \<noteq> decide (rho n p)"
-  shows "TwoThirds (HOrcvdMsgs OTR_M n p (HOs n p) (rho n))
+  assumes run:"HORun (HOMachine_to_Algorithm OTR_M) rho HOs"
+  and chg: "x1 \<noteq> x2 \<and> rho (Suc n) p = Active \<lparr> x = x2, decide = True\<rparr> \<and> rho n p = Active \<lparr> x = x1, decide = True\<rparr>"
+  shows "TwoThirds (HOrcvdMsgs (HOMachine_to_Algorithm OTR_M) p (HOs n p) (rho n))
                    (the (decide (rho (Suc n) p)))"
 proof -
   from run
