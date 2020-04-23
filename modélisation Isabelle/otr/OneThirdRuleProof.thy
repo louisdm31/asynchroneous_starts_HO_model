@@ -1,5 +1,5 @@
 theory OneThirdRuleProof
-imports OneThirdRuleDefs 
+imports OneThirdRuleDefs Tiroir
 begin
 
 text \<open>
@@ -25,77 +25,24 @@ definition VInv :: "(nat \<Rightarrow> Proc \<Rightarrow> ('val::linorder) pstat
    let xinit =  {x s | s. \<exists>p. getInitValue rho p = Active s}
    in \<forall>p s. rho n p = Active s \<longrightarrow> x s \<in> xinit"
 
-lemma tiroir2: assumes inject:"\<forall>v1 v2. f v1 = f v2 \<longrightarrow> v1 = v2"
-  shows "finite {f v | v. E v} \<longrightarrow> finite {v. E v}"
-proof -
-  have "card {f v | v. E v} \<ge> 0" (is "?cardens \<ge> 0") by auto
-  show ?thesis
-  proof (induction ?cardens arbitrary:E)
-    case 0
-    hence zercrd:"card {f v | v. E v} = 0" by auto
-    show ?case 
-    proof
-      assume fini:"finite {f v | v. E v}"
-      hence "{f v | v. E v} = {}"  using zercrd by auto
-      thus "finite {v. E v}" by auto
-    qed
-  next
-    case (Suc crd)
-    show ?case proof assume "finite {f v | v. E v}"
-    hence succrd:"card {f v | v. E v} = Suc crd" using Suc.hyps by auto
-    hence nonvoid:"card {f v | v. E v} > 0" by auto
-    hence finii:"finite {f v | v. E v}" using card_ge_0_finite by blast
-    hence "\<exists>vv. vv \<in> {f v | v. E v}" using nonvoid by (simp add: card_gt_0_iff)
-    then obtain vv where vvin:"vv \<in> {v. E v}" by auto
-    have "\<forall>v. E v = (\<lambda>t. if t = vv then True else E t) v" using vvin by simp
-    hence "{f v | v. E v} = {f v | v. (\<lambda>t. if t = vv then True else E t) v}" by blast
-    hence dehorsvv:"{f v | v. E v} = {f  v | v. (\<lambda>t. if t = vv then False else E t) v} \<union> {f vv}" by auto
-    hence finiii:"finite {f  v | v. (\<lambda>t. if t = vv then False else E t) v}" using finii by auto
 
-    have "f vv \<notin> {f  v | v. (\<lambda>t. if t = vv then False else E t) v}"
-    proof
-      assume "f vv \<in> {f v | v. (\<lambda>t. if t = vv then False else E t) v}"
-      hence "\<exists>vv2. f vv2 = f vv \<and>  (\<lambda>t. if t = vv then False else E t) vv2" by (smt mem_Collect_eq)
-      then obtain vv2 where exvv2:"f vv2 = f vv \<and>  (\<lambda>t. if t = vv then False else E t) vv2" by blast
-      hence "vv2 = vv" using inject by auto
-      hence " (\<lambda>t. if t = vv then False else E t) vv" using exvv2 by auto
-      thus "False" by simp
-    qed
-    hence "{f v | v. (\<lambda>t. if t = vv then False else E t) v} \<inter> {f vv} = {}" by auto
-    hence "card {f v | v. E v} = card {f  v | v. (\<lambda>t. if t = vv then False else E t) v} + 1"
-      using dehorsvv
-      by (metis (no_types, lifting) One_nat_def Un_insert_right
-          \<open>0 < card {f v |v. E v}\<close> \<open>f vv \<notin> {f v |v. if v = vv then False else E v}\<close>
-          add.right_neutral add_Suc_right card_infinite card_insert_disjoint finite_Un
-          less_le sup_bot.right_neutral)
-    have  "{f  v | v. (\<lambda>t. if t = vv then False else E t) v} \<subseteq> {f v | v. E v}" using dehorsvv by auto
-    hence "finite {f  v | v. (\<lambda>t. if t = vv then False else E t) v}" using finiii by blast
-    moreover have "card {f  v | v. (\<lambda>t. if t = vv then False else E t) v} = crd" using succrd
-      by (simp add: \<open>card {f v |v. E v} = card {f v |v. if v = vv then False else E v} + 1\<close>)
-    ultimately have "finite {v. (\<lambda>t. if t = vv then False else E t) v}" using Suc.hyps by auto
-    hence "finite ({v. (\<lambda>t. if t = vv then False else E t) v} \<union> {vv})" by auto
-    moreover have "{v. E v} = {v. (\<lambda>t. if t = vv then False else E t) v} \<union> {vv}"
-      using vvin by auto
-    ultimately show "finite {v. E v}" by simp
-  qed
-qed qed
+definition HOMachine_to_Algorithm :: "(Proc, 'val::linorder pstate, 'val) HOMachine \<Rightarrow>
+                                      (Proc, 'val::linorder pstate, 'val) CHOAlgorithm" where
+"HOMachine_to_Algorithm mach = \<lparr> CinitState = CinitState mach, sendMsg = sendMsg mach, CnextState = CnextState mach \<rparr>"
 
 lemma vinv_invariant:
   assumes not_inf:"\<forall>p. \<exists>n. rho n p \<noteq> Aslept"
-  and run:"HORun (\<lparr> CinitState = CinitState OTR_M, sendMsg = sendMsg OTR_M, CnextState = CnextState OTR_M \<rparr>
-                  ::(Proc, 'val::linorder pstate, 'val) CHOAlgorithm)
-                  rho HOs"
-    (is "HORun ?A rho HOs")
+  and run:"HORun (HOMachine_to_Algorithm OTR_M) rho HOs" (is "HORun ?A rho HOs")
   shows "VInv rho n"
 proof -
-  have pro:"\<forall> p::Proc. \<forall>s::'val pstate. \<forall>n::nat. rho n p = Active s \<longrightarrow>
+  have pro:"\<forall> p::Proc. \<forall>s. \<forall>n::nat. rho n p = Active s \<longrightarrow>
       (\<exists> m q ss. (m = 0 \<or> rho (m-1) q = Aslept) \<and> rho m q = Active ss \<and> x ss = x s)"
   proof
     fix p :: Proc
-    show "\<forall>s::'val pstate. \<forall>n::nat. rho n p = Active s \<longrightarrow>
+    show "\<forall>s. \<forall>n::nat. rho n p = Active s \<longrightarrow>
       (\<exists> m q ss. (m = 0 \<or> rho (m-1) q = Aslept) \<and> rho m q = Active ss \<and> x ss = x s)"
     proof
-      fix s :: "'val pstate "
+      fix s
       show " \<forall>n::nat. rho n p = Active s \<longrightarrow>
       (\<exists> m q ss. (m = 0 \<or> rho (m-1) q = Aslept) \<and> rho m q = Active ss \<and> x ss = x s)"
        proof
@@ -135,7 +82,7 @@ proof -
                       CnextState ?A p ss ?rcvd undefined s'" by auto
               hence "s = s'" using pst by auto
               hence nst:"CnextState ?A p ss ?rcvd undefined s" using nxx by auto
-              hence otrn:"OTR_nextState p ss ?rcvd s" by (auto simp:OTR_HOMachine_def)
+              hence otrn:"OTR_nextState p ss ?rcvd s" by (auto simp:OTR_HOMachine_def HOMachine_to_Algorithm_def)
               hence "(s \<noteq> ss \<and> x s = Min {v. MFR ?rcvd v}) \<or> s = ss" by (auto simp:OTR_nextState_def)
               thus "\<exists> m q ss. (m = 0 \<or> rho (m-1) q = Aslept) \<and> rho m q = Active ss \<and> x ss = x s"
               proof
@@ -161,7 +108,7 @@ proof -
                 have "\<exists>v. q \<in> (HOV ?rcvd v)" using excont HOV_def by fastforce
                 then obtain v where cardun:"card (HOV ?rcvd v) > 0" using less_Suc_eq_0_disj by fastforce
                 have "card ?ens = 1 \<or> card ?ens = 0 \<or> card ?ens > 1" by auto
-                hence "MFR ?rcvd ((x s)::'val::linorder)"
+                hence "MFR ?rcvd (x s)"
                 proof cases
                   assume zer:"card ?ens = 0"
                   hence vidinfi:"?ens = {} \<or> infinite ?ens" by (simp add:card_eq_0_iff)
@@ -187,6 +134,7 @@ proof -
                       using infens rev_finite_subset by blast
 
                     have "finite {pp :: Proc. True}" by auto
+                    hence "finite {?rcvd p | p. True}" using tiroir by blast
                     hence "finite {v. \<exists>p. ?rcvd p = v}" by (smt Collect_cong finite_image_set)
                     moreover have "{Content v | v.  \<exists>p. ?rcvd p = Content v} \<subseteq> {v. \<exists>p. ?rcvd p = v}"
                       by blast
@@ -215,7 +163,7 @@ proof -
                 hence "\<exists> m q ss. (m = 0 \<or> rho (m-1) q = Aslept) \<and> rho m q = Active ss \<and> x ss = x semet"
                   using Suc.IH by auto
                 moreover have "x semet = x s" using rcemet semetdef
-                  by (simp add: HOrcvdMsgs_def OTR_HOMachine_def OTR_sendMsg_def)
+                  by (simp add: HOrcvdMsgs_def OTR_HOMachine_def OTR_sendMsg_def HOMachine_to_Algorithm_def)
                 ultimately show "\<exists> m q ss. (m = 0 \<or> rho (m-1) q = Aslept) \<and> rho m q = Active ss \<and> x ss = x s"
                   by auto
               qed
@@ -285,9 +233,10 @@ text \<open>
 \<close>
 
 lemma nextState_change:
-  assumes "HORun OTR_M rho HOs"
+  assumes "HORun \<lparr> CinitState = CinitState OTR_M, sendMsg = sendMsg OTR_M, CnextState = CnextState OTR_M \<rparr> rho HOs"
       and "\<not> ((2*N) div 3 
-              < card {q. (HOrcvdMsgs OTR_M n p (HOs n p) (rho n)) q \<noteq> None})"
+              < card {q.  (HOrcvdMsgs OTR_M n p (HOs n p) (rho n)) q \<noteq> Void \<and>
+                          (HOrcvdMsgs OTR_M n p (HOs n p) (rho n)) q \<noteq> Bot })"
   shows "rho (Suc n) p = rho n p"
   using assms
   by (auto simp: HORun_eq HOnextConfig_eq OTR_HOMachine_def
