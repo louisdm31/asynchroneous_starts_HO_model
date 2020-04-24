@@ -358,7 +358,25 @@ proof -
 
   have w: "card ?HOVothers \<le> N div 3"
   proof -
-    have "card ?HOVothers \<le> card (UNIV - { q . \<exists>s. x s = v \<and> (rho n q) = Active s })"
+    have "\<forall>q w. w \<noteq> v \<longrightarrow> q \<in> HOV ?msgs w \<longrightarrow> \<not>(\<exists>s. x s = v \<and> (rho n q) = Active s)"
+    proof
+      fix q
+      show "\<forall>w. w \<noteq> v \<longrightarrow> q \<in> HOV ?msgs w \<longrightarrow> \<not>(\<exists>s. x s = v \<and> (rho n q) = Active s)"
+      proof
+        fix w
+        show "w \<noteq> v \<longrightarrow> q \<in> HOV ?msgs w \<longrightarrow> \<not>(\<exists>s. x s = v \<and> (rho n q) = Active s)"
+        proof
+          assume "w \<noteq> v"
+          show "q \<in> HOV ?msgs w \<longrightarrow> \<not>(\<exists>s. x s = v \<and> (rho n q) = Active s)"
+          proof
+            assume "q \<in> HOV ?msgs w"
+            hence "?msgs q = Content w" by (simp add:HOV_def)
+            show "\<not>(\<exists>s. x s = v \<and> (rho n q) = Active s)"
+            proof
+              assume "\<exists>s. x s = v \<and> (rho n q) = Active s"
+    have "?HOVothers \<inter> { q . \<exists>s. x s = v \<and> (rho n q) = Active s } = {}"
+
+    have "card ?HOVothers \<le> card (UNIV - { q . x (rho n q) = v })"
       by (auto simp: HOV_def HOrcvdMsgs_def OTR_HOMachine_def OTR_sendMsg_def 
                intro: card_mono)
     also have "\<dots> = N - card { q . x (rho n q) = v }"
