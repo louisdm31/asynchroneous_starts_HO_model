@@ -435,34 +435,38 @@ text \<open>
 \<close>
 
 lemma A3:
-  assumes run:"HORun OTR_M rho HOs"
-      and n: "(2*N) div 3 < card { q . x (rho n q) = v }" (is "?twothird n")
+  assumes run:"HORun (HOMachine_to_Algorithm OTR_M) rho HOs" (is "HORun ?A _ _")
+      and n: "(2*N) div 3 < card { q. \<exists>s. x s = v \<and> (rho n q) = Active s }" (is "?twothird n")
   shows "?twothird (n+k)"
 proof (induct k)
   from n show "?twothird (n+0)" by simp
 next
-  fix m
+  case (Suc m)
   assume m: "?twothird (n+m)"
-  have "\<forall>q. x (rho (n+m) q) = v \<longrightarrow> x (rho (n + Suc m) q) = v"
-  proof (rule+)
-    fix q
-    assume q: "x ((rho (n+m)) q) = v"
-    let ?msgs = "HOrcvdMsgs OTR_M (n+m) q (HOs (n+m) q) (rho (n+m))"
-    show "x (rho (n + Suc m) q) = v"
-    proof (cases "(2*N) div 3 < card { q . ?msgs q \<noteq> None }")
+
+  have "{p . \<exists>s. x s = v \<and> (rho (n+m) p) = Active s } \<subseteq> { p. \<exists>s. x s = v \<and> (rho (n+Suc m) p) = Active s }"
+  proof
+    fix p
+    assume "p \<in> {p . \<exists>s. x s = v \<and> (rho (n+m) p) = Active s }"
+    then obtain ss where vss:"x ss = v" and rhoss:"rho (n+m) p = Active ss" by auto
+    hence "rho (1+(n+m)) p \<noteq> Aslept" using run nonAsleepAgain HORun_def by (metis proc_state.distinct(1))
+    then obtain st where rhost:"rho (n+Suc m) p = Active st" by (cases "rho (n+Suc m) p") auto
+    let ?msgs = "HOrcvdMsgs ?A p (HOs (n+m) p) (rho (n+m))"
+    show "p \<in> { p. \<exists>s. x s = v \<and> (rho (n+Suc m) p) = Active s }"
+    proof (cases "(2*N) div 3 < card { q. ?msgs q \<noteq> Void \<and> ?msgs q \<noteq> Bot }")
       case True
-      from m have "(2*N) div 3 < card { q . x (rho (n+m) q) = v }" by simp
-      with True run show ?thesis by (auto elim: A2)
+      hence "x st = v" using A2 run Suc.hyps rhoss rhost by auto
+      thus "p \<in> {p . \<exists>s. x s = v \<and> (rho (n+Suc m) p) = Active s }" using rhost by auto
     next
       case False
-      with run q show ?thesis by (auto dest: nextState_change)
+      hence "ss = st" using nextState_change run rhoss rhost by fastforce
+      thus "p \<in> {p . \<exists>s. x s = v \<and> (rho (n+Suc m) p) = Active s }" using rhost vss by auto
     qed
   qed
-  hence "card {q. x (rho (n+m) q) = v} \<le> card {q. x (rho (n + Suc m) q) = v}"
-    by (auto intro: card_mono)
-  with m show "?twothird (n + Suc m)" by simp
+  hence "card {p. \<exists>s. x s = v \<and> rho (n + m) p = Active s} \<le> card {p. \<exists>s. x s = v \<and> rho (n + Suc m) p = Active s}"
+    by (simp add: card_mono)
+  thus "2*N div 3 < card {p. \<exists>s. x s = v \<and> rho (n + Suc m) p = Active s}" using Suc.hyps by auto
 qed
-
 
 text \<open>
   It now follows that once a process has decided on some value \<open>v\<close>, 
