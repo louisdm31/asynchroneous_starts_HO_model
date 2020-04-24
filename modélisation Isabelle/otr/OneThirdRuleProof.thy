@@ -308,25 +308,30 @@ proof -
     qed
     ultimately show ?thesis by auto
   qed
-  thus ?thesis by sledgehamm
-
-
-      hence "card (HOV ?rcvd v2 \<union> HOV ?rcvd vv) \<ge> (2*N) div 3 + (2*N) div 3"
-        by (smt TwoThirds_def \<open>card (HOV ?rcvd vv) \<le> card (HOV?rcvd v2)\<close> add_le_mono less_or_eq_imp_le majvv order.trans)
-
-            hence "card (HOV ?rcvd v2 \<union> HOV ?rcvd vv) > N" by sledgehamme
-
-  hence "(2*N) div 3 < card { q . ?msgs q = Some v }"
-    by (simp add: TwoThirds_def HOV_def)
-  moreover
-  have "{ q . ?msgs q = Some v } \<subseteq> { q . x (rho n q) = v }"
-    by (auto simp: OTR_HOMachine_def OTR_sendMsg_def HOrcvdMsgs_def)
-  hence "card { q . ?msgs q = Some v } \<le> card { q . x (rho n q) = v }"
-    by (simp add: card_mono)
-  ultimately
-  show ?thesis by simp
+  moreover have "\<forall>q v. ?rcvd q = Content v \<longrightarrow> (\<exists>b. rho n q = Active \<lparr> x = v, decide = b \<rparr>)"
+  proof
+    fix q
+    show "\<forall>v. ?rcvd q = Content v \<longrightarrow> (\<exists>b. rho n q = Active \<lparr> x = v, decide = b \<rparr>)"
+    proof
+      fix v
+      show "?rcvd q = Content v \<longrightarrow> (\<exists>b. rho n q = Active \<lparr> x = v, decide = b \<rparr>)"
+      proof
+        assume sdf:"?rcvd q = Content v"
+        hence "(HOrcvdMsgs ?A p (HOs n p) (rho n)) q = Content v" by (simp add:HOrcvdMsgs_def)
+        moreover have "\<exists>s. rho n q = Active s" using sdf
+          by (metis HOrcvMsgs_q.elims HOrcvdMsgs_def message.simps(3) message.simps(5))
+        then obtain s where stat:"rho n q = Active s" by auto
+        ultimately have "v = sendMsg ?A q p s"
+          by (metis HOrcvMsgs_q.simps(1) HOrcvdMsgs_def message.inject message.simps(5))
+        hence "x s = v" by (simp add:HOMachine_to_Algorithm_def OTR_HOMachine_def OTR_sendMsg_def)
+        hence "\<exists>b. s = \<lparr> x = v, decide = b \<rparr>" by (metis old.unit.exhaust pstate.surjective)
+        thus "\<exists>b. rho n q = Active \<lparr> x = v, decide = b \<rparr>" using stat by auto
+      qed
+    qed
+  qed
+  hence "\<forall>v. HOV ?rcvd v \<subseteq> { q . \<exists>b. (rho n q) = Active \<lparr> x = v, decide = b \<rparr> }" using HOV_def by fastforce
+  ultimately show ?thesis by (smt Collect_cong TwoThirds_def card_mono finite leD order.trans order_less_le)
 qed
-
 
 text \<open>
   The following lemma \<open>A2\<close> contains the crucial correctness argument:
@@ -336,24 +341,24 @@ text \<open>
 \<close>
 
 lemma A2:
-  assumes run: "HORun OTR_M rho HOs"
+  assumes run: "HORun (HOMachine_to_Algorithm OTR_M) rho HOs" (is "HORun ?A _ _")
   and HO: "(2*N) div 3
-             < card { q . HOrcvdMsgs OTR_M n p (HOs n p) (rho n) q \<noteq> None }"
-  and maj: "(2*N) div 3 < card { q . x (rho n q) = v }"
-  shows "x (rho (Suc n) p) = v"
+             < card { q . HOrcvdMsgs (HOMachine_to_Algorithm OTR_M) p (HOs n p) (rho n) q \<noteq> Void \<and>
+                          HOrcvdMsgs (HOMachine_to_Algorithm OTR_M) p (HOs n p) (rho n) q \<noteq> Bot }"
+  and maj: "(2*N) div 3 < card { q . \<exists>s. x s = v \<and> (rho n q) = Active s }"
+  and act:"rho n p = Active ss"
+  and acts:"rho (Suc n) p = Active st"
+  shows "x st = v"
 proof -
-  from run 
-  have nxt: "OTR_nextState n p (rho n p) 
-                      (HOrcvdMsgs OTR_M n p (HOs n p) (rho n)) 
-                      (rho (Suc n) p)"
-        (is "OTR_nextState _ _ ?st ?msgs ?st'")
-    by (simp add: HORun_eq HOnextConfig_eq OTR_HOMachine_def nextState_def)
+  have nxt: "OTR_nextState p ss (HOrcvdMsgs ?A p (HOs n p) (rho n)) st" (is "OTR_nextState _ _ ?msgs _")
+    using HORun_def CHORun_def HOnextConfig_def OTR_HOMachine_def HOMachine_to_Algorithm_def run act acts
+    by (smt CHOAlgorithm.select_convs(3) CHOnextConfig_def proc_state.inject)
   let ?HOVothers = "\<Union> { HOV ?msgs w | w . w \<noteq> v}"
   \<comment> \<open>processes from which @{text p} received values different from @{text v}\<close>
 
   have w: "card ?HOVothers \<le> N div 3"
   proof -
-    have "card ?HOVothers \<le> card (UNIV - { q . x (rho n q) = v })"
+    have "card ?HOVothers \<le> card (UNIV - { q . \<exists>s. x s = v \<and> (rho n q) = Active s })"
       by (auto simp: HOV_def HOrcvdMsgs_def OTR_HOMachine_def OTR_sendMsg_def 
                intro: card_mono)
     also have "\<dots> = N - card { q . x (rho n q) = v }"
