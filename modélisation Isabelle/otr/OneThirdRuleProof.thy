@@ -355,74 +355,78 @@ proof -
     by (smt CHOAlgorithm.select_convs(3) CHOnextConfig_def proc_state.inject)
   let ?HOVothers = "\<Union> { HOV ?msgs w | w . w \<noteq> v}"
   \<comment> \<open>processes from which @{text p} received values different from @{text v}\<close>
+  
+  have "HOV ?msgs v \<union> ?HOVothers = \<Union> {HOV ?msgs w | w .True}" by auto
+  also have "\<dots> = {q. \<exists>v. q \<in> HOV ?msgs v}" by auto
+  also have "\<dots> = {q. \<exists>v. ?msgs q = Content v}" by (simp add:HOV_def)
+  also have"\<dots> = {q. \<exists>v. ?msgs q \<noteq> Void \<and> ?msgs q \<noteq> Bot}" by (metis message.distinct(3) message.exhaust message.simps(3))
+  finally have unio:"HOV ?msgs v \<union> ?HOVothers = {q. \<exists>v. ?msgs q \<noteq> Void \<and> ?msgs q \<noteq> Bot}" .
 
-  have w: "card ?HOVothers \<le> N div 3"
-  proof -
-    have "\<forall>q w. w \<noteq> v \<longrightarrow> q \<in> HOV ?msgs w \<longrightarrow> \<not>(\<exists>s. x s = v \<and> (rho n q) = Active s)"
+  moreover have "\<forall>q w. w \<noteq> v \<longrightarrow> q \<in> HOV ?msgs v \<longrightarrow> q \<notin> HOV ?msgs w" by (auto simp:HOV_def)
+  hence "HOV ?msgs v \<inter> ?HOVothers = {}" by auto
+
+  ultimately have "card (HOV ?msgs v) + card ?HOVothers = card {q. ?msgs q \<noteq> Void \<and> ?msgs q \<noteq> Bot}"
+    by (metis (no_types, lifting) card_Un_disjoint finite)
+
+  moreover have "\<forall>q w. w \<noteq> v \<longrightarrow> q \<in> HOV ?msgs w \<longrightarrow> \<not>(\<exists>s. x s = v \<and> (rho n q) = Active s)"
+  proof
+    fix q
+    show "\<forall>w. w \<noteq> v \<longrightarrow> q \<in> HOV ?msgs w \<longrightarrow> \<not>(\<exists>s. x s = v \<and> (rho n q) = Active s)"
     proof
-      fix q
-      show "\<forall>w. w \<noteq> v \<longrightarrow> q \<in> HOV ?msgs w \<longrightarrow> \<not>(\<exists>s. x s = v \<and> (rho n q) = Active s)"
+      fix w
+      show "w \<noteq> v \<longrightarrow> q \<in> HOV ?msgs w \<longrightarrow> \<not>(\<exists>s. x s = v \<and> (rho n q) = Active s)"
       proof
-        fix w
-        show "w \<noteq> v \<longrightarrow> q \<in> HOV ?msgs w \<longrightarrow> \<not>(\<exists>s. x s = v \<and> (rho n q) = Active s)"
+        assume diff:"w \<noteq> v"
+        show "q \<in> HOV ?msgs w \<longrightarrow> \<not>(\<exists>s. x s = v \<and> (rho n q) = Active s)"
         proof
-          assume "w \<noteq> v"
-          show "q \<in> HOV ?msgs w \<longrightarrow> \<not>(\<exists>s. x s = v \<and> (rho n q) = Active s)"
+          assume "q \<in> HOV ?msgs w"
+          hence contw:"?msgs q = Content w" by (simp add:HOV_def)
+          show "\<not>(\<exists>s. x s = v \<and> (rho n q) = Active s)"
           proof
-            assume "q \<in> HOV ?msgs w"
-            hence "?msgs q = Content w" by (simp add:HOV_def)
-            show "\<not>(\<exists>s. x s = v \<and> (rho n q) = Active s)"
-            proof
-              assume "\<exists>s. x s = v \<and> (rho n q) = Active s"
-    have "?HOVothers \<inter> { q . \<exists>s. x s = v \<and> (rho n q) = Active s } = {}"
-
-    have "card ?HOVothers \<le> card (UNIV - { q . x (rho n q) = v })"
-      by (auto simp: HOV_def HOrcvdMsgs_def OTR_HOMachine_def OTR_sendMsg_def 
-               intro: card_mono)
-    also have "\<dots> = N - card { q . x (rho n q) = v }"
-      by (auto simp: card_Diff_subset)
-    also from maj have "\<dots> \<le> N div 3" by auto
-    finally show ?thesis .
+            assume "\<exists>s. x s = v \<and> rho n q = Active s"
+            then obtain s where "x s = v" and "rho n q = Active s" by auto
+            hence "sendMsg ?A q p s = v"
+              by (metis CHOAlgorithm.select_convs(2) HOMachine_to_Algorithm_def OTR_HOMachine_def OTR_sendMsg_def)
+            hence "?msgs q = Content v" using HOrcvdMsgs_def
+              by (metis HOrcvMsgs_q.simps(1) \<open>?msgs q = Content w\<close> \<open>rho n q = Active s\<close> message.simps(5))
+            thus "False" using diff contw by auto
+          qed
+        qed
+      qed
+    qed
   qed
+  hence intervide:"?HOVothers \<inter> { q . \<exists>s. x s = v \<and> (rho n q) = Active s } = {}" by blast
+  hence "card ?HOVothers + card { q . \<exists>s. x s = v \<and> (rho n q) = Active s} \<le> N"
+    by (metis (no_types, lifting) card_Un_disjoint card_mono finite top.extremum)
+  hence "card ?HOVothers \<le> N div 3" using maj by auto
 
-  have hov: "HOV ?msgs v = { q . ?msgs q \<noteq> None } - ?HOVothers"
-    by (auto simp: HOV_def) blast
+  ultimately have "card ?HOVothers < card (HOV ?msgs v)" using HO by auto
+  moreover have "\<forall>ww. ww \<noteq> v \<longrightarrow> HOV ?msgs ww \<subseteq> ?HOVothers" by auto
+  ultimately have v_seul_MFR:"\<forall>ww. ww \<noteq> v \<longrightarrow> card (HOV ?msgs ww) < card (HOV ?msgs v)"
+    by (smt card_seteq finite less_imp_le_nat not_le_imp_less order.trans)
 
-  have othHO: "?HOVothers \<subseteq> { q . ?msgs q \<noteq> None }"
-    by (auto simp: HOV_def)
-
-  txt \<open>Show that \<open>v\<close> has been received from more than $N/3$ processes.\<close>
-  from HO have "N div 3 < card { q . ?msgs q \<noteq> None } - (N div 3)" 
-    by auto
-  also from w HO have "\<dots> \<le> card { q . ?msgs q \<noteq> None } - card ?HOVothers" 
-    by auto
-  also from hov othHO have "\<dots> = card (HOV ?msgs v)" 
-    by (auto simp: card_Diff_subset)
-  finally have HOV: "N div 3 < card (HOV ?msgs v)" .
-
-  txt \<open>All other values are received from at most $N/3$ processes.\<close>
-  have "\<forall>w. w \<noteq> v \<longrightarrow> card (HOV ?msgs w) \<le> card ?HOVothers"
-    by (force intro: card_mono)
-  with w have cardw: "\<forall>w. w \<noteq> v \<longrightarrow> card (HOV ?msgs w) \<le> N div 3" by auto
-
-  txt \<open>In particular, \<open>v\<close> is the single most frequently received value.\<close>
-  with HOV have "MFR ?msgs v" by (auto simp: MFR_def)
-
-  moreover
-  have "\<forall>w. w \<noteq> v \<longrightarrow> \<not>(MFR ?msgs w)"
-  proof (auto simp: MFR_def not_le)
-    fix w
-    assume "w \<noteq> v"
-    with cardw HOV have "card (HOV ?msgs w) < card (HOV ?msgs v)" by auto
-    thus "\<exists>v. card (HOV ?msgs w) < card (HOV ?msgs v)" ..
+  have "{v. MFR ?msgs v} = {v}"
+  proof
+    show "{v. MFR ?msgs v} \<subseteq> {v}"
+    proof
+      fix ww
+      assume "ww \<in> {v. MFR ?msgs v}"
+      hence "card (HOV ?msgs ww) \<ge> card (HOV ?msgs v)" by (simp add:MFR_def)
+      thus "ww \<in> {v}"  using v_seul_MFR by auto
+    qed
+  next
+    show "{v} \<subseteq> {v. MFR ?msgs v}"
+    proof
+      fix ww
+      assume "ww \<in> {v}"
+      hence "ww = v" by auto
+      moreover have "MFR ?msgs v" using MFR_def v_seul_MFR by fastforce
+      ultimately show "ww \<in> {v. MFR ?msgs v}" by auto
+    qed
   qed
-
-  ultimately
-  have mfrv: "{ w . MFR ?msgs w } = {v}" by auto
-
-  have "card { q . ?msgs q = Some v } \<le> card { q . ?msgs q \<noteq> None }"
-    by (auto intro: card_mono)
-  with HO mfrv nxt show ?thesis by (auto simp: OTR_nextState_def)
+  hence "v = Min {vv. MFR ?msgs vv}" by auto
+  moreover have "st = \<lparr> x = Min {vv. MFR ?msgs vv}, decide = \<exists>v. TwoThirds ?msgs v \<rparr>" using HO nxt OTR_nextState_def by fastforce
+  ultimately show ?thesis by auto
 qed
 
 text \<open>
