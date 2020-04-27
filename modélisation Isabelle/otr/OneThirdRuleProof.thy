@@ -568,32 +568,6 @@ proof
   qed
 qed
 
-
-
-  \<comment> \<open>For the inductive step, we assume that process @{text p} has decided on @{text v}.\<close>
-                by (simp add: card_Un_disjoint)
-  fix m
-  assume ih: "?dec m \<Longrightarrow> \<forall>k. ?twothird (m+k)" and m: "?dec (Suc m)"
-  show "\<forall>k. ?twothird ((Suc m) + k)"
-  proof
-    fix k
-    have "?twothird (m + Suc k)"
-    txt \<open>
-      There are two cases to consider: if \<open>p\<close> had already decided on \<open>v\<close>
-      before, the assertion follows from the induction hypothesis. Otherwise, the
-      assertion follows from lemmas \<open>A1\<close> and \<open>A3\<close>.
-\<close>
-    proof (cases "?dec m")
-      case True with ih show ?thesis by blast
-    next
-      case False
-      with run m have "?twothird m" by (auto elim: A1)
-      with run show ?thesis by (blast dest: A3)
-    qed
-    thus "?twothird ((Suc m) + k)" by simp
-  qed
-qed
-
 text \<open>
   The Agreement property follows easily from lemma \<open>A4\<close>: if processes
   \<open>p\<close> and \<open>q\<close> decide values \<open>v\<close> and \<open>w\<close>,
@@ -608,22 +582,25 @@ text \<open>
 
 
 lemma A5:
-  assumes run:"HORun OTR_M rho HOs"
-  and p: "decide (rho n p) = Some v"
-  and p': "decide (rho (n+k) p') = Some w"
+  assumes run:"HORun (HOMachine_to_Algorithm OTR_M) rho HOs"
+  and p: "rho n p = Active \<lparr> x = v, decide = True\<rparr>"
+  and p': "rho (n+k) p' = Active \<lparr> x = w, decide = True \<rparr>"
   shows "v = w"
-proof -
-  from run p 
-  have "(2*N) div 3 < card {q. x (rho (n+k) q) = v}" (is "_ < card ?V")
-    by (blast dest: A4)
-  moreover
-  from run p'
-  have "(2*N) div 3 < card {q. x (rho ((n+k)+0) q) = w}" (is "_ < card ?W")
-    by (blast dest: A4)
-  ultimately
-  have "N < card ?V + card ?W" by auto
-  then obtain proc where "proc \<in> ?V \<inter> ?W" by (auto dest: majorities_intersect)
-  thus ?thesis by auto
+proof -  
+  show ?thesis
+  proof (rule ccontr)
+    assume diff:"\<not> v = w"
+    moreover have "(2*N) div 3 < card {q. \<exists>s. x s = v \<and> rho (n+k) q = Active s}" (is "_ < card ?V")
+      using run p by (blast dest: A4)
+    moreover have "(2*N) div 3 < card {q. \<exists>s. x s = w \<and> rho ((n+k)+0) q = Active s}" (is "_ < card ?W")
+      using run p' by (blast dest: A4)
+    moreover have "?V \<inter> ?W = {}" using diff by auto
+    hence "card (?V \<union> ?W) = card ?V + card ?W" using card_Un_disjoint by (simp add: card_Un_disjoint)
+    moreover have "\<forall>k. k > (2*N) div 3 \<longrightarrow> 2*k > N" by auto
+    ultimately have "card (?V \<union> ?W) > N" by auto
+    moreover have "card (?V \<union> ?W) \<le> N" by (simp add: card_mono)
+    ultimately show "False" by auto
+  qed
 qed
 
 theorem OTR_agreement:
