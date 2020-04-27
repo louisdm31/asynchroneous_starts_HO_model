@@ -478,69 +478,96 @@ lemma A4:
   assumes run: "HORun (HOMachine_to_Algorithm OTR_M) rho HOs" (is "HORun ?A _ _")
   shows "\<forall>v k n. rho n p = Active \<lparr> x = v, decide = True \<rparr>
           \<longrightarrow> (2*N) div 3 < card { q. \<exists>s. x s = v \<and> rho (n+k) q = Active s }"
-    (is "\<forall>v k n. _ \<longrightarrow> (2*N) div 3 < card (?vproc n k v)")
+    (is "\<forall>v k n.  _ \<longrightarrow> (2*N) div 3 < card (?vproc n k v)")
 proof
-    fix v
-    show "\<forall>k n. rho n p = Active \<lparr> x = v, decide = True \<rparr>
-          \<longrightarrow> (2*N) div 3 < card (?vproc n k v)"
+  fix v
+  show "\<forall>k n. rho n p = Active  \<lparr> x = v, decide = True \<rparr>
+        \<longrightarrow> (2*N) div 3 < card (?vproc n k v)" (is "\<forall>k n. rho _ _ = Active ?vstate \<longrightarrow> _")
+  proof
+    fix k
+    show "\<forall>n. rho n p = Active ?vstate
+        \<longrightarrow> (2*N) div 3 < card (?vproc n k v)"
     proof
-      fix k
-      show "\<forall>n. rho n p = Active \<lparr> x = v, decide = True \<rparr>
-          \<longrightarrow> (2*N) div 3 < card (?vproc n k v)"
-      proof
-        fix n
-        show "rho n p = Active \<lparr> x = v, decide = True \<rparr>
-          \<longrightarrow> (2*N) div 3 < card (?vproc n k v)"
-        proof (induction n arbitrary:k)
-          case 0
-          show "rho 0 p = Active \<lparr> x = v, decide = True \<rparr> \<longrightarrow>
-                  (2*N) div 3 < card (?vproc 0 k v)"
-          proof
-            assume zer:"rho 0 p = Active \<lparr> x = v, decide = True \<rparr>"
-            have "CHOinitConfig ?A rho (\<lambda>r q. undefined)" using HORun_def CHORun_def run by fastforce
-            hence "OTR_initState p \<lparr> x = v, decide = True \<rparr>"
-              using HOMachine_to_Algorithm_def CHOinitConfig_def OTR_HOMachine_def zer 
-              by (smt CHOAlgorithm.select_convs(1) not_gr_zero)
-            hence "decide \<lparr> x = v, decide = True \<rparr> = False" by (simp add:OTR_initState_def)
-            hence "False" using zer by auto
-            thus "(2*N) div 3 < card (?vproc 0 k v)" by auto
-          qed
-        next
-          case (Suc m)
-          show "rho (Suc m) p = Active \<lparr> x = v, decide = True \<rparr> \<longrightarrow>
-                  (2*N) div 3 < card (?vproc (Suc m) k v)"
-          proof
-            assume st:"rho (Suc m) p = Active \<lparr> x = v, decide = True \<rparr>"
+      fix n
+      show "rho n p = Active ?vstate
+        \<longrightarrow> (2*N) div 3 < card (?vproc n k v)"
+      proof (induction n arbitrary:k)
+        case 0
+        show "rho 0 p = Active ?vstate \<longrightarrow>
+                (2*N) div 3 < card (?vproc 0 k v)"
+        proof
+          assume zer:"rho 0 p = Active ?vstate"
+          have "CHOinitConfig ?A rho (\<lambda>r q. undefined)" using HORun_def CHORun_def run by fastforce
+          hence "OTR_initState p ?vstate"
+            using HOMachine_to_Algorithm_def CHOinitConfig_def OTR_HOMachine_def zer 
+            by (smt CHOAlgorithm.select_convs(1) not_gr_zero)
+          hence "decide ?vstate = False" by (simp add:OTR_initState_def)
+          hence "False" using zer by auto
+          thus "(2*N) div 3 < card (?vproc 0 k v)" by auto
+        qed
+      next
+        case (Suc m)
+        show "rho (Suc m) p = Active ?vstate \<longrightarrow>
+                (2*N) div 3 < card (?vproc (Suc m) k v)"
+        proof
+          assume st:"rho (Suc m) p = Active ?vstate"
+          show "(2*N) div 3 < card (?vproc (Suc m) k v)"
+          proof (cases "rho m p = Active ?vstate")
+            case True
+            thus "(2*N) div 3 < card (?vproc (Suc m) k v)" using Suc.IH[where ?k = "k+1"] by auto
+          next
+            case False
+            hence ssdiffst:"rho m p \<noteq> Active ?vstate" using st by auto
             show "(2*N) div 3 < card (?vproc (Suc m) k v)"
-            proof (cases "rho m p = Active \<lparr> x = v, decide = True \<rparr>")
-              case True
-              thus majvv:"(2*N) div 3 < card (?vproc (Suc m) k v)" using Suc.IH[where ?k = "k+1"] by auto
-              have "vv = v"
-              proof (rule ccontr)
-                assume "\<not>vv = v"
-                hence majdec:"(2*N) div 3 < card {q. \<exists>b. rho m q = Active \<lparr>x = v, decide = b\<rparr>}"
-                  using A1[where ?v1.0 = "vv"] run ss st by simp
-                have "\<forall>q. (\<exists>s. x s = vv \<and> rho (m+k) q = Active s) \<longrightarrow> \<not> (\<exists>b. rho (m+k) q = Active \<lparr>x = v, decide = b\<rparr>)"
-                  using \<open>vv \<noteq> v\<close> by auto
-                hence " ?vproc m k vv \<inter> {q. \<exists>b. rho (m+k) q = Active \<lparr>x = v, decide = b\<rparr>} = {}" by auto
-                hence "card (?vproc m k vv \<union>      {q. \<exists>b. rho (m+k) q = Active \<lparr>x = v, decide = b\<rparr>}) =
-                       card (?vproc m k vv) + card{q. \<exists>b. rho (m+k) q = Active \<lparr>x = v, decide = b\<rparr>}" by (simp add:card_Un_disjoint)
-                hence "\<dots> > (2*N) div 3 + (2*N) div 3" using majvv majdec by auto
-                thus ?cases using Suc.IH by auto
-
-
-            next
-              case False
-              then obtain vv b where "rho m p = Active \<lparr> x = vv, decide = b \<rparr>" by auto
-              have "CHOnextConfig ?A (rho m) (HOs m) (\<lambda>w. undefined) (rho (Suc m))"
-                using run CHORun_def HORun_def by fastforce
-              hence "\<exists>st. rho (Suc m) p = Active st \<and>
-                    CnextState ?A p \<lparr> x = vv, decide = b \<rparr> (HOrcvdMsgs ?A p (HOs m p) (rho m)) undefined st"
-                using \<open>rho m p = Active _\<close> by (simp add:CHOnextConfig_def)
-              hence "\<exists>st. rho (Suc m) p = Active st \<and> OTR_nextState p \<lparr> x = vv, decide = b \<rparr> (HOrcvdMsgs ?A p (HOs m p)(rho m))st"
+            proof (cases "rho m p")
+              case ss_def:(Active ss)
+              have "CHOnextConfig ?A (rho m) (HOs m) (\<lambda>w. undefined) (rho (Suc m))" using run CHORun_def HORun_def by fastforce
+              hence "\<exists>st. rho (Suc m) p = Active st \<and> CnextState ?A p ss (HOrcvdMsgs ?A p (HOs m p) (rho m)) undefined st"
+                (is "\<exists>st. _ \<and> CnextState _ _ _ ?msgs _ _") using \<open>rho m p = Active ss\<close> by (simp add:CHOnextConfig_def)
+              hence "\<exists>st. rho (Suc m) p = Active st \<and> OTR_nextState p ss ?msgs st"
                 by (simp add: HOMachine_to_Algorithm_def OTR_HOMachine_def)
-              then obtain st where "rho (Suc m) p = Active st"
-                and "OTR_nextState p \<lparr> x = vv, decide = b \<rparr> (HOrcvdMsgs ?A p (HOs m p)(rho m)) st" by auto
+              hence nextstat:"OTR_nextState p ss ?msgs ?vstate" using st by auto
+              hence "\<exists>vv. TwoThirds ?msgs vv" using ssdiffst ss_def by (simp add: OTR_nextState_def)
+              then obtain vv where "TwoThirds ?msgs vv" by auto
+              hence majHO:"(2*N) div 3 < card {q. ?msgs q = Content vv}" by (simp add:TwoThirds_def HOV_def HOrcvdMsgs_def)
+              moreover have "\<forall>q. ?msgs q = Content vv \<longrightarrow> (\<exists>s. rho m q = Active s \<and> sendMsg ?A q p s = vv)"
+                using HOrcvdMsgs_def  by (metis HOrcvMsgs_q.elims message.distinct(1) message.distinct(3) message.inject)
+              hence "\<forall>q. ?msgs q = Content vv \<longrightarrow> (\<exists>s. rho m q = Active s \<and> OTR_sendMsg q p s = vv)"
+                by (simp add: OTR_HOMachine_def HOMachine_to_Algorithm_def)
+              hence "\<forall>q. ?msgs q = Content vv \<longrightarrow> (\<exists>s. rho m q = Active s \<and> x s = vv)" by (simp add: OTR_sendMsg_def)
+              hence "{q. ?msgs q = Content vv} \<subseteq>  {q. \<exists>s. rho m q = Active s \<and> x s = vv}" by auto
+              hence "card {q. ?msgs q = Content vv} \<le> card {q. \<exists>s. rho m q = Active s \<and> x s = vv}" by (simp add: card_mono)
+              ultimately have majvv:"(2*N) div 3 < card {q. \<exists>s. x s = vv \<and> rho m q = Active s }"
+                by (smt Collect_cong less_le_trans)
+
+              moreover have "?msgs qq = Content vv \<longrightarrow> (?msgs qq \<noteq> Void \<and> ?msgs qq \<noteq> Bot)" by (cases "?msgs qq") auto
+              hence "{q. ?msgs q = Content vv} \<subseteq> {q. ?msgs q \<noteq> Void \<and> ?msgs q \<noteq> Bot}" by auto
+              hence "card {q. ?msgs q = Content vv} \<le> card {q. ?msgs q \<noteq> Void \<and> ?msgs q \<noteq> Bot}" by (simp add: card_mono)
+              hence "(2*N) div 3 < card {q. ?msgs q \<noteq> Void \<and> ?msgs q \<noteq> Bot}" using majHO by auto
+              ultimately have  "x ?vstate = vv"
+                using run A2[where ?n = m and ?v = vv and ?ss = ss and ?st = "?vstate"] ss_def st by auto
+              hence "v = vv" by auto
+              hence "(2*N) div 3 < card {q. \<exists>s. x s = v \<and> rho m q = Active s }" using majvv by auto
+              thus "(2*N) div 3 < card (?vproc (Suc m) k v)" using run A3[where ?k = "Suc k"] by auto
+            next
+              case Aslept
+              moreover have "CHOinitConfig ?A rho (\<lambda>r q. undefined)" using HORun_def CHORun_def run by fastforce
+              hence "rho m p = Aslept \<longrightarrow> rho (Suc m) p = Active ?vstate \<longrightarrow> CinitState ?A p ?vstate undefined"
+                using CHOinitConfig_def by (metis diff_Suc_1)
+              ultimately have "OTR_initState p ?vstate"
+                using HOMachine_to_Algorithm_def CHOinitConfig_def OTR_HOMachine_def st 
+                by (smt CHOAlgorithm.select_convs(1) not_gr_zero)
+              hence "decide ?vstate = False" by (simp add:OTR_initState_def)
+              hence "False" by auto
+              thus "(2*N) div 3 < card (?vproc (Suc m) k v)" by auto
+            qed
+          qed
+        qed
+      qed
+    qed
+  qed
+qed
+
 
 
   \<comment> \<open>For the inductive step, we assume that process @{text p} has decided on @{text v}.\<close>
