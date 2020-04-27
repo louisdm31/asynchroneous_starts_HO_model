@@ -604,9 +604,9 @@ proof -
 qed
 
 theorem OTR_agreement:
-  assumes run:"HORun OTR_M rho HOs"
-  and p: "decide (rho n p) = Some v"
-  and p': "decide (rho m p') = Some w"
+  assumes run:"HORun (HOMachine_to_Algorithm OTR_M) rho HOs"
+  and p: "rho n p = Active \<lparr> x = v, decide = True \<rparr>"
+  and p': "rho m p' = Active \<lparr> x = w, decide = True \<rparr>"
   shows "v = w"
 proof (cases "n \<le> m")
   case True
