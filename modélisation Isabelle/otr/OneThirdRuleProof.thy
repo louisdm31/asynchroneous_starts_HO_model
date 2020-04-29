@@ -82,8 +82,7 @@ proof -
 qed
 
 lemma vinv_invariant:
-  assumes not_inf:"\<forall>p. \<exists>n. rho n p \<noteq> Aslept"
-  and run:"HORun (HOMachine_to_Algorithm OTR_M) rho HOs" (is "HORun ?A rho HOs")
+  assumes run:"HORun (HOMachine_to_Algorithm OTR_M) rho HOs" (is "HORun ?A rho HOs")
   shows "VInv rho n"
 proof -
   have pro:"\<forall> p::Proc. \<forall>s. \<forall>n::nat. rho n p = Active s \<longrightarrow>
@@ -635,51 +634,202 @@ text \<open>
   Lemma \<open>A2\<close> is instrumental in this proof.
 \<close>
 
-theorem OTR_termination:
-  assumes run: "HORun OTR_M rho HOs"
-      and commG: "HOcommGlobal OTR_M HOs"
-  shows "\<exists>r v. decide (rho r p) = Some v"
-proof -
-  from commG obtain r0 \<Pi> where 
-    pi: "\<forall>q. HOs r0 q = \<Pi>" and pic: "card \<Pi> > (2*N) div 3"
-    by (auto simp: OTR_HOMachine_def OTR_commGlobal_def)
-  let "?msgs q r" = "HOrcvdMsgs OTR_M r q (HOs r q) (rho r)"
+lemma toto : assumes "a = b" shows "card a = card b" using arg_cong assms by auto
 
-  from run pi have "\<forall>p q. ?msgs q r0 = ?msgs p r0"
-    by (auto simp: HORun_eq OTR_HOMachine_def HOrcvdMsgs_def OTR_sendMsg_def)
+lemma titi : assumes "a = (UNIV :: Proc set)" shows "card a = N" using toto[of "a" "UNIV"] assms by auto
+
+theorem OTR_termination:
+  assumes  not_inf:"\<forall>p. \<exists>n. rho n p \<noteq> Aslept"
+  and run: "HORun (HOMachine_to_Algorithm OTR_M) rho HOs" (is "HORun ?A _ _")
+      and commG: "HOcommGlobal OTR_M HOs"
+  shows "\<exists>r v. rho r p = Active \<lparr> x = v, decide = True \<rparr>"
+proof -
+  have "\<forall>subP. \<exists>n. \<forall>p \<in> subP. rho n p \<noteq> Aslept"
+  proof
+    fix subP
+    show "\<exists>n. \<forall>p \<in> subP. rho n p \<noteq> Aslept"
+    proof (induction "card subP" arbitrary:subP)
+      case 0
+      thus "\<exists>n. \<forall>p \<in> subP. rho n p \<noteq> Aslept" by auto
+    next
+      case (Suc m)
+      hence "\<exists>subsubP pp. subP = subsubP \<union> {pp} \<and> pp \<notin> subsubP" by (metis Un_insert_right card_eq_SucD sup_bot_right)
+      then obtain subsubP pp where subpun:"subP = subsubP \<union> {pp}" and "pp \<notin> subsubP" by auto
+      hence "card subsubP = m" using Suc by auto
+      then obtain nn where actnp:"\<forall>p \<in> subsubP. rho nn p \<noteq> Aslept" using Suc.hyps by auto
+      from not_inf obtain np where actpp:"rho np pp \<noteq> Aslept" by auto
+      show "\<exists>n. \<forall>p \<in> subP. rho n p \<noteq> Aslept"
+      proof (cases "np > nn")
+        case npsupnn:True
+        have "\<forall>q. q \<in> subP \<longrightarrow> rho np q \<noteq> Aslept"
+        proof
+          fix q
+          show "q \<in> subP \<longrightarrow> rho np q \<noteq> Aslept"
+          proof
+            assume qsubp:"q \<in> subP"
+            show "rho np q \<noteq> Aslept"
+            proof (cases "q = pp")
+              case True
+              thus "rho np q \<noteq> Aslept" using actpp by auto
+            next
+              case False
+              hence "q \<in> subsubP" using qsubp subpun by auto
+              hence "rho nn q \<noteq> Aslept" using actnp by auto
+              thus "rho np q \<noteq> Aslept" using nonAsleepAgain[where ?m = "np - nn" and ?n = nn] npsupnn run HORun_def by fastforce
+            qed
+          qed
+        qed
+        thus "\<exists>n. \<forall>q \<in> subP. rho n q \<noteq> Aslept" by auto
+      next
+        case nninfpp:False
+        have "\<forall>q. q \<in> subP \<longrightarrow> rho nn q \<noteq> Aslept"
+        proof
+          fix q
+          show "q \<in> subP \<longrightarrow> rho nn q \<noteq> Aslept"
+          proof
+            assume qsubp:"q \<in> subP"
+            show "rho nn q \<noteq> Aslept"
+            proof (cases "q = pp")
+              case True
+              thus "rho nn q \<noteq> Aslept" 
+                using actpp nonAsleepAgain[where ?n = np and ?m = "nn - np"] nninfpp run HORun_def by fastforce
+            next
+              case False
+              hence "q \<in> subsubP" using qsubp subpun by auto
+              thus "rho nn q \<noteq> Aslept" using actnp by auto
+            qed
+          qed
+        qed
+        thus "\<exists>n. \<forall>q \<in> subP. rho n q \<noteq> Aslept" by auto
+      qed
+    qed
+  qed
+  hence "\<exists>n. \<forall>p \<in> UNIV. rho n p \<noteq> Aslept" by blast
+
+  then obtain eveil where "\<forall>p. rho eveil p \<noteq> Aslept" by auto
+  have "\<exists>r0 \<Pi>. r0 \<ge> eveil \<and> (\<forall>p. HOs r0 p = \<Pi>) \<and> card \<Pi> > (2*N) div 3"
+    using commG by (simp add:OTR_commGlobal_def OTR_HOMachine_def)
+  then obtain r0 \<Pi> where "r0 \<ge> eveil" and
+    pi: "\<forall>q. HOs r0 q = \<Pi>" and pic: "card \<Pi> > (2*N) div 3"
+    by auto
+  have "\<forall>p. rho r0 p \<noteq> Aslept"
+    using nonAsleepAgain[where ?m = "r0 - eveil" and ?n = eveil] \<open>\<forall>p. rho eveil p \<noteq> Aslept\<close> run HORun_def \<open>r0 \<ge> eveil\<close>
+    by (smt Nat.le_imp_diff_is_add eq_imp_le)
+  have allact:"\<forall>p. \<exists>ss. rho r0 p = Active ss"
+  proof
+    fix p
+    show "\<exists>ss. rho r0 p = Active ss" using \<open>\<forall>p. rho r0 p \<noteq> Aslept\<close> by (cases "rho r0 p") auto
+  qed
+  let "?msgs q r" = "HOrcvdMsgs (HOMachine_to_Algorithm OTR_M) q (HOs r q) (rho r)"
+
+  have "\<forall>p q. ?msgs q r0 = ?msgs p r0"
+  proof (rule+)
+    fix p q h
+    from allact obtain sp where "rho r0 p = Active sp" by auto
+    from allact obtain sh where "rho r0 h = Active sh" by auto
+    hence "?msgs p r0 h = (if h \<in> \<Pi> then Content (x sh) else Void)"
+      using pi by (simp add:HOrcvdMsgs_def HOMachine_to_Algorithm_def OTR_HOMachine_def OTR_sendMsg_def)
+    also have "\<dots> = ?msgs q r0 h" using pi \<open>rho r0 h = Active sh\<close>
+      by (simp add:HOrcvdMsgs_def HOMachine_to_Algorithm_def OTR_HOMachine_def OTR_sendMsg_def)
+    finally show "?msgs p r0 h = ?msgs q r0 h" by auto
+  qed
+
   then obtain \<mu> where "\<forall>q. ?msgs q r0 = \<mu>" by auto
   moreover
-  from pi pic have "\<forall>p. (2*N) div 3 < card {q. ?msgs p r0 q \<noteq> None}"
-    by (auto simp: HORun_eq HOnextConfig_eq HOrcvdMsgs_def)
-  with run have "\<forall>q. x (rho (Suc r0) q) = Min {v . MFR (?msgs q r0) v}"
-    by (auto simp: HORun_eq HOnextConfig_eq OTR_HOMachine_def 
-                   nextState_def OTR_nextState_def)
+  have majHO:"\<forall>p. (2*N) div 3 < card {q. ?msgs p r0 q \<noteq> Void \<and> ?msgs p r0 q \<noteq> Bot}"
+  proof
+    fix p
+    have "\<forall>h. h \<in> \<Pi> \<longrightarrow> ?msgs p r0 h \<noteq> Void \<and> ?msgs p r0 h \<noteq> Bot"
+    proof (rule allI impI )
+      fix h
+      show "h \<in> \<Pi> \<longrightarrow> ?msgs p r0 h \<noteq> Void \<and> ?msgs p r0 h \<noteq> Bot"
+      proof
+        assume "h \<in> \<Pi>"
+        hence "h \<in> HOs r0 p" using pi by auto
+        moreover from allact obtain sh where "rho r0 h = Active sh" by auto
+        ultimately have "?msgs p r0 h = Content (sendMsg ?A h p sh)" 
+          by (auto simp: run HORun_def CHOnextConfig_def HOrcvdMsgs_def CHORun_def)
+        thus "?msgs p r0 h \<noteq> Void \<and> ?msgs p r0 h \<noteq> Bot" by (cases "?msgs p r0 h") auto
+      qed
+    qed
+    thus "(2*N) div 3 < card {q. ?msgs p r0 q \<noteq> Void \<and> ?msgs p r0 q \<noteq> Bot}" using pic  by (simp add: HOrcvdMsgs_def pi)
+  qed
+  have "\<forall>q. \<exists>sq. rho (Suc r0) q = Active sq \<and> x sq = Min {v . MFR (?msgs q r0) v}"
+  proof
+    fix q
+    from allact obtain sq where "rho r0 q = Active sq" by auto
+    hence chonxt:"CHOnextConfig ?A (rho r0) (HOs r0) (\<lambda>w. undefined) (rho (Suc r0))" using run by (simp add:HORun_def CHORun_def)
+    then obtain sqq where "rho (Suc r0) q = Active sqq" and "CnextState ?A q sq (?msgs q r0) undefined sqq"
+      using \<open>rho r0 q = Active sq\<close> by (auto simp:CHOnextConfig_def)
+    hence "x sqq =  Min {v . MFR (?msgs q r0) v}"
+      using majHO by (simp add:OTR_HOMachine_def HOMachine_to_Algorithm_def OTR_nextState_def)
+    thus "\<exists>sq. rho (Suc r0) q = Active sq \<and> x sq = Min {v . MFR (?msgs q r0) v}" using \<open>rho (Suc r0) q = Active sqq\<close> by auto
+  qed
   ultimately
-  have "\<forall>q. x (rho (Suc r0) q) = Min {v . MFR \<mu> v}" by auto
-  then obtain v where v:"\<forall>q. x (rho (Suc r0) q) = v" by auto
+  have "\<forall>q. \<exists>sq. rho (Suc r0) q = Active sq \<and> x sq = Min {v . MFR \<mu> v}" by auto
+  then obtain v where "\<forall>q. \<exists>sq. rho (Suc r0) q = Active sq \<and> x sq = v" by auto
+  hence v:"\<forall>q. \<exists>b. rho (Suc r0) q = Active \<lparr> x = v, decide = b \<rparr>" by (metis pstate.cases pstate.select_convs(1))
 
-  have P:"\<forall>k. \<forall>q. x (rho (Suc r0+k) q) = v"
+  have P:"\<forall>k. \<forall>q. \<exists>b. rho (Suc r0 + k) q = Active \<lparr> x = v, decide = b \<rparr>"
   proof
     fix k
-    show "\<forall>q. x (rho (Suc r0+k) q) = v"
+    show "\<forall>q. \<exists>b. rho (Suc r0 + k) q = Active \<lparr> x = v, decide = b \<rparr>"
     proof (induct k)
-      from v show "\<forall>q. x (rho (Suc r0+0) q) = v" by simp
+      from v show "\<forall>q. \<exists>b. rho (Suc r0 + 0) q = Active \<lparr> x = v, decide = b \<rparr>" by simp
     next
       fix k
-      assume ih:"\<forall>q. x (rho (Suc r0 + k) q) = v"
-      show "\<forall>q. x (rho (Suc r0 + Suc k) q) = v"
+      assume ih:"\<forall>q. \<exists>b. rho (Suc r0 + k) q = Active \<lparr> x = v, decide = b \<rparr>"
+      show "\<forall>q. \<exists>b. rho (Suc r0 + Suc k) q = Active \<lparr> x = v, decide = b \<rparr>"
       proof
         fix q
-        show "x (rho (Suc r0 + Suc k) q) = v"
-        proof (cases "(2*N) div 3 < card { p . ?msgs q (Suc r0 + k) p \<noteq> None }")
+        show "\<exists>b. rho (Suc r0 + Suc k) q = Active \<lparr> x = v, decide = b \<rparr>"
+        proof (cases "(2*N) div 3 < card { p . ?msgs q (Suc r0 + k) p \<noteq> Void }")
           case True
-          have "N > 0" by (rule finite_UNIV_card_ge_0) simp
-          with ih 
-          have "(2*N) div 3 < card { p . x (rho (Suc r0 + k) p) = v }" by auto
+          moreover have "\<forall>h. ?msgs q (Suc r0 + k) h \<noteq> Bot"
+          proof
+            fix h
+            show "?msgs q (Suc r0 + k) h \<noteq> Bot"
+            proof
+              assume "?msgs q (Suc r0 + k) h = Bot"
+              hence "rho (Suc r0 + k) h = Aslept" using HOrcvdMsgs_def
+                by (metis HOrcvMsgs_q.elims message.distinct(5) message.simps(3))
+              moreover have "Suc r0 + k \<ge> eveil" using \<open>r0 \<ge> eveil\<close> by auto
+              hence "rho (Suc r0 + k) h \<noteq> Aslept" 
+                using nonAsleepAgain[where ?m = "Suc r0 + k - eveil" and ?n = eveil] \<open>\<forall>p. rho eveil p \<noteq> Aslept\<close> run HORun_def 
+                by (smt Nat.le_imp_diff_is_add eq_imp_le)  
+              ultimately show "False" by auto
+            qed
+          qed
+          ultimately have "(2*N) div 3 < card { p . ?msgs q (Suc r0 + k) p \<noteq> Void \<and> ?msgs q (Suc r0 + k) p \<noteq> Bot }" by auto
+
+          moreover have "\<forall>p . \<exists>s. x s = v \<and> rho (Suc r0 + k) q = Active s" using ih by force
+
+          hence "{p. \<exists>s. x s = v \<and> rho (Suc r0 + k) q = Active s} = (UNIV :: Proc set)" by auto
+          hence "card {p. \<exists>s. x s = v \<and> rho (Suc r0 + k) q = Active s} = N"
+            using titi[of "{p. \<exists>s. x s = v \<and> rho (Suc r0 + k) q = Active s}"] by sledgehammer
+
+
+          hence "{p. ?msgs q (Suc r0 + k) p \<noteq> Void \<and> ?msgs q (Suc r0 + k) p \<noteq> Bot } \<subseteq>
+                 {p. \<exists>s. x s = v \<and> rho (Suc r0 + k) q = Active s}" by auto
+          hence "card {p. ?msgs q (Suc r0 + k) p \<noteq> Void \<and> ?msgs q (Suc r0 + k) p \<noteq> Bot } \<le>
+                 card { p . \<exists>s. x s = v \<and> rho (Suc r0 + k) q = Active s}" using \<open>N>0\<close> by (simp add:card_mono)
+          ultimately have "(2*N) div 3 < card { p . \<exists>s. x s = v \<and> rho (Suc r0 + k) q = Active s}" by (simp add:card_mono)
           with True run show ?thesis by (auto elim: A2)
         next
           case False
-          with run ih show ?thesis by (auto dest: nextState_change)
+          have "{p. ?msgs q (Suc r0 + k) p \<noteq> Void \<and> ?msgs q (Suc r0 + k) p \<noteq> Bot} \<subseteq>
+                {p. ?msgs q (Suc r0 + k) p \<noteq> Void }" by auto
+          hence " card {p. ?msgs q (Suc r0 + k) p \<noteq> Void \<and> ?msgs q (Suc r0 + k) p \<noteq> Bot} \<le>
+                  card {p. ?msgs q (Suc r0 + k) p \<noteq> Void }" by (simp add: card_mono)
+          hence "\<not> (2*N) div 3 < card {p. ?msgs q (Suc r0 + k) p \<noteq> Void \<and> ?msgs q (Suc r0 + k) p \<noteq> Bot}" using False by auto 
+          with run ih have "rho (Suc r0 + k) q = Aslept \<or> rho (Suc r0 + k) q = rho (Suc r0 + Suc k) q"
+            by (auto dest: nextState_change)
+          moreover have "Suc r0 + k \<ge> eveil" using \<open>r0 \<ge> eveil\<close> by auto
+          hence "rho (Suc r0 + k) q \<noteq> Aslept" 
+            using nonAsleepAgain[where ?m = "Suc r0 + k - eveil" and ?n = eveil] \<open>\<forall>p. rho eveil p \<noteq> Aslept\<close> run HORun_def 
+            by (smt Nat.le_imp_diff_is_add eq_imp_le)
+          ultimately have "rho (Suc r0 + k) q = rho (Suc r0 + Suc k) q" by auto
+          thus ?thesis using ih by metis
         qed
       qed
     qed
