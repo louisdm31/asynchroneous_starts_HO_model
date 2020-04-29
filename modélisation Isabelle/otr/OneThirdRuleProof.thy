@@ -805,8 +805,8 @@ proof -
           moreover have "\<forall>p . \<exists>s. x s = v \<and> rho (Suc r0 + k) q = Active s" using ih by force
 
           hence "{p. \<exists>s. x s = v \<and> rho (Suc r0 + k) q = Active s} = (UNIV :: Proc set)" by auto
-          hence "card {p. \<exists>s. x s = v \<and> rho (Suc r0 + k) q = Active s} = N"
-            using titi[of "{p. \<exists>s. x s = v \<and> rho (Suc r0 + k) q = Active s}"] by sledgehammer
+          hence "card {p. \<exists>s. x s = v \<and> rho (Suc r0 + k) q = Active s} = card UNIV"
+            using arg_cong[of "{p. \<exists>s. x s = v \<and> rho (Suc r0 + k) q = Active s}" "UNIV" "card"] by auto
 
 
           hence "{p. ?msgs q (Suc r0 + k) p \<noteq> Void \<and> ?msgs q (Suc r0 + k) p \<noteq> Bot } \<subseteq>
