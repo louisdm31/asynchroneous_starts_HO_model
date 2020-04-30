@@ -20,6 +20,10 @@ text \<open>
   new values.
 \<close>
 
+fun getDec where
+"getDec (Active s) = (if decide s then Some (x s) else None)" |
+"getDec Aslept = None"
+
 definition VInv :: "(nat \<Rightarrow> Proc \<Rightarrow> ('val::linorder) pstate proc_state) \<Rightarrow> nat \<Rightarrow> bool" where
   "VInv rho n \<equiv>
    let xinit =  {x s | s. \<exists>p. getInitValue rho p = Active s}
@@ -224,6 +228,12 @@ proof -
   qed
   thus ?thesis using VInv_def by auto
 qed
+
+lemma OTR_integrity:
+  assumes run:"HORun (HOMachine_to_Algorithm OTR_M) rho HOs" (is "HORun ?A _ _")
+  and "rho n p = Active \<lparr> x = v, decide = True \<rparr>"
+shows "\<exists>q s. x s = v \<and> getInitValue rho q = Active s"
+  using vinv_invariant assms VInv_def by fastforce
 
 subsection \<open>Proof of Agreement\<close>
 
@@ -884,11 +894,44 @@ text \<open>
   the Consensus property.
 \<close>
 
+fun getX where
+"getX (Active s) = x s"
+
 theorem OTR_consensus:
-  assumes run: "HORun (HOMachine_to_Algrithm OTR_M) rho HOs" and commG: "HOcommGlobal OTR_M HOs"
-  shows "consensus (x \<circ> (rho 0)) decide rho"
-  using OTR_integrity[OF run] OTR_agreement[OF run] OTR_termination[OF run commG]
-  by (auto simp: consensus_def image_def)
+  assumes run: "HORun (HOMachine_to_Algorithm OTR_M) (rho :: nat \<Rightarrow> Proc \<Rightarrow> _ pstate proc_state) HOs"  (is "HORun ?A _ _")
+  and commG: "HOcommGlobal OTR_M HOs"
+  assumes  not_inf:"\<forall>p. \<exists>n. rho n p \<noteq> Aslept"
+  shows "consensus (\<lambda>p. getX (getInitValue rho p)) getDec rho" (is "consensus ?vals _ _")
+proof -
+  have "\<forall>p n v. getDec (rho n p) = Some v \<longrightarrow> v \<in> range ?vals"
+  proof
+    fix p
+    show "\<forall>n v. getDec (rho n p) = Some v \<longrightarrow> v \<in> range ?vals"
+    proof
+      fix n
+      show "\<forall>v. getDec (rho n p) = Some v \<longrightarrow> v \<in> range ?vals"
+      proof
+        fix v
+        show "getDec (rho n p) = Some v \<longrightarrow> v \<in> range ?vals"
+        proof
+          assume "getDec (rho n p) = Some v"
+          hence "rho n p = Active \<lparr> x = v, decide = True \<rparr>"
+            by (metis getDec.elims old.unit.exhaust option.distinct(1) option.sel pstate.surjective)
+          hence "\<exists>q s. x (s :: 'a pstate) = (v :: 'a) \<and> getInitValue rho q = Active s" using run OTR_integrity by fastforce
+          thus "v \<in> range ?vals" by (metis getX.simps range_eqI)
+        qed
+      qed
+    qed
+  qed
+  moreover have "(\<forall>m n p q v w. getDec (rho m p) = Some v \<and> getDec (rho n q) = Some w  \<longrightarrow> v = w)"
+    using run OTR_agreement getDec.elims getDec.simps
+    by (smt old.unit.exhaust option.sel option.simps(3) pstate.surjective)
+  moreover have "\<forall>p. \<exists>n. getDec (rho n p) \<noteq> None"
+    using run not_inf commG OTR_termination
+    by (smt getDec.simps(1) option.simps(3) pstate.ext_inject pstate.select_convs(1) pstate.surjective)
+
+  ultimately show ?thesis using consensus_def[where ?vals = "\<lambda>p. getX (getInitValue rho p)" and ?rho = rho] by fastforce
+qed
 
 text \<open>
   By the reduction theorem, the correctness of the algorithm also follows

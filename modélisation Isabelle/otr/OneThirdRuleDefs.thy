@@ -29,6 +29,7 @@ typedecl Proc \<comment> \<open>the set of processes\<close>
 axiomatization where Proc_finite: "OFCLASS(Proc, finite_class)"
 instance Proc :: finite by (rule Proc_finite)
 
+
 abbreviation
   "N \<equiv> card (UNIV::Proc set)"
 
