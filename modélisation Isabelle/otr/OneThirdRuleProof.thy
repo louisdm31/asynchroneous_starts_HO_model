@@ -34,8 +34,7 @@ lemma MFR_finite : assumes "v = Min {v. MFR msgs v}" (is "v = Min ?ens")
   and "msgs q = Content s"
   shows "MFR msgs v"
 proof -
-  have "card ?ens = 1 \<or> card ?ens = 0 \<or> card ?ens > 1" by auto
-  thus ?thesis
+  show ?thesis
   proof cases
     assume zer:"card ?ens = 0"
     hence vidinfi:"?ens = {} \<or> infinite ?ens" by (simp add:card_eq_0_iff)
@@ -255,19 +254,6 @@ proof (cases "rho n p")
 next
   case (Aslept)
   thus ?thesis by auto
-qed
-
-lemma nextState_decide:
-  assumes run:"HORun (HOMachine_to_Algorithm OTR_M) rho HOs"
-  and chg: "x1 \<noteq> x2 \<and> rho (Suc n) p = Active \<lparr> x = x2, decide = True\<rparr> \<and> rho n p = Active \<lparr> x = x1, decide = True\<rparr>"
-  shows "TwoThirds (HOrcvdMsgs (HOMachine_to_Algorithm OTR_M) p (HOs n p) (rho n))
-                   (the (decide (rho (Suc n) p)))"
-proof -
-  from run
-  have "OTR_nextState n p (rho n p)
-                    (HOrcvdMsgs OTR_M n p (HOs n p) (rho n)) (rho (Suc n) p)"
-    by (simp add: HORun_eq HOnextConfig_eq OTR_HOMachine_def nextState_def)
-  with chg show ?thesis by (auto simp: OTR_nextState_def elim: someI)
 qed
 
 lemma A1:
@@ -849,9 +835,6 @@ proof -
   hence "CnextState ?A p sp (?msgs p r0') undefined spp" by auto
   hence nxt:"OTR_nextState p sp (?msgs p r0') spp" by (auto simp:OTR_HOMachine_def HOMachine_to_Algorithm_def)
 
-  moreover 
-
-
   have "\<forall>h. ?msgs p r0' h \<noteq> Bot"
   proof
     fix h
@@ -873,14 +856,13 @@ proof -
   hence "card \<Pi>' \<le>  card {q. (?msgs p r0') q \<noteq> Void \<and> ?msgs p r0' q \<noteq> Bot}" by (simp add: card_mono subsetI)
   hence majv:"(2*N) div 3 < card {q. (?msgs p r0') q \<noteq> Void \<and> ?msgs p r0' q \<noteq> Bot}" using pic' by auto
 
-
-  from v' have vv:"\<forall>q. \<exists>ss. x ss = v \<and> rho r0' q = Active ss" by (meson pstate.select_convs(1))
   have "\<forall>qq. qq \<in> \<Pi>' \<longrightarrow> ?msgs p r0' qq = Content v" 
   proof (rule+)
     fix qq
     assume "qq \<in> \<Pi>'"
     hence "qq \<in> HOs r0' p" using pi' by auto
-    moreover from vv obtain sqq where "x sqq = v" and "rho r0' qq = Active sqq" by auto
+    moreover from v' have "\<forall>q. \<exists>ss. x ss = v \<and> rho r0' q = Active ss" by (meson pstate.select_convs(1))
+    then obtain sqq where "x sqq = v" and "rho r0' qq = Active sqq" by auto
     ultimately show "?msgs p r0' qq = Content v" using  \<open>x sqq = v\<close>
       by (simp add: HOMachine_to_Algorithm_def OTR_sendMsg_def OTR_HOMachine_def HOrcvdMsgs_def)
   qed
@@ -903,7 +885,7 @@ text \<open>
 \<close>
 
 theorem OTR_consensus:
-  assumes run: "HORun OTR_M rho HOs" and commG: "HOcommGlobal OTR_M HOs"
+  assumes run: "HORun (HOMachine_to_Algrithm OTR_M) rho HOs" and commG: "HOcommGlobal OTR_M HOs"
   shows "consensus (x \<circ> (rho 0)) decide rho"
   using OTR_integrity[OF run] OTR_agreement[OF run] OTR_termination[OF run commG]
   by (auto simp: consensus_def image_def)
