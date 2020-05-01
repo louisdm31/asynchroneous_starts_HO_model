@@ -933,6 +933,7 @@ proof -
   ultimately show ?thesis using consensus_def[where ?vals = "\<lambda>p. getX (getInitValue rho p)" and ?rho = rho] by fastforce
 qed
 
+(*
 text \<open>
   By the reduction theorem, the correctness of the algorithm also follows
   for fine-grained runs of the algorithm. It would be much more tedious
@@ -952,6 +953,6 @@ proof (rule local_property_reduction[OF run consensus_is_local])
   from this commG have "consensus (x \<circ> (crun 0)) decide crun" by (rule OTR_consensus)
   with init show "consensus ?inits decide crun" by (simp add: o_def)
 qed
-
+*)
 
 end

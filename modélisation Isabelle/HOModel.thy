@@ -341,6 +341,7 @@ lemma HORun_eq:
    \<and> (\<forall>r. HOnextConfig A (rho r) (HOs r) (rho (Suc r))))"
   by (auto simp: HORun_def CHORun_def HOinitConfig_def HOnextConfig_def)
 
+(*
 text \<open>
   The following derived proof rules are immediate consequences of
   the definition of \<open>CHORun\<close>; they simplify automatic reasoning.
@@ -366,6 +367,7 @@ lemma CHORun_induct:
                                       (rho (Suc r)) \<rbrakk> \<Longrightarrow> P (Suc r)"
   shows "P n"
 using run unfolding CHORun_eq by (induct n, auto elim: init step)
+*)
 
 text \<open>
   Because algorithms will not operate for arbitrary HO, SHO, and coordinator

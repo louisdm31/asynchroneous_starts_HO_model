@@ -91,6 +91,7 @@ proof -
   thus ?thesis ..
 qed
 
+(*
 text \<open>
   Also, if a process has heard from at least one other process,
   the most frequently received values are among the received messages.
@@ -115,6 +116,7 @@ proof -
   thus ?thesis
     by (auto simp: HOV_def HOrcvdMsgs_def)
 qed
+*)
 
 text \<open>
   @{term "TwoThirds msgs v"} holds if value \<open>v\<close> has been
