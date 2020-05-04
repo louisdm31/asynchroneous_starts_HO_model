@@ -1,0 +1,204 @@
+\documentclass{article}
+\usepackage{amsmath}
+\usepackage{algpseudocode}
+\usepackage{amssymb}
+\usepackage{amsthm}
+\usepackage{dsfont}
+\usepackage[left=2cm, right=2cm, top=2cm]{geometry}
+\usepackage[utf8]{inputenc}
+\newtheorem{lemma}{Lemme}
+
+\title{Preuve de correction de l'algorithme One-Third Rule avec départs asynchrones}
+\date{4 mai 2020}
+\author{Louis Penet de Monterno}
+
+\begin{document}
+\maketitle
+  
+Notations :
+
+\begin{description}
+
+\item[$\bullet$] $HO_{actif}(p,n)$ désigne l'ensemble des processus actifs entendus par le processus p au round n.
+\item[$\bullet$]  $s_p(n)$ désigne l'état du processus p au round n. $s_p(n)$ vaut \textit{Passif} si le processus est endormi, ou $Actif <x, dec>$ s'il est réveillé.
+\item[$\bullet$]  $x_p(n)$ désigne la valeur de x du processus p au round n. Cette valeur n'est définie que si p est réveilllé.
+\item[$\bullet$] $min \{M^{-1} (max M)\}$ désigne, pour un ensemble de messages M, le minimum parmi les messages les plus fréquents.
+\end{description}
+
+\section{Algorithme}
+
+L'état des processus est constitué de 
+
+\begin{description}
+
+\item[$\bullet$] Une valeur $x_p$ dans un ensemble V.
+\item[$\bullet$] Une valeur $dec_p$ booléenne. Quand cette valeur est vraie, la décision du processus est égale à sa valeur $x_p$.
+
+\end{description}
+
+À chaque round, les processus envoient leur valeur $x_p$.
+
+S'ils reçoivent un ensemble de messages M provenant de plus de deux tiers de processus réveillés, ils attribuent à leur variable $x_p$ la valeur $min \{M^{-1} (max M)\}$.
+
+Ils décident s'ils reçoivent une supermajorité de valeurs identiques.
+
+NB : les messages des processus passifs et les messages non reçus sont traités de la même manière.
+
+\section{Intégrité}
+
+On définit, pour une exécution donné, l'ensemble $x_{init}$ des valeurs initiales par : 
+
+$x_{init} = \{ x , \exists p \in \Pi, s_p(0) = Actif < x, False> \vee ( s_p(n) = Passif \wedge s_p(n+1) = Actif < x, False> ) \} $
+
+\vspace{0.5cm}
+
+On montre d'abord par récurrence l'invariant suivant : 
+
+$ \forall p \in \Pi, \forall n \in \mathds{N}, s_p(n) = Actif <x, dec> \Rightarrow x \in x_init$
+
+\textbf{Intialisation}
+Triviale, par définition de $x_{init}$.
+
+\textbf{Hérédité}
+Pour un n donné, on suppose $\forall p \in \Pi, s_p(n) = Actif <x, dec> \Rightarrow x \in x_{init}$
+
+Soit $q \in \Pi$ . On distingue les deux cas suivants :
+\begin{description}
+
+\item[$\bullet$] $|HO_{actif} (q, n) | \leq \frac{2n}{3}$. Dans ce cas, $s_q(n+1) = s_q(n)$. L'hypothèse de récurrence permet de prouver l'invariant.
+\item[$\bullet$] $|HO_{actif} (q, n) | > \frac{2n}{3}$. Dans ce cas, $x = min \{M^{-1} (max M)\}\}$. On applique l'hypothèse de récurrence au processus qui atteint ce minimum. Cela prouve l'invariant.
+
+\end{description}
+
+L'intégrité découle naturellement de cet invariant.
+
+NB : la définition d'intégrité que j'ai prouvé est une définition faible, dans la mesure où un processus pourrait décider la valeur initiale d'un autre processus qui ne serait pas encore réveillé. 
+
+\section{Terminaison}
+
+On fait les hypothèses que :
+\begin{description}
+
+\item[$\bullet$] Le graphe dynamique est infiniment souvent uniforme avec un noyau contenant plus de deux tiers des processus : $\forall n \in \mathds{N}, \exists m \in \mathds{N}, \exists \Pi_0 \subset \Pi, m > n \wedge K(m) = \Pi_0$.
+\item[$\bullet$] Tous les processus se réveillent en temps fini. Ainsi, à partir d'un certain round n, tous les procesus sont réveillés.
+
+\end{description}
+
+La suite preuve est identique à celle avec départs synchrones. À partir du prédicat, on obtient un round m uniforme, ultérieur à n. Au round m, tous les processus reçoivent un même ensemble M de messages, vérifiant $| M | > \frac{2n}{3}$. On a donc, $\forall p \in \Pi, x_p(n+1) = min \{M^{-1} (max M)\}$
+
+Par une récurrence triviale, on montre que pour tous les rounds ultérieurs à m, l'ensemble des valeurs de tous les processus contient seulement $min \{M^{-1} (max M)\}$ : $\forall p \ Pi, \forall m' \geq m, \{x_p(m'), p \in \Pi \} = \{Min M\}$.
+
+À partir du prédicat, on obtient un round r uniforme, ultérieur à m. Au round r, tous les processus reçoivent plus de $\frac{2n}{3}$ messages, contenant seulement la valeur $min \{M^{-1} (max M)\}$. Donc tous les processus décident $min \{M^{-1} (max M)\}$.
+
+\section{Accord}
+
+La preuve formelle est construite à partir d'une série de lemmes qui aboutissent au résultat final.
+
+\begin{lemma}
+
+Si, pour p et q processus,
+
+\begin{description}
+
+\item[$\bullet$] $s_p(n) = Actif <x_1, True>$
+\item[$\bullet$] $s_p(n+1) = Actif <x_2, True>$
+\item[$\bullet$] $x_1 \neq x_2$
+
+\end{description}
+
+On en déduit que $| \{ p \in \Pi , x_p(n) = x_2 \} | > \frac{2n}{3}$.
+
+\end{lemma}
+
+\begin{lemma}
+
+Si, pour p processus,
+
+\begin{description}
+
+\item[$\bullet$] $| HO_{active} (p,n) | > \frac{2n}{3}$
+\item[$\bullet$] $| \{ q \in \Pi , x_q(n) = x_2 \} | > \frac{2n}{3}$.
+\item[$\bullet$] $s_p(n) = Actif <x_1, dec>$
+
+\end{description}
+
+On en déduit que $s_p(n+1) = Actif <x_2, dec>$
+
+\end{lemma}
+
+\begin{proof}
+
+Soit M l'ensemble des messages reçus par p. On note $M(x_2)$ le nombre de messages contenant $x_2$ parmi M.
+
+On a $M = M(x_2) \cup (M \backslash M(x_2) ) \subset M \cup \{ q \in \Pi , x_q(n) \neq x_2 \} $
+
+\vspace{0.4cm}
+
+Ainsi $\frac{2n}{3} < | M | = | M(x_2) | + | M \backslash M(x_2) | \leq | M(x_2) | + | \{ q \in \Pi , x_q(n) \neq x_2 \} | \leq | M(x_2) | +  \frac{n}{3}$
+
+\vspace{0.4cm}
+
+Ainsi  $| M(x_2) | > \frac{1}{3} \geq | \{ q \in \Pi , x_q(n) \neq x_2 \} | \geq | M \backslash M(x_2) |$
+
+Donc $x_2$ est l'élément le plus fréquent de M. Donc $x_p(n+1) = x_2$.
+
+\end{proof}
+
+\begin{lemma}
+
+Toute supermajorité de valeurs se conserve. Pour tout k entier naturel : 
+
+$| \{ q \in \Pi , x_q(n) = x \} | > \frac{2n}{3} \Rightarrow | \{ q \in \Pi , x_q(n+k) = x \} | > \frac{2n}{3}$.
+
+\end{lemma}
+
+\begin{proof}
+
+Soit $p \in | \{ q \in \Pi , x_q(n) = x \} | > \frac{2n}{3}$. On distingue les cas suivants :
+
+\begin{description}
+
+\item[$\bullet$] $|HO_{actif} (p, n) | \leq \frac{2n}{3}$. Dans ce cas, $x_p(n+1) = x_p(n) = x$.
+\item[$\bullet$] $|HO_{actif} (p, n) | > \frac{2n}{3}$. Dans ce cas, le lemme 2 permet de montrer que $x_p(n+1) = x$.
+
+\end{description}
+Dans tous les cas 
+$p \in | \{ q \in \Pi , x_q(n+1) = x \} | > \frac{2n}{3}$
+
+Le lemme découle par une récurrence utilisant le fait précédent.
+\end{proof}
+\begin{lemma}
+
+Soit p un processus. Si p décide x au round n, on en déduit, pour tous les rounds suivants n+k :
+
+$| \{ q \in \Pi , x_q(n+k) = x \} | > \frac{2n}{3}$
+\end{lemma}
+\begin{proof}
+
+On montre cela par récurrence sur n, pour un k arbitraire.
+
+\textbf{Initialisation}
+Les processus ne décident jamais au round 0, donc ex falso quodlibet.
+
+\textbf{Hérédité}
+Si p avait déjà décidé au round précédent, le lemme découle de l'hypothèse de récurrence.
+Sinon, p vient de décider, ce qui signifie d'une part, qu'il était déjà réveillé, et d'autre part
+qu'il vient d'entendre une supermajorité de messages contenant la valeur x.
+On conclut alors en utilisant le lemme 3.
+
+\end{proof}
+\begin{lemma}
+
+Si p décide $x_1$ au roun n et q décide $x_2$ au round n+k, on a $x_1 = x_2$.
+\end{lemma}
+\begin{proof}
+
+Si p décide $x_1$ au round n,   le lemme 4 montre qu'une supermajorité de processus a $x_1$ comme valeur au round $n+k$.
+Si q décide $x_2$ au round n+k, le lemme 4 montre qu'une supermajorité de processus a $x_2$ comme valeur au round $n+k$.
+
+Ces deux supermajorités se recoupent nécessairement, donc $x_1 = x_2$.
+\end{proof}
+
+Ce dernier lemme permet de prouver l'accord.
+
+\end{document}
