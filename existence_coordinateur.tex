@@ -1,0 +1,107 @@
+
+\documentclass{article}
+\usepackage{amsmath}
+\usepackage{algpseudocode}
+\usepackage{amssymb}
+\usepackage{amsthm}
+\usepackage{dsfont}
+\usepackage[left=2cm, right=2cm, top=2cm]{geometry}
+\usepackage[utf8]{inputenc}
+\newtheorem{lemma}{Théorème}
+
+\title{Établissement d'une condition nécessaire pour la résolubilité du consensus avec départs asynchrones}
+\date{7 mai 2020}
+\author{Louis Penet de Monterno}
+
+\begin{document}
+\maketitle
+
+\begin{lemma}
+
+Si une machine $(A, \mathcal{P})$ résout le consensus, on a
+$\mathcal{P} \Rightarrow \mathcal{P}_{coord}$ où $\mathcal{P}_{coord} = \exists p \in \Pi,
+\forall q \in \Pi, \forall n \in \mathds{N}, \exists k \in \mathds{N},
+\exists (p_0 = p, p_1, ... p_k = q), \exists (r_0, r_1, ... r_k), r_0 \geq n
+\wedge \forall i \in \{1, ..., k\}, p_i \in HO(r_i, p_{i-1}) \wedge r_i > r_{i-1}$
+
+On introduit la notation $path(p, q, n)$ où
+$\exists p \in \Pi, \forall q \in \Pi, \forall n \in \mathds{N}, path(p, q, n)$ 
+
+Intuitivement, il existe un coordianteur, dont les messages peuvent toujours parvenir à tous les processus.
+
+\end{lemma}
+
+\begin{proof}
+
+On suppose par l'absurde que $(A, \mathcal{P})$ résout le consensus, et $\mathcal{P}$ ne satisfait pas $\mathcal{P}_{coord}$.
+
+Ainsi, $\forall p \in \Pi, \exists q \in \Pi, \exists n \in \mathds{N}, \neg path(p, q, n)$ 
+
+\vspace{0.5cm}
+
+Soit $p_0$ un processus quelquonque. On obtient ainsi $n_0$ et $p_1$ tel que $\neg path(p_0, p_1, n_0)$. On a de plus $p_0 \neq p_1$ à cause de la "self-loop".
+
+De la même manière, on obtient $p_2, p_3, ...$ et $n_1, n_2, ...$ tels que $\neg path(p_i, p_{i+1}, n_i)$. 
+
+Comme les processus sont en nombre fini, la suite des $(p_i)_{i \in \mathds{N}}$ contient un processus plusieurs fois.
+
+On obtient ainsi un cycle $(p_i, p_{i+1}, ... p_{i+h}, p_{i+h+1} =  p_i)$,
+vérifiant $\forall, i \leq k \leq i+h, \neg path(p_k, p_{k+1}, n_k)$.
+
+On pose $M = max \{ n_i, ..., n_h \}$.
+
+\vspace{0.5cm}
+
+On montre maintenant par l'absurde la proposition suivante :
+$\exists n \in \mathds{N}, \exists (p, q) \in \Pi^2, \neg path(p,q, n) \wedge \neg path(q,p,n)$
+
+On suppose donc que 
+$\forall n \in \mathds{N}, \forall (p, q) \in \Pi^2, path(p,q, n) \wedge path(q,p,n)$.
+
+Intuitivement, la contradiction vient du fait que cette proposition permet de construire un chemin
+entre $p_i$ et $p_{i+1}$ en suivant le cycle construit ci-dessus, dans le sens inverse.
+
+Sachant $\neg path(p_{i+h}, p_i, n_{i+h})$, on obtient $\neg path(p_{i+h}, p_i, M)$, donc
+$path(p_i, p_{i+h}, M)$.
+
+Ce chemin se construit entre le round M et un certain round maximal $n_{i+h}' > M$.
+
+\vspace{0.2cm}
+
+Sachant $\neg path(p_{i+h-1}, p_{i+h}, n_{i+h-1})$,
+on obtient $\neg path(p_{i+h-1}, p_{i+h}, n_{i+h}')$,
+donc $path(p_{i+h}, p_{i+h-1}, n_{i+h}')$.
+
+Ce chemin se construit entre le round M et un certain round maximal $n_{i+h-1}' > n_{i+h}'$.
+
+\vspace{0.2cm}
+
+Sachant $\neg path(p_{i+h-2}, p_{i+h-1}, n_{i+h-2})$,
+on obtient $\neg path(p_{i+h-2}, p_{i+h-1}, n_{i+h-1}')$,
+donc $path(p_{i+h-1}, p_{i+h-2}, n_{i+h-1}')$.
+
+Ce chemin se construit entre le round M et un certain round maximal $n_{i+h-2}' > n_{i+h-1}'$.
+
+\vspace{0.2cm}
+
+On construit ainsi 
+un chemin $path(p_{i}, p_{i+h}, M)$ s'étendant jusqu'au round $n_{i+h}'$,
+un chemin $path(p_{i+h}, p_{i+h-1}, n_{i+h}')$ s'étendant jusqu'au round $n_{i+h-1}'$,
+un chemin $path(p_{i+h-1}, p_{i+h-2}, n_{i+h-1}')$ s'étendant jusqu'au round $n_{i+h-2}'$,
+etc, jusqu'au chemin $path(p_{i+2}, p_{i+1}, n_{i+1}')$ s'étendant jusqu'au round $n_{i}'$.
+
+Cela forme ainsi un chemin du processus $p_i$ jusqu'au processus $p_{i+1}$, ce qui contredit 
+une construction précédente.
+
+\vspace{0.5cm}
+
+La proposition 
+$\exists n \in \mathds{N}, \exists (p, q) \in \Pi^2, \neg path(p,q, n) \wedge \neg path(q,p,n)$
+est donc démontrée.
+
+Or cela rend impossible toute forme de consensus. En effet, en supposant que de tels processus p et q ne se réveillent qu'à partir du round n. Ils n'ont aucun moyen de décider en assurant l'accord.
+
+Cela prouve donc le théorème
+
+\end{proof}
+\end{document}
