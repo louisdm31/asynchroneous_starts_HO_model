@@ -1,12 +1,15 @@
 \documentclass{article}
 \usepackage{amsmath}
-\usepackage{algpseudocode}
+\usepackage[noend]{sources_Heard-Of/distribalgo}
+\usepackage{algorithm}
 \usepackage{amssymb}
 \usepackage{amsthm}
 \usepackage{dsfont}
 \usepackage[left=2cm, right=2cm, top=2cm]{geometry}
 \usepackage[utf8]{inputenc}
 \newtheorem{lemma}{Lemme}
+\newtheorem{theorem}{Théorème}
+\newtheorem{definition}{Définition}
 
 \title{Preuve de correction de l'algorithme One-Third Rule avec départs asynchrones}
 \date{4 mai 2020}
@@ -20,77 +23,181 @@ Notations :
 \begin{description}
 
 \item[$\bullet$] $HO_{actif}(p,n)$ désigne l'ensemble des processus actifs entendus par le processus p au round n.
-\item[$\bullet$]  $s_p(n)$ désigne l'état du processus p au round n. $s_p(n)$ vaut \textit{Passif} si le processus est endormi, ou $Actif <x, dec>$ s'il est réveillé.
-\item[$\bullet$]  $x_p(n)$ désigne la valeur de x du processus p au round n. Cette valeur n'est définie que si p est réveilllé.
 \item[$\bullet$] $min \{M^{-1} (max M)\}$ désigne, pour un ensemble de messages M, le minimum parmi les messages les plus fréquents.
 \end{description}
 
 \section{Algorithme}
 
-L'état des processus est constitué de 
+\subsection{Définition générique}
+
+\begin{definition}
+
+Un algorithme est un ensemble de processus auxquels sont associés :
 
 \begin{description}
 
-\item[$\bullet$] Une valeur $x_p$ dans un ensemble V.
-\item[$\bullet$] Une valeur $dec_p$ booléenne. Quand cette valeur est vraie, la décision du processus est égale à sa valeur $x_p$.
+  \item[$\bullet$] un ensemble d'états actifs
+	  $states_p$, ainsi qu'un état passif, noté $sleep_p \notin state_p$.
+  \item[$\bullet$] un ensemble d'états initiaux  $init_p \subset state_p$
+  \item[$\bullet$] un ensemble de messages M
+  \item[$\bullet$] pour tout $p \in \Pi$, une fonction d'émission
+	  $S_p : states_p \rightarrow \Pi \rightarrow M$
+  \item[$\bullet$] pour tout $p \in \Pi$, une fonction de transition
+	  $T_p : state_p \rightarrow (\Pi \rightarrow (1 \oplus \{ nil \} \oplus M))
+	  \rightarrow state_p$,
+	  où $\Pi \rightarrow (1 \oplus \{ nil \} \oplus M)$ est le type d'une fonction partielle
+		de type $\Pi \rightarrow M$, pouvant prendre une valeur supplémentaire notée \textit{nil}.
+
+\end{description}
+\end{definition}
+
+\subsection{Définition de l'algorithme "one-third rule"}
+
+Soit V un ensemble totalement ordonné. 
+Pour tout processus, on pose $state_p = V \times (V \cup \{ \bot \})$.
+
+Pour un round donné où p est un processus actif, on définit les notations suivantes :
+\begin{description}
+
+\item[$\bullet$] $x_p$ est la première composante de l'état du processus.
+\item[$\bullet$] $dec_p$ est sa deuxième composante. Cette composante détermine la valeur de décision 
+	du processus, valant $\bot$ s'il n'a pas décidé.
 
 \end{description}
 
-À chaque round, les processus envoient leur valeur $x_p$.
+À l'état initial, les processus peuvent prendre n'importe quelle valeur, mais n'ont pas encore décidé.
+	L'ensemble $init_p$ est donc consititué des états où $dec_p = \bot$.
+	Donc $init_p = V \times \{ \bot \}$.
 
-S'ils reçoivent un ensemble de messages M provenant de plus de deux tiers de processus réveillés, ils attribuent à leur variable $x_p$ la valeur $min \{M^{-1} (max M)\}$.
+L'ensembe des message est V. 
+	On définit les fonctions d'émission et de transision ci-dessous.
 
-Ils décident s'ils reçoivent une supermajorité de valeurs identiques.
+{\renewcommand{\baselinestretch}{1}
+\begin{algorithm}[htb]
+\scriptsize{
+\begin{distribalgo}[1]
+\BLANK \INDENT{\textbf{Initialization:}}
+  \STATE $x_p :=\, v_p$ \COMMENT{  $v_p$ est la valeur initiale de $p$ }
+  \STATE $dec_p :=\, \bot$ 
+%  \STATE $vote_p \in V\cup\{ ? \}$, initially $?$
 
-NB : les messages des processus passifs et les messages non reçus sont traités de la même manière.
+\ENDINDENT \BLANK
 
+\INDENT{\textbf{Round $r$:}}
+ \INDENT{$S^r_p:$}
+    \STATE send $\langle\, x_p\, \rangle$ to all processes
+  \ENDINDENT
+  \BLANK
+  \INDENT{$T^r_p:$}
+ %   \IF{received at least $\lceil (2n+1)/3 \rceil$ messages}  \label{line:fuv-rcv} \label{rabin2:reccond}
+	\IF{$|HO_{actif}(p,r)| > 2n/3 $}
+	  \STATE $x_p := min \{M^{-1} (max M)\}$ \COMMENT{la valeur minimale parmi les $x$ les plus fréquents reçus des processus actifs}
+		\IF{$M(x_p) > 2n/3$} 
+		  \STATE $dec_p := x_p$ \COMMENT{plus de $2n/3$ des valeurs reçues valent $x_p$}
+        \ENDIF
+      \ENDIF
+  \ENDINDENT
+\ENDINDENT \BLANK
+
+
+\caption{The {\em OneThirdRule} algorithm} \label{algo:R}
+\end{distribalgo}
+}
+\end{algorithm}
+}
+
+\subsection{Définition d'une exécution}
+
+\begin{definition}
+
+On définit une exécution comme la donnée d'un tuple
+$( \mathds{G},  \mathds{G}_A, (in_p)_{p \in \Pi})$ où :
+
+\begin{description}
+
+	\item[$\bullet$] $\mathds{G}$ est le graphe dynamique indexé sur $\mathds{N}$.
+	\item[$\bullet$] $\mathds{G}_A$ est le sous-graphe dynamique de $\mathds{G}$ resteint au processus actifs.
+		On note $p \in \mathds{G}_A(n)$ si p est actif au round n.
+	\item[$\bullet$] $in_p$ est l'état initial de p, vérifiant $\forall p \in \Pi, in_p \in init_p$.
+
+\end{description}
+\end{definition}
+
+\begin{definition}
+	Une exécution est valide si elle vérifie $\forall p \in \Pi,  n \in \mathds{N},
+			p \in \mathds{G}_A(n) \Rightarrow p \in \mathds{G}_A(n+1)$.
+\end{definition}
+\begin{definition}
+	Pour un algorithme donné, une exécution permet de définir inductivement une fonction $\Gamma$ qui,
+	pour tout processus p et round n, donne l'état de p au round n : $\Gamma_p(n) \in \{nil\} \cup state_p$
+	\begin{description}
+		\item[$\bullet$] $\forall p \in \Pi, n \in \mathds{N},
+			p \notin \mathds{G}_A(n) \Rightarrow \Gamma_p(n) = nil$.
+		\item[$\bullet$] $\forall p \in \Pi, n \in \mathds{N},
+			p \notin \mathds{G}_A(n) \Rightarrow p \in \mathds{G}_A(n+1) \Rightarrow \Gamma_p(n) = in_p$.
+		\item[$\bullet$] $\forall p \in \Pi,  n \in \mathds{N}, n \geq s_p \Rightarrow
+			\Gamma_p(n+1) = T_p (\Gamma_p(n) ,M_p^n)$ où $M_p^n$ est l'ensemble des messages reçus par p.
+		\item[$\bullet$] $M_p^n(q)$ non défini si $q \notin HO(p, n)$.
+		\item[$\bullet$] $M_p^n(q) = \bot$ si $p \notin \mathds{G}_A$
+		\item[$\bullet$] $M_p^n(q) = S_p (\Gamma_p(n))$ sinon.
+
+	\end{description}
+\end{definition}
 \section{Intégrité}
 
-On définit, pour une exécution donné, l'ensemble $x_{init}$ des valeurs initiales par : 
+\begin{definition}
+	Une exécution vérifie l'intégrité si, $\forall p \in \Pi, \forall n \in \mathds{N}, dec_p(n) \in \{ \bot \} \cup \{ in_p, p \in \Pi \}$
+\end{definition}
 
-$x_{init} = \{ x , \exists p \in \Pi, s_p(0) = Actif < x, False> \vee ( s_p(n) = Passif \wedge s_p(n+1) = Actif < x, False> ) \} $
+\begin{theorem}
+	Toute exécution valide vérifie l'intégrité.
+\end{theorem}
+\begin{proof}
+On montre d'abord par récurrence sur n l'invariant suivant : 
 
-\vspace{0.5cm}
-
-On montre d'abord par récurrence l'invariant suivant : 
-
-$ \forall p \in \Pi, \forall n \in \mathds{N}, s_p(n) = Actif <x, dec> \Rightarrow x \in x_init$
+$ \forall p \in \Pi, \forall n \in \mathds{N}, x_p(n) \in \{ in_p, p \in \Pi \}$
 
 \textbf{Intialisation}
-Triviale, par définition de $x_{init}$.
+Triviale, car $x_p(0) = in_p$. 
 
 \textbf{Hérédité}
-Pour un n donné, on suppose $\forall p \in \Pi, s_p(n) = Actif <x, dec> \Rightarrow x \in x_{init}$
-
+Pour un n donné, on suppose $\forall p \in \Pi, x_p(n) = x \Rightarrow x \in \{ in_p, p \in \Pi \}$.
 Soit $q \in \Pi$ . On distingue les deux cas suivants :
 \begin{description}
 
-\item[$\bullet$] $|HO_{actif} (q, n) | \leq \frac{2n}{3}$. Dans ce cas, $s_q(n+1) = s_q(n)$. L'hypothèse de récurrence permet de prouver l'invariant.
-\item[$\bullet$] $|HO_{actif} (q, n) | > \frac{2n}{3}$. Dans ce cas, $x = min \{M^{-1} (max M)\}\}$. On applique l'hypothèse de récurrence au processus qui atteint ce minimum. Cela prouve l'invariant.
+\item[$\bullet$] $|HO_{actif} (q, n) | \leq \frac{2n}{3}$. Dans ce cas, $x_q(n+1) = x_q(n)$. L'hypothèse de récurrence permet de prouver l'invariant.
+\item[$\bullet$] $|HO_{actif} (q, n) | > \frac{2n}{3}$. Dans ce cas, $x_q(n+1) = min \{M^{-1} (max M)\}\}$. On applique l'hypothèse de récurrence au processus qui atteint ce minimum. Cela prouve l'invariant.
 
 \end{description}
 
-L'intégrité découle naturellement de cet invariant.
-
-NB : la définition d'intégrité que j'ai prouvé est une définition faible, dans la mesure où un processus pourrait décider la valeur initiale d'un autre processus qui ne serait pas encore réveillé. 
+L'intégrité découle naturellement de cet invariant, car, lorsqu'un processus décide, $x_p = dec_p$.
+\end{proof}
 
 \section{Terminaison}
 
-On fait les hypothèses que :
+\begin{definition}
+	La terminaison est respecté, si tout processus p qui se réveille atteint, à un certain round n, un état tel que $dec_p(n) \neq \bot$.
+\end{definition}
+
+On prouve la terminaison lorsque les prédicats suivants s'appliquent au graphe dynamique actif :
 \begin{description}
-
-\item[$\bullet$] Le graphe dynamique est infiniment souvent uniforme avec un noyau contenant plus de deux tiers des processus : $\forall n \in \mathds{N}, \exists m \in \mathds{N}, \exists \Pi_0 \subset \Pi, m > n \wedge K(m) = \Pi_0$.
-\item[$\bullet$] Tous les processus se réveillent en temps fini. Ainsi, à partir d'un certain round n, tous les procesus sont réveillés.
-
+	\item[$\bullet$] $\mathds{G}_A$ est infiniment souvent S-uniforme avec un S contenant une supermajorité de processus (ie. plus de deux tiers des processus) :
+		$\forall n \in \mathds{N}, \exists m \in \mathds{N}, \exists S \subset \mathds{G}_a(m), |S| > \frac{2 |\Pi|}{3} \wedge m > n \wedge (\forall q \in HO_{actif}(q, m) = S)$
+	\item[$\bullet$] $\mathds{G}_A$ admet infiniment souvent un noyau contenant une supermajorité de processus :
+		$\forall n \in \mathds{N}, \exists m \in \mathds{N}, \exists \Pi_0 \subset \mathds{G}_a(m), |\Pi_0| > \frac{2 |\Pi|}{3} \wedge m > n \wedge K(m) = \Pi_0$.
 \end{description}
 
-La suite preuve est identique à celle avec départs synchrones. À partir du prédicat, on obtient un round m uniforme, ultérieur à n. Au round m, tous les processus reçoivent un même ensemble M de messages, vérifiant $| M | > \frac{2n}{3}$. On a donc, $\forall p \in \Pi, x_p(n+1) = min \{M^{-1} (max M)\}$
+À partir du prédicat, on obtient un round m uniforme, ultérieur à n. Au round m, tous les processus reçoivent un même ensemble M de messages, vérifiant $| M | > \frac{2n}{3}$. On a donc, $\forall p \in \Pi, x_p(n+1) = min \{M^{-1} (max M)\}$
 
 Par une récurrence triviale, on montre que pour tous les rounds ultérieurs à m, l'ensemble des valeurs de tous les processus contient seulement $min \{M^{-1} (max M)\}$ : $\forall p \ Pi, \forall m' \geq m, \{x_p(m'), p \in \Pi \} = \{Min M\}$.
 
 À partir du prédicat, on obtient un round r uniforme, ultérieur à m. Au round r, tous les processus reçoivent plus de $\frac{2n}{3}$ messages, contenant seulement la valeur $min \{M^{-1} (max M)\}$. Donc tous les processus décident $min \{M^{-1} (max M)\}$.
 
 \section{Accord}
+
+\begin{definition}
+	L'accord est vérifié si, pour tout round n et m, pour tout processus p et q, on a $dec_p \neq \bot \wedge deq_q \neq \bot \Rightarrow dec_p = dec_q$.
+\end{definition}
 
 La preuve formelle est construite à partir d'une série de lemmes qui aboutissent au résultat final.
 

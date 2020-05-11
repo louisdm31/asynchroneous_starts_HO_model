@@ -18,3 +18,5 @@ proof
   ultimately
   show "finite {v . E v}" by (rule finite_imageD)
 qed
+
+end

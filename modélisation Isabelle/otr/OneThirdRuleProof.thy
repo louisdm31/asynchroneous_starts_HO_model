@@ -63,7 +63,8 @@ proof -
         using infens rev_finite_subset by blast
 
       have "finite {pp :: Proc. True}" by auto
-      hence "finite {msgs p | p. True}" using tiroir by blast
+      hence "finite (msgs ` {p | p. True})" by force
+      hence "finite {msgs p | p. True}" using setcompr_eq_image[where ?f = msgs] by (smt Collect_cong)
       hence "finite {v. \<exists>p. msgs p = v}" by (smt Collect_cong finite_image_set)
       moreover have "{Content v | v.  \<exists>p. msgs p = Content v} \<subseteq> {v. \<exists>p. msgs p = v}"
         by blast
