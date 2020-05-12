@@ -28,10 +28,24 @@ On introduit la notation $path(p, q, n)$ où
 $\exists p \in \Pi, \forall q \in \Pi, \forall n \in \mathds{N}, path(p, q, n)$ 
 
 Intuitivement, il existe un coordianteur, dont les messages peuvent toujours parvenir à tous les processus.
+Pour tout n, il existe un k suffisamment grand tel que ce coordianteur enracine le graphe $\mathds{G}(n:n+k)$.
 
 \end{lemma}
 
+L'idée générale de la preuve est la suivante :
+
+Si on suppose qu'un tel coordianteur n'existe pas, tout processus p sera incapable de communiquer avec un autre processus q à partir d'un certain round. Cette affirmation permet de construire
+une fonction, qui a tout processus associe un autre processus. Cette fonction forme au sein de $\Pi$ une ou plusieurs "boucles" de processus. Chaque boucle est un cycle de processus dans lequel
+chaque processus ne peut plus communiquer avec le suivant à partir d'un certain round. Éventuellement, certains processus de la boucles peuvent communiquer infiniment souvent avec leur prédécesseur.
+En revanche, il est impossible que cela soit le cas de tous les processus. En effet, les messages pourraient parcourir la boucles en entier, dans le sens inverse, ce qui contredirait le fait
+que les processus ne peuvent pas communiquer avec leur successeur.
+
+On a donc dans la boucle, au moins un processus qui ne peut communiquer avec son prédécesseur, et réciproquement. Cela contredit l'hypothèse selon laquelle le consensus est résoluble. En effet, si 
+à partir d'un certain rang, il existe deux processus qui ne peuvent plus communuiquer ni dans un sens, ni dans l'autre, si ces deux processus se réveillent suffisamment tard, l'accord sera impossible
+à garantir entre ces deux processus. Cela conclut la preuve.
+
 \begin{proof}
+
 
 On suppose par l'absurde que $(A, \mathcal{P})$ résout le consensus, et $\mathcal{P}$ ne satisfait pas $\mathcal{P}_{coord}$.
 
