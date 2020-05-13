@@ -54,9 +54,9 @@ $( \mathds{G},  \mathds{G}_A, (in_p)_{p \in \Pi})$ où :
 \begin{itemize}
 
 	\item $\mathds{G}$ est le graphe dynamique indexé sur $\mathds{N}$.
-	\item $\mathds{G}_A$ est le sous-graphe dynamique de $\mathds{G}$ resteint au processus actifs, et vérifiant
-		$\forall p \in \Pi,  n \in \mathds{N}, p \in \mathds{G}_A(n) \Rightarrow p \in \mathds{G}_A(n+1)$.
+	\item $\mathds{G}_A$ est le sous-graphe dynamique de $\mathds{G}$ resteint au processus actifs.
 		On note $p \in \mathds{G}_A(n)$ si p est actif au round n.
+		$\mathds{G}_A$ vérifie $\forall p \in \Pi,  n \in \mathds{N}, p \in \mathds{G}_A(n) \Rightarrow p \in \mathds{G}_A(n+1)$.
 	\item $in_p$ est l'état initial de p, vérifiant $\forall p \in \Pi, in_p \in init_p$.
 
 \end{itemize}
@@ -74,8 +74,8 @@ Lorsque les départs sont synchones, les graphes dynamiques $\mathds{G}$ et $\ma
 			où $M_p^n$ est l'ensemble des messages reçus par p.
 		\begin{itemize}
 			\item $M_p^n(q)$ non défini si $q \notin HO(p, n)$.
-			\item $M_p^n(q) = nil$ si $p \notin \mathds{G}_A$
-			\item $M_p^n(q) = S_p (\Gamma_p(n))$ sinon.
+			\item $M_p^n(q) = nil$ si $q \notin \mathds{G}_A$
+			\item $M_p^n(q) = S_q (\Gamma_q(n), p)$ sinon.
 		\end{itemize}
 
 	\end{itemize}
@@ -247,6 +247,7 @@ On conclut alors en utilisant le lemme 2.
 
 \end{proof}
 \begin{lemma}
+	Aucune décision ne peut être en conflit avec une décision précédente.
 	$\forall p \in \Pi, q \in \Pi, \forall n \in \mathds{N}, k \in \mathds{N}, dec_p(n) = x_1 \Rightarrow dec_q(n+k) = x_2 \Rightarrow x_1 = x_2$.
 \end{lemma}
 \begin{proof}
