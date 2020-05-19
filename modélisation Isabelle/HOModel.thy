@@ -384,6 +384,7 @@ text \<open>
 record ('proc, 'pst, 'msg) HOMachine = "('proc, 'pst, 'msg) CHOAlgorithm" +
   HOcommPerRd::"'proc HO \<Rightarrow> bool"
   HOcommGlobal::"(nat \<Rightarrow> 'proc HO) \<Rightarrow> bool"
+  HOcommActive::"(nat \<Rightarrow> 'proc HO) \<Rightarrow> (nat \<Rightarrow> 'proc \<Rightarrow> 'pst proc_state) \<Rightarrow> bool"
 
 record ('proc, 'pst, 'msg) CHOMachine = "('proc, 'pst, 'msg) CHOAlgorithm" +
   CHOcommPerRd::"nat \<Rightarrow> 'proc HO \<Rightarrow> 'proc coord \<Rightarrow> bool"

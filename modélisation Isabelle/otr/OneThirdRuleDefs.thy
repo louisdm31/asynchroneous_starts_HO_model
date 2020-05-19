@@ -174,6 +174,11 @@ definition OTR_commGlobal where
   "OTR_commGlobal HOs \<equiv>
     \<forall>r. \<exists>r0 \<Pi>. r0 \<ge> r \<and> (\<forall>p. HOs r0 p = \<Pi>) \<and> card \<Pi> > (2*N) div 3"
 
+definition OTR_commActive where
+  "OTR_commActive HOs rho \<equiv> 
+  \<forall>r. \<exists>rs rp S P. rs \<ge> r \<and> (\<forall>p \<in> S. rho rs p \<noteq> Aslept) \<and> card S > (2*N) div 3 \<and> (\<forall>p \<in> S. S = HOs rs p) \<and>
+   rp \<ge> r \<and> card P > (2*N) div 3 \<and> (\<forall>p \<in> P. rho rp p \<noteq> Aslept) \<and> (\<forall>p \<in> P. \<forall> q. p \<in> HOs rp q)"
+
 subsection \<open>The \emph{One-Third Rule} Heard-Of Machine\<close>
 
 text \<open>
@@ -189,7 +194,8 @@ definition OTR_HOMachine where
      sendMsg =  OTR_sendMsg,
      CnextState = (\<lambda> p st msgs crd st'. OTR_nextState p st msgs st'),
      HOcommPerRd = OTR_commPerRd,
-     HOcommGlobal = OTR_commGlobal \<rparr>"
+     HOcommGlobal = OTR_commGlobal,
+     HOcommActive = OTR_commActive \<rparr>"
 
 
 
