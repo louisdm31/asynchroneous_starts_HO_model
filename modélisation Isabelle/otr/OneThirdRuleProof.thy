@@ -637,6 +637,7 @@ lemma commute_set : "card {q. \<exists>s. A s q \<and> B s q} = card {q. \<exist
 theorem OTR_termination:
   assumes run: "HORun (HOMachine_to_Algorithm OTR_M) rho HOs" (is "HORun ?A _ _")
   and commG: "HOcommActive OTR_M HOs rho"
+  and non_inf: "\<exists>r. rho r p \<noteq> Aslept"
   shows "\<exists>r v. rho r p = Active \<lparr> x = v, decide = True \<rparr>"
 proof -
 have aslasl:"\<forall>p. \<exists>rmax. \<forall>n. n \<ge> rmax \<longrightarrow> rho n p = Aslept \<longrightarrow> rho (Suc n) p = Aslept"
@@ -833,20 +834,47 @@ then obtain rs S where "rs \<ge> rmax" and Sact:"\<forall>p \<in> S. rho rs p \<
         show "rho rp q \<noteq> Aslept \<longrightarrow> (\<exists>b. rho (Suc rp + Suc k) q = Active \<lparr> x = v, decide = b \<rparr>)"
         proof
         assume "rho rp q \<noteq> Aslept"
+        hence "\<exists>b. rho (Suc rp + k) q = Active \<lparr> x = v, decide = b \<rparr>" using ih by simp
+        from this obtain sp where "rho (Suc rp + k) q = Active sp" by auto
+        have "rho (Suc rp + Suc k) q \<noteq> Aslept" 
+          using nonAsleepAgain[where ?n = "Suc rp + k" and ?p = q]
+            run HORun_def  by (smt Groups.add_ac(2) \<open>rho rp q \<noteq> Aslept\<close> nonAsleepAgain proc_state.simps(3) v)
+        then obtain spp where "rho (Suc rp + Suc k) q = Active spp" by (cases "rho (Suc rp + Suc k) q") auto
         show "\<exists>b. rho (Suc rp + Suc k) q = Active \<lparr> x = v, decide = b \<rparr>"
         proof (cases "(2*N) div 3 < card { p . ?msgs q (Suc rp + k) p \<noteq> Void \<and> ?msgs q (Suc rp + k) p \<noteq> Bot }")
           case True
-          have "\<exists>b. rho (Suc rp + k) q = Active \<lparr> x = v, decide = b \<rparr>" using ih \<open>rho rp q \<noteq> Aslept\<close> by simp
-          from this obtain sp where "rho (Suc rp + k) q = Active sp" by auto
-          moreover have "rho (Suc rp + Suc k) q \<noteq> Aslept" 
-            using nonAsleepAgain[where ?n = "Suc rp + k" and ?p = q]
-             run HORun_def  by (smt Groups.add_ac(2) \<open>rho rp q \<noteq> Aslept\<close> nonAsleepAgain proc_state.simps(3) v)
-          then obtain spp where "rho (Suc rp + Suc k) q = Active spp" by (cases "rho (Suc rp + Suc k) q") auto
           moreover from majv have "2 * N div 3 < card {q. \<exists>s. x s = v \<and> rho (Suc rp + k) q = Active s}"
             using allE[of "\<lambda>k. 2 * N div 3 < card {q. \<exists>s. x s = v \<and> rho (Suc rs + k) q = Active s}" "rp - rs + k" _]
             \<open>rp \<ge> Suc rs\<close> by simp
-          ultimately have "x spp = v" using A2[where ?n = "Suc rp + k" and ?p = q] run majv True by simp
-          thus "rho (Suc rp + Suc k) q = Active \<lparr> x = v, decide = b \<rparr>"
+          ultimately have "x spp = v" using A2[where ?n = "Suc rp + k" and ?p = q]
+            run majv True \<open>rho (Suc rp + k) q = Active sp\<close> \<open>rho (Suc rp + Suc k) q = Active spp\<close> by simp
+          hence "\<exists>b. rho (Suc rp + Suc k) q = Active \<lparr> x = v, decide = decide spp \<rparr>"
+            using \<open>rho (Suc rp + Suc k) q = Active spp\<close> by auto
+          thus "\<exists>b. rho (Suc rp + Suc k) q = Active \<lparr> x = v, decide = b \<rparr>" by auto
+        next
+          case False
+          moreover have "OTR_nextState q sp (?msgs q (Suc rp + k)) spp"
+            using run HORun_def CHORun_def CHOnextConfig_def \<open>rho (Suc rp + k) q = Active sp\<close>
+            OTR_HOMachine_def HOMachine_to_Algorithm_def by 
+            (smt CHOAlgorithm.select_convs(3) \<open>rho (Suc rp + Suc k) q = Active spp\<close> add_Suc_right proc_state.inject)
+          ultimately have "spp = sp" using OTR_nextState_def[where ?st = sp and ?st' = spp] by fastforce
+          thus "\<exists>b. rho (Suc rp + Suc k) q = Active \<lparr> x = v, decide = b \<rparr>"
+            using \<open>rho (Suc rp + k) q= Active sp\<close> \<open>rho (Suc rp + Suc k) q = Active spp\<close> ih 
+            using \<open>\<exists>b. rho (Suc rp + k) q = Active \<lparr>x = v, decide = b\<rparr>\<close> by auto  
+        qed
+      qed
+    qed
+  qed
+
+
+  moreover have "\<exists>rs0 rpp S P. rs0 \<ge> Suc rp \<and> (\<forall>p \<in> S. rho rs0 p \<noteq> Aslept) \<and> card S > (2*N) div 3 \<and> (\<forall>p \<in> S. S = HOs rs0 p) \<and>
+    rpp \<ge> Suc rp \<and> card P > (2*N) div 3 \<and> (\<forall>p \<in> P. rho rpp p \<noteq> Aslept) \<and> (\<forall>p \<in> P. \<forall> q. p \<in> HOs rpp q)"
+      using commG by (simp add:OTR_commActive_def OTR_HOMachine_def)
+  then obtain rpp P where "rpp \<ge> Suc rp" and Pact:"\<forall>p \<in> P. rho rpp p \<noteq> Aslept" and
+    pic:"card P > (2*N) div 3" and pi:"\<forall>p \<in> P. \<forall>q. p \<in> HOs rpp q" by auto
+  ultimately have "\<forall>p. rho rpp p \<noteq> Aslept \<longrightarrow> (\<exists>b. rho rpp p = Active \<lparr>x = v, decide = b\<rparr>)" by 
+
+
           hence "\<forall>p. \<exists>s. x s = v \<and> rho (Suc rp + k) p = Active s" using ih by force
           hence "{p :: Proc. \<exists>s. x s = v \<and> rho (Suc r0 + k) p = Active s} = (UNIV :: Proc set)" by auto
           hence "card {p :: Proc. \<exists>s. x s = v \<and> rho (Suc r0 + k) p = Active s} = N" by simp
