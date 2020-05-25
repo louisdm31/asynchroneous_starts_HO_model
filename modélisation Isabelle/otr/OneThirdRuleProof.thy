@@ -974,39 +974,58 @@ fun getX where
 "getX (Active s) = x s"
 
 theorem OTR_consensus:
-  assumes run: "HORun (HOMachine_to_Algorithm OTR_M) (rho :: nat \<Rightarrow> Proc \<Rightarrow> _ pstate proc_state) HOs"  (is "HORun ?A _ _")
-  and commG: "HOcommGlobal OTR_M HOs"
-  assumes  not_inf:"\<forall>p. \<exists>n. rho n p \<noteq> Aslept"
-  shows "consensus (\<lambda>p. getX (getInitValue rho p)) getDec rho" (is "consensus ?vals _ _")
+  assumes run: "HORun (HOMachine_to_Algorithm OTR_M) rho HOs"  (is "HORun ?A _ _")
+  and commG: "HOcommActive OTR_M HOs rho"
+  shows "consensus (\<lambda>p. getX (getInitValue rho p)) (\<lambda>s. if decide s then Some (x s) else None) rho" (is "consensus ?vals ?Dec _")
 proof -
-  have "\<forall>p n v. getDec (rho n p) = Some v \<longrightarrow> v \<in> range ?vals"
+have "\<forall>n p v s. rho n p = Active s \<longrightarrow> ?Dec s = Some v \<longrightarrow> v \<in> range (\<lambda>p. getX (getInitValue rho p))"
+proof 
+  fix n
+  show "\<forall>p v s. rho n p = Active s \<longrightarrow> ?Dec s = Some v \<longrightarrow> v \<in> range (\<lambda>p. getX (getInitValue rho p))"
   proof
     fix p
-    show "\<forall>n v. getDec (rho n p) = Some v \<longrightarrow> v \<in> range ?vals"
+    show "\<forall>v s. rho n p = Active s \<longrightarrow> ?Dec s = Some v \<longrightarrow> v \<in> range (\<lambda>p. getX (getInitValue rho p))"
     proof
-      fix n
-      show "\<forall>v. getDec (rho n p) = Some v \<longrightarrow> v \<in> range ?vals"
+      fix v
+      show "\<forall>s. rho n p = Active s \<longrightarrow> ?Dec s = Some v \<longrightarrow> v \<in> range (\<lambda>p. getX (getInitValue rho p))"
       proof
-        fix v
-        show "getDec (rho n p) = Some v \<longrightarrow> v \<in> range ?vals"
+        fix s
+        show "rho n p = Active s \<longrightarrow> ?Dec s = Some v \<longrightarrow> v \<in> range (\<lambda>p. getX (getInitValue rho p))"
         proof
-          assume "getDec (rho n p) = Some v"
-          hence "rho n p = Active \<lparr> x = v, decide = True \<rparr>"
-            by (metis getDec.elims old.unit.exhaust option.distinct(1) option.sel pstate.surjective)
-          hence "\<exists>q s. x (s :: 'a pstate) = (v :: 'a) \<and> getInitValue rho q = Active s" using run OTR_integrity by fastforce
-          thus "v \<in> range ?vals" by (metis getX.simps range_eqI)
+          assume "rho n p = Active s"
+          show "?Dec s = Some v \<longrightarrow> v \<in> range (\<lambda>p. getX (getInitValue rho p))"
+          proof
+            assume "?Dec s = Some v"
+            hence "s = \<lparr> x = v, decide = True \<rparr>" by auto
+            hence "\<exists>q s. x s = v \<and> getInitValue rho q = Active s" using run OTR_integrity \<open>rho n p = Active s\<close> by simp
+    
+            show "v \<in> range (\<lambda>p. getX (getInitValue rho p))"
+              by (metis (mono_tags, lifting) UNIV_I \<open>\<exists>q s. x s = v \<and> getInitValue rho q = Active s\<close> getX.simps image_iff)
+          qed
         qed
       qed
     qed
   qed
-  moreover have "(\<forall>m n p q v w. getDec (rho m p) = Some v \<and> getDec (rho n q) = Some w  \<longrightarrow> v = w)"
-    using run OTR_agreement getDec.elims getDec.simps
-    by (smt old.unit.exhaust option.sel option.simps(3) pstate.surjective)
-  moreover have "\<forall>p. \<exists>n. getDec (rho n p) \<noteq> None"
-    using run not_inf commG OTR_termination
-    by (smt getDec.simps(1) option.simps(3) pstate.ext_inject pstate.select_convs(1) pstate.surjective)
+qed
+moreover have "\<forall>m n p q v w sp sq. rho m p = Active sp \<longrightarrow> ?Dec sp = Some v \<longrightarrow> rho n q = Active sq \<longrightarrow> ?Dec sq = Some w \<longrightarrow> v = w"
+  using run OTR_agreement getDec.elims getDec.simps
+  by (smt old.unit.exhaust option.sel option.simps(3) pstate.surjective)
+moreover have "\<forall>p m. rho m p \<noteq> Aslept \<longrightarrow> (\<exists>n s. rho n p = Active s \<and> ?Dec s \<noteq> None)"
+proof
+  fix p
+  show "\<forall>m. rho m p \<noteq> Aslept \<longrightarrow> (\<exists>n s. rho n p = Active s \<and> ?Dec s \<noteq> None)"
+  proof
+    fix m
+    show "rho m p \<noteq> Aslept \<longrightarrow> (\<exists>n s. rho n p = Active s \<and> ?Dec s \<noteq> None)"
+    proof
+      assume "rho m p \<noteq> Aslept"
+      hence "\<exists>n v. rho n p = Active \<lparr> x = v, decide = True \<rparr>" using run commG OTR_termination by fastforce
+      thus "\<exists>n s. rho n p = Active s \<and> ?Dec s \<noteq> None" by fastforce
+    qed
+  qed
+qed
 
-  ultimately show ?thesis using consensus_def[where ?vals = "\<lambda>p. getX (getInitValue rho p)" and ?rho = rho] by fastforce
+  ultimately show ?thesis using consensus_def[where ?vals = "\<lambda>p. getX (getInitValue rho p)" and ?rho = rho] by blast
 qed
 
 (*
