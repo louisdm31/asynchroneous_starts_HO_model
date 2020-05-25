@@ -686,12 +686,14 @@ proof
 qed
 hence "\<exists>rmax. \<forall>n p. p \<in> UNIV \<longrightarrow> n \<ge> rmax \<longrightarrow> rho n p = Aslept \<longrightarrow> rho (Suc n) p = Aslept" by (rule allE)
 then obtain rmax where rmax_def:"\<forall>n p. n \<ge> rmax \<longrightarrow> rho n p = Aslept \<longrightarrow> rho (Suc n) p = Aslept" by auto
-have peveil:"\<forall>n. n \<ge> rmax \<longrightarrow> rho n p \<noteq> Aslept"
+have peveil:"\<forall>n p. (\<exists>h. rho h p \<noteq> Aslept) \<longrightarrow> n \<ge> rmax \<longrightarrow> rho n p \<noteq> Aslept"
 proof (rule+)
   fix n
+  fix p
+  assume "\<exists>h. rho h p \<noteq> Aslept"
   assume "n \<ge> rmax"
   assume "rho n p = Aslept"
-  from non_inf obtain np where "rho np p \<noteq> Aslept" by auto
+  from \<open>\<exists>h. rho h p \<noteq> Aslept\<close> obtain np where "rho np p \<noteq> Aslept" by auto
   show "False"
   proof cases
     assume "np \<le> rmax"
@@ -907,7 +909,7 @@ then obtain rs S where "rs \<ge> rmax" and Sact:"\<forall>p \<in> S. rho rs p \<
       using commG by (simp add:OTR_commActive_def OTR_HOMachine_def)
   then obtain rq Q where "rq \<ge> Suc rpp" and Pact:"\<forall>p \<in> Q. rho rq p \<noteq> Aslept" and
     pic:"card Q > (2*N) div 3" and pi:"\<forall>p \<in> Q. \<forall>q. p \<in> HOs rq q" by auto
-  hence "rho rq p \<noteq> Aslept" using peveil \<open>rpp \<ge> Suc rp\<close> \<open>rp \<ge> Suc rs\<close> \<open>rs \<ge> rmax\<close> by auto
+  hence "rho rq p \<noteq> Aslept" using peveil non_inf \<open>rpp \<ge> Suc rp\<close> \<open>rp \<ge> Suc rs\<close> \<open>rs \<ge> rmax\<close> by auto
   then obtain sq where "rho rq p  = Active sq" by (cases "rho rq p") auto
 
   have "CHOnextConfig ?A (rho rq) (HOs rq) (\<lambda>l. undefined) (rho (Suc rq))" using run by (auto simp:HORun_def CHORun_def)
@@ -937,17 +939,25 @@ then obtain rs S where "rs \<ge> rmax" and Sact:"\<forall>p \<in> S. rho rs p \<
     fix qq
     assume "qq \<in> Q"
     hence "qq \<in> HOs rq p" using pi by auto
-    moreover from v have "\<forall>q. \<exists>ss. x ss = v \<and> rho rq q = Active ss" by (meson pstate.select_convs(1))
-    then obtain sqq where "x sqq = v" and "rho rq qq = Active sqq" by auto
-    ultimately show "?msgs p rq qq = Content v" using  \<open>x sqq = v\<close>
-      by (simp add: HOMachine_to_Algorithm_def OTR_sendMsg_def OTR_HOMachine_def HOrcvdMsgs_def)
-  qed
-  hence "\<Pi>' \<subseteq> HOV (?msgs p rq) v" using HOV_def by fastforce
-  hence "card \<Pi>' \<le> card (HOV (?msgs p rq) v)" by (simp add: card_mono)
-  hence "TwoThirds (?msgs p rq) v" using TwoThirds_def pi' pic' by fastforce
+    have "rho rq qq \<noteq> Aslept" using \<open>\<forall>q \<in> Q. rho rq q \<noteq> Aslept\<close> \<open>qq \<in> Q\<close> by auto
+    then obtain sqq where "rho rq qq = Active sqq" by (cases "rho rq qq") auto
+    hence "rho rp qq \<noteq> Aslept" using peveil \<open>rp \<ge> Suc rs\<close> \<open>rs \<ge> rmax\<close> by (meson \<open>rho rq qq \<noteq> Aslept\<close> dual_order.trans le_SucI)
+    moreover have "rq > rp" using  \<open>rq \<ge> Suc rpp\<close> \<open>rpp \<ge> Suc rp\<close> by auto
+    hence "rq \<ge> Suc rp" by auto
+    hence "rq = Suc rp + (rq - Suc rp)" by auto
+    hence "\<exists>k :: nat. rq = Suc rp + k" by auto
+    ultimately have "\<exists>b. rho rq qq = Active \<lparr> x = v, decide = b \<rparr> " using P  by auto
+    hence "x sqq = v" using \<open>rho rq qq = Active sqq\<close> by auto
+    thus "?msgs p rq qq = Content v"
+      using \<open>qq \<in> HOs rq p\<close> HOMachine_to_Algorithm_def OTR_sendMsg_def OTR_HOMachine_def HOrcvdMsgs_def
+      by (simp add: OTR_HOMachine_def HOMachine_to_Algorithm_def HOrcvdMsgs_def OTR_sendMsg_def \<open>rho rq qq = Active sqq\<close>)
+  qed 
+  hence "Q \<subseteq> HOV (?msgs p rq) v" using HOV_def by fastforce
+  hence "card Q \<le> card (HOV (?msgs p rq) v)" by (simp add: card_mono)
+  hence "TwoThirds (?msgs p rq) v" using TwoThirds_def pi pic by fastforce
 
   hence "decide spp = True" using majv nxt OTR_nextState_def[where ?st' = spp] by fastforce
-  hence "rho (Suc rq) p = Active \<lparr> x = x spp, decide = True \<rparr>" using \<open>rho (Suc r0') p = Active spp\<close> by auto
+  hence "rho (Suc rq) p = Active \<lparr> x = x spp, decide = True \<rparr>" using \<open>rho (Suc rq) p = Active spp\<close> by auto
   thus ?thesis by auto
 qed
 
