@@ -11,123 +11,144 @@
 \newtheorem{theorem}{Théorème}
 \newtheorem{definition}{Définition}
 \setlength{\parskip}{0.22cm}
+%\newcommand{\st0}{q^0}
 
 \title{Preuve de correction de l'algorithme One-Third Rule avec départs asynchrones}
 \date{4 mai 2020}
 \author{Louis Penet de Monterno}
 
 \begin{document}
+
 \maketitle
   
 \section{Généralités}
 
-\subsection{Définition générique d'un algorithme}
+\subsection{Définition générique d'un algorithme HO}
 
-\begin{definition}
-
-Un algorithme est un ensemble $\Pi$ auxquels sont associés :
-
-\begin{itemize}
-
-  \item un ensemble d'états actifs $states_p$, ainsi qu'un état passif, noté $sleep_p \notin state_p$.
-  \item un ensemble d'états initiaux  $init_p \subseteq state_p$
-  \item un ensemble de messages non vide $\mathcal{M}$
-  \item pour tout $p \in \Pi$, une fonction d'émission
-	  $S_p : states_p \rightarrow \Pi \rightarrow \mathcal{M}$
-  \item pour tout $p \in \Pi$, une fonction de transition
+On se donne un ensemble non vide $\Pi$ de cardinalit\'e $n$ et  un ensemble non vide ${\cal M}$ dont les \'el\'ements seront appel\'es des
+	messages et un \'el\'ement particulier {\em nil} qui n'est pas dans $\mathcal{M}$.
+A chaque  $p \in \Pi$,  on associe  un {\em processus} consistant en la donn\'ee des \'el\'ements 
+	suivants :
+	\begin{itemize}
+	\item un ensemble non vide $States_p$ et un  \'el\'ement $sleep_p \notin state_p$ ;
+	\item un sous-ensemble   $Init_p \subseteq state_p$ ;
+	\item une fonction $S_p : States_p \rightarrow \Pi \rightarrow \mathcal{M}$ ;
+	\item une fonction 
 	  $T_p : state_p \rightarrow (\Pi \rightarrow (1 \oplus \{ nil \} \oplus \mathcal{M}))
 	  \rightarrow state_p$,
 	  où $\Pi \rightarrow (1 \oplus \{ nil \} \oplus \mathcal{M})$ est le type d'une fonction partielle
-		de type $\Pi \rightarrow M$, pouvant prendre une valeur supplémentaire notée $nil \notin \mathcal{M}$
+		de type $\Pi \rightarrow M$, pouvant prendre la valeur supplémentaire notée $nil \notin \mathcal{M}$.
+	\end{itemize}
+Les \'el\'ements de 	$States_p$  sont appel\'es \emph{\'etats} de $p$, ceux de $Init_p$ \emph{\'etats initiaux} de $p$,
+	la fonction $S_p$ est appel\'ee \emph{fonction d'émission de} $p$ et la fonction $T_p$ \emph{fonction de transition de} $p$.
 
-\end{itemize}
+\begin{definition}\label{def:algo}
+Un algorithme  sur $\Pi$ est la donn\'ee d'un processus $(States_p, Init_p, S_p,T_p)$ pour chaque  \'el\'ement $p \in \Pi$.
 \end{definition}
-
-Ici, $\Pi$ modélise l'ensemble des processus d'un réseau. Chaque processus est une machine à états, dont les états sont $state_p$.
-Le système est synchrone : à chaque round, les processus envoient des messages suivant $S_p$. Puis, grâce à $T_p$, ils effectuent une transition,
-en fonctions des messages reçus, qui ont été envoyé durant le même round.
-
-On note $\mathcal{N}$ le cardinal de $\Pi$.
+\noindent Dans toute la suite, on confondra et notera de la m\^eme mani\`ere $p$ et le processus qui lui est associ\'e.
 
 \subsection{Définition générique d'une exécution}
 
-\begin{definition}
+Dans le mod\`ele Heard-Of, le calcul \'evolue en \emph{round} : dans chaque round $r$, 
+	le processus $p$, s'il est actif,  
+	\begin{enumerate}
+	\item \'emet, \`a destination de chaque processus, un message qui est d\'etermin\'e par sa fonction d'\'emission~$S_p$  
+		appliqu\'ee \`a son \'etat courant ;
+	\item re\c{c}oit un message, \'emis au round $r$, d'un sous-ensemble de processus $HO(p,r)$ de $\Pi$ ;
+        \item  applique la fonction  $T_p$ \`a son \'etat courant  et au vecteur (partiel) form\'e par les messages re\c{c}us (dont le support est 
+         $HO(p,r)$).
+	\end{enumerate}
+Si le processus $p$ est passif au round~$r$ alors il \'emet le message $nil$ et reste dans l'\'etat $sleep_p$.
+Un processus ne peut devenir actif qu'au d\'ebut d'un round, auquel cas son \'etat passe de $sleep_p$ \`a 
+	un \'etat de $Init_p$.
+La donn\'ee de l'ensemble $HO(p,r)$ pour chaque processus $p \in \Pi$ est \'equivalente \`a celle du graphe dirig\'e
+	$\mathds{G}_r = (\Pi, E_r)$ dont l'ensemble des n\oe uds est $\Pi$ et dont l'ensemble $E_r$ des arcs dirig\'es 
+	est d\'efini par
+	$$ (q,p) \in E_r \Leftrightarrow q \in HO(p,r) .$$	
+Le graphe $\mathds{G}_r $ correspond exactement aux communications entre processus au round~$r$.
+Nous ne discutons pas ici des raisons de l'absence de communication de $q$ vers $p$ \`a un round et reportons pour cela  le lecteur 
+	\`a~\cite{CB09} dans le cas d'un syst\`eme avec des pannes b\'enignes.
 
-On définit une exécution comme la donnée d'un tuple
-	$( (\mathds{G}_n)_{n \in \mathds{N}},  (\mathcal{A}_n)_{n \in \mathds{N}}, (in_p)_{p \in \Pi})$ où :
+Formellement, une \emph{ex\'ecution} de l'algorithme  $(States_p, Init_p, S_p,T_p)_{p\in \Pi}$ est 
+	un triplet $\big( \mathds{G}_r) ,  \mathcal{A}_r) , (\sigma^0_p)_{p \in \Pi} \big)$ où :
+	\begin{itemize}
+	\item $\mathds{G}$ est un \emph{graphe dynamique} sur $\Pi$, i.e., une suite infinie de graphes dirig\'es 
+	$\mathds{G}_r = (\Pi, E_r)$ dont l'ensemble des n\oe uds est $\Pi$ ; 
+	\item $\mathcal{A} = (\mathcal{A}_r)_{r \in \mathds{N}}$ est une suite croissante de sous-ensembles de $\Pi$ 
+	avec $\mathcal{A}_0 = \emptyset$ ;
+	\item pour chaque processus $p\in \Pi$, $\sigma^0_p \in Init_p$.
+	\end{itemize}
+Ici,  $\mathcal{A}_r \subseteq \Pi$ modélise le sous-ensemble des processus actifs au round~$r$.
+La suite est croissante car, l'\'etat actif est stable : une fois r\'eveill\'e, un processus reste actif pour toujours.
 
+\textbf{Remarques :}
 \begin{itemize}
-
-	\item $\mathds{G}$ est un graphe dynamique indexé sur $\mathds{N}$. Pour tout $n \in \mathds{N}, \mathds{G}_n$ est un graphe dirigé $(\Pi, E_n)$. 
-	\item $(\mathcal{A}_n)_{n \in \mathds{N}}$ est une suite croissante de sous-ensembles de $\Pi$. Sans perte de généralité, on suppose $\mathcal{A}_0 = \emptyset$
-	\item $in_p$ est l'état initial de p, vérifiant $\forall p \in \Pi, in_p \in init_p$.
-
-\end{itemize}
-\end{definition}
-
-Ici, $\mathds{G}$ modélise la fiabilité des communications : au round $n$, $p$ peut envoyer un message à $q$ si et seulement si $(p,q)$ fait partie des arêtes de $\mathds{G}_n$.
-Les départs sont asynchrones : à chaque round, $\mathcal{A}_n \subseteq \Pi$ est le sous-ensemble des processus déjà actifs. La suite est croissante car les processus ne se désactivent jamais.
-Lorqu'un processus p s'active, $in_p$ est la valeur initiale que prend le processus, choisie de façon non-déterministe parmi $init_p$.
-
-\textbf{Notes :}
-\begin{itemize}
-
-	\item Lorsque les départs sont synchones, tous les processus s'activent en même temps, on a donc $\forall n \in \mathds{N}, \mathcal{A}_n \in \{\emptyset, \Pi\}$
-	\item De façon équivalente, $(\mathcal{A}_n)_{n \in \mathds{N}}$ peut être caractérisés par une fonction $s : \Pi \rightarrow \mathds{N} \cup \{\infty\}$,
-		où $s(p)$ est le numéro du round auquel $p$ s'active. $s(p) = \infty$ si p reste passif pour toujours.
+	\item Les départs sont synchones lorsque tous les processus deviennent actifs au même round, i.e.,
+	$$ \forall r \in \mathds{N}, \mathcal{A}_r \in \{\emptyset, \Pi\}  . $$
+	\item La donn\'ee de la suite $(\mathcal{A}_r)_{r \in \mathds{N}}$ est  équivalente \`a celle de la fonction 
+	$s : \Pi \rightarrow \mathds{N} \cup \{\infty\}$ où 
+	$$ s(p) = \left \{ \begin{array}{l ll}
+	                          \infty & \mbox{ si  } p \notin \cup_{r \in \mathds{N}}  \mathcal{A}_r &  \mbox { ($p$ reste passif) } \\
+	                          r  & \mbox{ si  } p \notin \mathcal{A}_{r-1} \mbox{ et } p \in \mathcal{A}_{r}  & \mbox{ ($p$ devient actif au round $r$)}.
+	                          \end{array} \right.$$ 
 	\item On note $HO(p,n)$ l'ensemble des processus actifs entendus par le processus p au round n : $HO(p,n) = \{q, (q,p) \in E_n\}$
 	\item On note $HO_{actif}(p,n)$ l'ensemble des processus actifs entendus par le processus p au round n : $HO_{actif}(p,n) = HO(p,n) \cap \mathcal{A}_n$.
 
 \end{itemize}
 
-Pour un algorithme donné, une exécution permet de définir une fonction $\Gamma$ qui,
-pour tout processus p et round n, donne l'état de p à la fin round n.
-\begin{definition}
-	$\Gamma_p(n) \in \{sleep_p\} \cup state_p$ est défini inductivement par :
+Pour toute  exécution de l'algorithme  $(States_p, Init_p, S_p,T_p)_{p\in \Pi}$, on définit inductivement la collection 
+	d'\'etats $ \big( \Gamma_p(r) \big )_{p\in\Pi, r\in \mathds{N}}$ de la fa\c{c}on suivante : 
 	\begin{itemize}
-		\item $\forall n \in \mathds{N},\forall p \in \Pi \setminus \mathcal{A}_{n+1},  \Gamma_p(n) = sleep_p$.
-		\item $\forall n \in \mathds{N},\forall p \in \mathcal{A}_{n+1} \setminus \mathcal{A}_n, \Gamma_p(n) = in_p$.
-		\item $\forall n \in \mathds{N},\forall p \in \mathcal{A}_{n+1} ,  \Gamma_p(n+1) = T_p (\Gamma_p(n) ,M_p^{n+1})$
-			où $M_p^n$ est une fonction partielle de type $\Pi \rightarrow (1 \oplus \{ nil \} \oplus \mathcal{M})$ définie par :
-		\begin{itemize}
-			\item $M_p^n(q)$ non défini si $q \notin HO(p, n)$.
-			\item $M_p^n(q) = nil$ si $q \notin \mathcal{A}_n$
-			\item $M_p^n(q) = S_q (\Gamma_q(n), p)$ sinon.
-		\end{itemize}
-
+		\item $\forall r \in \mathds{N},\forall p \in \Pi \setminus \mathcal{A}_{r+1}, \  \Gamma_p(r) = sleep_p$ ;
+		\item $\forall r  \in \mathds{N},\forall p \in \mathcal{A}_{r+1} \setminus \mathcal{A}_r, \ \Gamma_p(r) = \sigma^0_p$ ;
+		\item $\forall r  \in \mathds{N},\forall p \in \mathcal{A}_{r} , \  \Gamma_p(r) = T_p (\Gamma_p(r - 1) ,M_p^{r})$
+			où $M_p^r$ est la fonction partielle de type $\Pi \rightarrow (1 \oplus \{ nil \} \oplus \mathcal{M})$ définie par 
+			$$ M_p^r = \left \{ \begin{array}{l l}
+	                         nil  & \mbox{ si  } q \in (\Pi \setminus \mathcal{A}_r  ) \cap  HO(p,r)  \\
+	                         S_q (\Gamma_q(r), p)  & \mbox{ si  }   q \in \mathcal{A}_r  \cap  HO(p,r) \\
+	                         \mbox{ non d\'efini  } & \mbox{ si  }   q \notin  HO(p,r) .
+	                          \end{array} \right.$$ 
 	\end{itemize}
-\end{definition}
+Dorénavant, $M_p^r$ est appelée \emph{fonction de réception de $p$ au round $r$}.
 
-Dorénavent, $M_p^n$ sera appelée la fonction de réception de p au round n.
+\subsection{Probl\`eme du Consensus}
 
-\textbf{Note :} La connaissance de $(\mathds{G}, \Gamma)$ suffit pour caractériser une exécution.
-
-\subsection{Consensus}
-
-On considère un algorithme A muni d'une fonction
-$Dec : \bigcup\limits_{p \in \Pi} state_p  \rightarrow (\mathcal{V} \cup \{\bot\})$ où $\mathcal{V}$ est un ensemble quelquonque.
+On considère un algorithme $A$ muni d'une fonction
+	$Dec : \bigcup\limits_{p \in \Pi} state_p  \rightarrow (\mathcal{V} \cup \{\bot\})$ 
+	où $\mathcal{V}$ est un ensemble non vide tel que $\bot \notin \mathcal{V} $.
 
 \begin{definition}
-	Une exécution de A vérifie l'intégrité si, $ \forall n \in \mathds{N},\forall p \in \mathcal{A}_{n+1}, Dec(\Gamma_p(n)) \in \{ \bot \} \cup x_{init}$
-	où $x_{init}$ est l'ensemble des valeurs initiales $\{ in_p, p \in \Pi \}$
+	Une exécution de A \emph{vérifie  l'intégrité} si 
+	$$ \forall r \in \mathds{N},\forall p \in \mathcal{A}_{r}, \ Dec(\Gamma_p(r)) \in \{ \bot \} \cup  \{ \sigma^0_q :  q \in \Pi \}  .$$
 \end{definition}
 
 \begin{definition}
-	Une exécution de A vérifie l'accord si, 
-	$\forall n, m \in \mathds{N}, \forall p \in \mathcal{A}_{m+1}, \forall q \in \mathcal{A}_{n+1}, Dec(\Gamma_p(m)) = \bot \vee Dec(\Gamma_q(n)) = \bot \vee Dec(\Gamma_p(m)) = Dec(\Gamma_q(n))$.
+	Une exécution de A  \emph{vérifie l'accord} si
+	$$\forall r, r'  \in \mathds{N}, \forall p \in \mathcal{A}_{r}, \forall q \in \mathcal{A}_{r'}, 
+		\ Dec(\Gamma_p(r)) = \bot \vee Dec(\Gamma_q(r')) = \bot \vee Dec(\Gamma_p(r)) = Dec(\Gamma_q(r')) .$$
 \end{definition}
 
 \begin{definition}
-	Une exécution de A vérifie la terminaison, si, $\forall p \in \bigcup\limits_{n \in \mathds{N}} \mathcal{A}_n, \exists m \in \mathds{N}, p \in \mathcal{A}_m \wedge Dec(\Gamma_p(m)) \neq \bot$.
+	Une exécution de A \emph{vérifie la terminaison} si
+	$$ \forall p \in \bigcup\limits_{s \in \mathds{N}} \mathcal{A}_s, \exists r \in \mathds{N}, \ 
+		p \in \mathcal{A}_r \wedge Dec(\Gamma_p(r)) \neq \bot .  $$
+\end{definition}
+
+On consid\`ere une famille non vide ${\cal G}$ de graphes dynamiques comme d\'efinis ci-dessus
+	ou, de fa\c{c}on \'equivalente un pr\'edicat de communication. % A introduire avant ?
+	
+\begin{definition}
+	Un algorithme \emph{résout fortement le consensus dans ${\cal G}$} si toute exécution 
+	$( \mathds{G} ,  \mathcal{A} , (\sigma^0_p)_{p \in \Pi})$    de cet algorithme
+	avec $ \mathds{G} \in {\cal G}$  vérifie l'intégrité, l'accord et la terminaison.
 \end{definition}
 
 \begin{definition}
-	Un algorithme résoud fortement le consensus si, toute exécution de cet algorithme vérifie l'intégrité, l'accord et la terminaison.
-\end{definition}
-
-\begin{definition}
-	Un algorithme résoud faiblement le consensus si, toute exécution de cet algorithme vérifiant
-	$\forall n \in \mathds{N}, \mathcal{A}_n \in \{\emptyset, \Pi\}$ vérifie également l'intégrité, l'accord et la terminaison.
+	Un algorithme \emph{résout faiblement le consensus dans ${\cal G}$} si toute exécution 
+	$( \mathds{G} ,  \mathcal{A} , (\sigma^0_p)_{p \in \Pi})$     de cet algorithme  avec
+	$ \mathds{G} \in {\cal G}$  et des d\'eparts synchrones, i.e., 
+	$$ \forall r \in \mathds{N}, \  \mathcal{A}_r \in \{\emptyset, \Pi\}  ,$$ 
+	vérifie l'intégrité, l'accord et la terminaison.
 \end{definition}
 
 \section{Algorithme "one-third rule"}
@@ -143,7 +164,7 @@ $Dec : \bigcup\limits_{p \in \Pi} state_p  \rightarrow (\mathcal{V} \cup \{\bot\
 		\item $dec : state_p \rightarrow V \cup \{\bot\}$ est la seconde projection. La fonction $Dec$ associée à l'algorithme "one-third rule" est définie par cette fonction $dec$.
 
 	\end{itemize}
-\item Pour tout processus p, on pose $init_p = V \times \{ \bot \}$. Cet ensemble correspond à l'ensemble des états pour lesquels aucun décision n'a encore été prise.
+\item Pour tout processus p, on pose $Init_p = V \times \{ \bot \}$. Cet ensemble correspond à l'ensemble des états pour lesquels aucun décision n'a encore été prise.
 \item L'ensembe des message possible est V. 
 \item Les fonctions de transition et d'émission sont définies par les pseudo-code ci-dessous.
 \end{itemize}
@@ -196,19 +217,19 @@ On note également $min \{M^{-1} (max (Im M)\}$  le minimum parmi les messages l
 	Toute exécution de l'algorithme vérifie l'intégrité.
 \end{theorem}
 \begin{proof}
-	Soit une exécution quelquonque de l'algorithme donnée. Cette exécution fixe donc $\mathds{G}$, $(\mathcal{A}_n)_{n \in \mathds{N}}$, $\Gamma$ et $(in_p)_{p \in \Pi}$ de manière univoque.
+	Soit une exécution quelquonque de l'algorithme donnée. Cette exécution fixe donc $\mathds{G}$, $(\mathcal{A}_n)_{n \in \mathds{N}}$, $\Gamma$ et $(\sigma^0_p)_{p \in \Pi}$ de manière univoque.
 	On montre d'abord par récurrence sur n l'invariant suivant : 
 
 	$  \forall n \in \mathds{N}, \forall p \in \mathcal{A}_{n+1}, x_p(n) \in x_{init}$
 
 \textbf{Intialisation}
-	Triviale, car $p \in \mathcal{A}_1 \Rightarrow x_p(0) = in_p$. 
+	Triviale, car $p \in \mathcal{A}_1 \Rightarrow x_p(0) = \sigma^0_p$. 
 
 \textbf{Hérédité}
 	Pour un n donné, on suppose $\forall p \in \mathcal{A}_{n+1}, x_p(n) \in x_{init}$.
 Soit $q \in \mathcal{A}_{n+2}$ . On distingue les deux cas suivants :
 \begin{itemize}
-	\item $q \notin \mathcal{A}_{n+1}$. Dans ce cas, $x_p(n+1) = in_p$.
+	\item $q \notin \mathcal{A}_{n+1}$. Dans ce cas, $x_p(n+1) = \sigma^0_p$.
 	\item $|HO_{actif} (q, n+1) | \leq \frac{2\mathcal{N}}{3}$. Dans ce cas, $x_q(n+1) = x_q(n)$. L'hypothèse de récurrence permet de prouver l'invariant.
 	\item $|HO_{actif} (q, n+1) | >    \frac{2\mathcal{N}}{3}$. Dans ce cas, $x_q(n+1) = min \{M^{-1} (max (Im M))\}\}$. On applique l'hypothèse de récurrence au processus qui atteint ce minimum.
 		Cela prouve l'invariant.
@@ -421,3 +442,4 @@ Les trois sections précédentes montrent que l'algorithme "one-third rule" assu
 
 
 \end{document}
+
