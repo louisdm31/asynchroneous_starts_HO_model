@@ -30,12 +30,12 @@ On se donne un ensemble non vide $\Pi$ de cardinalit\'e $n$ et  un ensemble non 
 A chaque  $p \in \Pi$,  on associe  un {\em processus} consistant en la donn\'ee des \'el\'ements 
 	suivants :
 	\begin{itemize}
-	\item un ensemble non vide $States_p$ et un  \'el\'ement $sleep_p \notin state_p$ ;
-	\item un sous-ensemble   $Init_p \subseteq state_p$ ;
+	\item un ensemble non vide $States_p$ et un  \'el\'ement $sleep_p \notin States_p$ ;
+	\item un sous-ensemble   $Init_p \subseteq States_p$ ;
 	\item une fonction $S_p : States_p \rightarrow \Pi \rightarrow \mathcal{M}$ ;
 	\item une fonction 
-	  $T_p : state_p \rightarrow (\Pi \rightarrow (1 \oplus \{ nil \} \oplus \mathcal{M}))
-	  \rightarrow state_p$,
+	  $T_p : States_p \rightarrow (\Pi \rightarrow (1 \oplus \{ nil \} \oplus \mathcal{M}))
+	  \rightarrow States_p$,
 	  où $\Pi \rightarrow (1 \oplus \{ nil \} \oplus \mathcal{M})$ est le type d'une fonction partielle
 		de type $\Pi \rightarrow M$, pouvant prendre la valeur supplémentaire notée $nil \notin \mathcal{M}$.
 	\end{itemize}
@@ -70,7 +70,7 @@ Nous ne discutons pas ici des raisons de l'absence de communication de $q$ vers 
 	\`a~\cite{CB09} dans le cas d'un syst\`eme avec des pannes b\'enignes.
 
 Formellement, une \emph{ex\'ecution} de l'algorithme  $(States_p, Init_p, S_p,T_p)_{p\in \Pi}$ est 
-	un triplet $\big( \mathds{G}_r) ,  \mathcal{A}_r) , (\sigma^0_p)_{p \in \Pi} \big)$ où :
+	un triplet $\big( (\mathds{G}_r)_{r \in \mathds{N}} ,  (\mathcal{A}_r)_{r \in \mathds{N}} , (\sigma^0_p)_{p \in \Pi} \big)$ où :
 	\begin{itemize}
 	\item $\mathds{G}$ est un \emph{graphe dynamique} sur $\Pi$, i.e., une suite infinie de graphes dirig\'es 
 	$\mathds{G}_r = (\Pi, E_r)$ dont l'ensemble des n\oe uds est $\Pi$ ; 
@@ -88,11 +88,11 @@ La suite est croissante car, l'\'etat actif est stable : une fois r\'eveill\'e, 
 	\item La donn\'ee de la suite $(\mathcal{A}_r)_{r \in \mathds{N}}$ est  équivalente \`a celle de la fonction 
 	$s : \Pi \rightarrow \mathds{N} \cup \{\infty\}$ où 
 	$$ s(p) = \left \{ \begin{array}{l ll}
-	                          \infty & \mbox{ si  } p \notin \cup_{r \in \mathds{N}}  \mathcal{A}_r &  \mbox { ($p$ reste passif) } \\
+	                          \infty & \mbox{ si  } p \notin \bigcup\limits_{r \in \mathds{N}}  \mathcal{A}_r &  \mbox { ($p$ reste passif) } \\
 	                          r  & \mbox{ si  } p \notin \mathcal{A}_{r-1} \mbox{ et } p \in \mathcal{A}_{r}  & \mbox{ ($p$ devient actif au round $r$)}.
 	                          \end{array} \right.$$ 
-	\item On note $HO(p,n)$ l'ensemble des processus actifs entendus par le processus p au round n : $HO(p,n) = \{q, (q,p) \in E_n\}$
-	\item On note $HO_{actif}(p,n)$ l'ensemble des processus actifs entendus par le processus p au round n : $HO_{actif}(p,n) = HO(p,n) \cap \mathcal{A}_n$.
+	\item On note $HO(p,r)$ l'ensemble des processus actifs entendus par le processus p au round n : $HO(p,r) = \{q, (q,p) \in E_r\}$
+	\item On note $HO_{actif}(p,r)$ l'ensemble des processus actifs entendus par le processus p au round n : $HO_{actif}(p,r) = HO(p,r) \cap \mathcal{A}_r$.
 
 \end{itemize}
 
@@ -114,7 +114,7 @@ Dorénavant, $M_p^r$ est appelée \emph{fonction de réception de $p$ au round $
 \subsection{Probl\`eme du Consensus}
 
 On considère un algorithme $A$ muni d'une fonction
-	$Dec : \bigcup\limits_{p \in \Pi} state_p  \rightarrow (\mathcal{V} \cup \{\bot\})$ 
+	$Dec : \bigcup\limits_{p \in \Pi} States_p  \rightarrow (\mathcal{V} \cup \{\bot\})$ 
 	où $\mathcal{V}$ est un ensemble non vide tel que $\bot \notin \mathcal{V} $.
 
 \begin{definition}
@@ -156,12 +156,12 @@ On consid\`ere une famille non vide ${\cal G}$ de graphes dynamiques comme d\'ef
 
 Étant donné V un ensemble totalement ordonné, on définit l'algorithme "one-third rule" de la façon suivante.
 \begin{itemize}
-	\item Pour tout processus p, on pose $state_p = V \times (V \cup \{ \bot \})$.
+	\item Pour tout processus p, on pose $States_p = V \times (V \cup \{ \bot \})$.
 	On définit les notations suivantes :
 	\begin{itemize}
 
-		\item $x : state_p \rightarrow V$ est la première projection.
-		\item $dec : state_p \rightarrow V \cup \{\bot\}$ est la seconde projection. La fonction $Dec$ associée à l'algorithme "one-third rule" est définie par cette fonction $dec$.
+		\item $x : States_p \rightarrow V$ est la première projection.
+		\item $dec : States_p \rightarrow V \cup \{\bot\}$ est la seconde projection. La fonction $Dec$ associée à l'algorithme "one-third rule" est définie par cette fonction $dec$.
 
 	\end{itemize}
 \item Pour tout processus p, on pose $Init_p = V \times \{ \bot \}$. Cet ensemble correspond à l'ensemble des états pour lesquels aucun décision n'a encore été prise.
@@ -205,9 +205,9 @@ On note également $min \{M^{-1} (max (Im M)\}$  le minimum parmi les messages l
 \textbf{Notation :} Pour toute exécution de l'algorithme, on introduit
 \begin{itemize}
 
-	\item $x_p(n)$ et $dec_p(n)$ non définis si $\Gamma_p(n) = sleep_p$. Sinon ...
-	\item $x_p(n) = x(\Gamma_p(n))$
-	\item $dec_p(n) = dec(\Gamma_p(n))$
+	\item $x_p(r)$ et $dec_p(r)$ non définis si $\Gamma_p(r) = sleep_p$. Sinon ...
+	\item $x_p(r) = x(\Gamma_p(r))$
+	\item $dec_p(r) = dec(\Gamma_p(r))$
 
 \end{itemize}
 
@@ -217,21 +217,21 @@ On note également $min \{M^{-1} (max (Im M)\}$  le minimum parmi les messages l
 	Toute exécution de l'algorithme vérifie l'intégrité.
 \end{theorem}
 \begin{proof}
-	Soit une exécution quelquonque de l'algorithme donnée. Cette exécution fixe donc $\mathds{G}$, $(\mathcal{A}_n)_{n \in \mathds{N}}$, $\Gamma$ et $(\sigma^0_p)_{p \in \Pi}$ de manière univoque.
+	Soit une exécution quelquonque de l'algorithme donnée. Cette exécution fixe donc $\mathds{G}$, $(\mathcal{A}_r)_{r \in \mathds{N}}$, $\Gamma$ et $(\sigma^0_p)_{p \in \Pi}$ de manière univoque.
 	On montre d'abord par récurrence sur n l'invariant suivant : 
 
-	$  \forall n \in \mathds{N}, \forall p \in \mathcal{A}_{n+1}, x_p(n) \in x_{init}$
+	$  \forall r \in \mathds{N}, \forall p \in \mathcal{A}_{r+1}, x_p(r) \in \{\sigma^0_q, q \in \Pi\}$
 
 \textbf{Intialisation}
 	Triviale, car $p \in \mathcal{A}_1 \Rightarrow x_p(0) = \sigma^0_p$. 
 
 \textbf{Hérédité}
-	Pour un n donné, on suppose $\forall p \in \mathcal{A}_{n+1}, x_p(n) \in x_{init}$.
-Soit $q \in \mathcal{A}_{n+2}$ . On distingue les deux cas suivants :
+	Pour un r donné, on suppose $\forall p \in \mathcal{A}_{r+1}, x_p(r) \in \{\sigma^0_q, q \in \Pi\}$
+	Soit $q \in \mathcal{A}_{r+2}$ . On distingue les deux cas suivants :
 \begin{itemize}
-	\item $q \notin \mathcal{A}_{n+1}$. Dans ce cas, $x_p(n+1) = \sigma^0_p$.
-	\item $|HO_{actif} (q, n+1) | \leq \frac{2\mathcal{N}}{3}$. Dans ce cas, $x_q(n+1) = x_q(n)$. L'hypothèse de récurrence permet de prouver l'invariant.
-	\item $|HO_{actif} (q, n+1) | >    \frac{2\mathcal{N}}{3}$. Dans ce cas, $x_q(n+1) = min \{M^{-1} (max (Im M))\}\}$. On applique l'hypothèse de récurrence au processus qui atteint ce minimum.
+	\item $q \notin \mathcal{A}_{r+1}$. Dans ce cas, $x_p(r+1) = \sigma^0_p$.
+	\item $|HO_{actif} (q, r+1) | \leq \frac{2\mathcal{N}}{3}$. Dans ce cas, $x_q(r+1) = x_q(r)$. L'hypothèse de récurrence permet de prouver l'invariant.
+	\item $|HO_{actif} (q, r+1) | >    \frac{2\mathcal{N}}{3}$. Dans ce cas, $x_q(r+1) = min \{M^{-1} (max (Im M))\}\}$. On applique l'hypothèse de récurrence au processus qui atteint ce minimum.
 		Cela prouve l'invariant.
 
 \end{itemize}
@@ -246,16 +246,16 @@ La preuve de l'accord des exécutions de l'algorithme est construite à partir d
 
 \begin{lemma}
 
-	Si, pour $p \in \mathcal{A}_{n+1}$ , $x \in V$ et $n \in \mathds{N}$, 
+	Si, pour $p \in \mathcal{A}_{r+1}$ , $x \in V$ et $r \in \mathds{N}$, 
 
 \begin{itemize}
 
-	\item $| HO_{active} (p,n+1) | > \frac{2\mathcal{N}}{3}$
-	\item $| \{ q \in \mathcal{A}_{n+1} , x_q(n) = x \} | > \frac{2\mathcal{N}}{3}$.
+	\item $| HO_{active} (p,r+1) | > \frac{2\mathcal{N}}{3}$
+	\item $| \{ q \in \mathcal{A}_{r+1} , x_q(r) = x \} | > \frac{2\mathcal{N}}{3}$.
 
 \end{itemize}
 
-On montre que $x_p(n+1) = x$
+On montre que $x_p(r+1) = x$
 
 \end{lemma}
 
@@ -266,16 +266,16 @@ On montre que $x_p(n+1) = x$
 	On a
 \begin{equation}
 \begin{split}
-	HO_{active}(p, n+1) & = M^{-1}(x) \cup (HO_{active}(p, n+1) \setminus M^{-1}(x)) \\
-	& \subseteq M^{-1}(x) \cup \{ q \in \mathcal{A}_{n+1} , x_q(n) \neq x \}
+	HO_{active}(p, r+1) & = M^{-1}(x) \cup (HO_{active}(p, r+1) \setminus M^{-1}(x)) \\
+	& \subseteq M^{-1}(x) \cup \{ q \in \mathcal{A}_{r+1} , x_q(r) \neq x \}
 \end{split}
 \end{equation}
 
 Ainsi 
 \begin{equation}
 \begin{split}
-\frac{2\mathcal{N}}{3} & < | HO_{active}(p, n+1) | \\
-		& \leq | M^{-1}(x) | + | \{ q \in \mathcal{A}_{n+1} , x_q(n) \neq x \} | \\
+\frac{2\mathcal{N}}{3} & < | HO_{active}(p, r+1) | \\
+		& \leq | M^{-1}(x) | + | \{ q \in \mathcal{A}_{r+1} , x_q(r) \neq x \} | \\
 		& \leq | M^{-1}(x) | +  \frac{\mathcal{N}}{3} \\
 \end{split}
 \end{equation}
@@ -285,12 +285,12 @@ Ainsi
 \begin{equation}
 \begin{split}
 | M^{-1}(x) | & > \frac{\mathcal{N}}{3} \\
-		& \geq | \{ q \in \mathcal{A}_{n+1} , x_q(n) \neq x \} | \\
+		& \geq | \{ q \in \mathcal{A}_{r+1} , x_q(r) \neq x \} | \\
 		& \geq | HO_{active}(p,n+1) \setminus M^{-1}(x) | \\
 \end{split}
 \end{equation}
 
-Donc $x$ est l'élément le plus fréquent de M. Donc $x_p(n+1) = x$.
+Donc $x$ est l'élément le plus fréquent de M. Donc $x_p(r+1) = x$.
 
 \end{proof}
 
@@ -298,49 +298,49 @@ Donc $x$ est l'élément le plus fréquent de M. Donc $x_p(n+1) = x$.
 
 Toute supermajorité (ie. plus de deux tiers des processus) de valeurs se conserve :
 
-	$\forall k \in \mathds{N}, | \{ q \in \mathcal{A}_{n+1} , x_q(n) = x \} | > \frac{2\mathcal{N}}{3} \Rightarrow | \{ q \in \mathcal{A}_{n+k+1} , x_q(n+k) = x \} | > \frac{2\mathcal{N}}{3}$.
+	$\forall k \in \mathds{N}, | \{ q \in \mathcal{A}_{r+1} , x_q(r) = x \} | > \frac{2\mathcal{N}}{3} \Rightarrow | \{ q \in \mathcal{A}_{r+k+1} , x_q(r+k) = x \} | > \frac{2\mathcal{N}}{3}$.
 
 \end{lemma}
 
 \begin{proof}
 
-Soit $p \in  \{ q \in \mathcal{A}_{n+1} , x_q(n) = x \} $. On distingue les cas suivants :
+Soit $p \in  \{ q \in \mathcal{A}_{r+1} , x_q(r) = x \} $. On distingue les cas suivants :
 
 \begin{itemize}
 
-\item $|HO_{actif} (p, n+1) | \leq \frac{2\mathcal{N}}{3}$. Dans ce cas, $x_p(n+1) = x_p(n) = x$.
-\item $|HO_{actif} (p, n+1) | > \frac{2\mathcal{N}}{3}$. Dans ce cas, le lemme 1 permet de montrer que $x_p(n+1) = x$.
+\item $|HO_{actif} (p, r+1) | \leq \frac{2\mathcal{N}}{3}$. Dans ce cas, $x_p(r+1) = x_p(r) = x$.
+\item $|HO_{actif} (p, r+1) | > \frac{2\mathcal{N}}{3}$. Dans ce cas, le lemme 1 permet de montrer que $x_p(r+1) = x$.
 
 \end{itemize}
 Dans tous les cas 
-	$p \in \{ q \in \mathcal{A}_{n+1} , x_q(n+1) = x \} $.
+	$p \in \{ q \in \mathcal{A}_{r+1} , x_q(r+1) = x \} $.
 
-	La suite $(\{ q \in \mathcal{A}_{n+1} , x_q(n+k) = x \})_{k \in \mathds{N}}$ est donc croissante selon l'ordre d'inclusion ensembliste. Cela prouve le lemme.
+	La suite $(\{ q \in \mathcal{A}_{r+1} , x_q(r+k) = x \})_{k \in \mathds{N}}$ est donc croissante selon l'ordre d'inclusion ensembliste. Cela prouve le lemme.
 \end{proof}
 \begin{lemma}
-	$\forall x \in V, \forall n k \in \mathds{N}, \forall p \in \mathcal{A}_n, dec_p(n) = x \Rightarrow| \{ q \in \mathcal{A}_{n+k} , x_q(n+k) = x \} | > \frac{2\mathcal{N}}{3}$
+	$\forall x \in V, \forall r k \in \mathds{N}, \forall p \in \mathcal{A}_r, dec_p(r) = x \Rightarrow| \{ q \in \mathcal{A}_{r+k} , x_q(r+k) = x \} | > \frac{2\mathcal{N}}{3}$
 \end{lemma}
 \begin{proof}
 
-On montre cela par récurrence sur n.
+On montre cela par récurrence sur r.
 
 \textbf{Initialisation}
 	Trivial car $\mathcal{A}_0 = \emptyset$.
 
 \textbf{Hérédité}
-	Pour $x \in V, p \ \mathcal{A}_n, n \in \mathds{N}$ fixés, on suppose que 
-	$ \forall k \in \mathds{N}, dec_p(n) = x \Rightarrow| \{ q \in \mathcal{A}_{n+k} , x_q(n+k) = x \} | > \frac{2\mathcal{N}}{3}$.
+	Pour $x \in V, p \ \mathcal{A}_r, r \in \mathds{N}$ fixés, on suppose que 
+	$ \forall k \in \mathds{N}, dec_p(r) = x \Rightarrow| \{ q \in \mathcal{A}_{r+k} , x_q(r+k) = x \} | > \frac{2\mathcal{N}}{3}$.
 
 	On veut montrer que 
-	$ \forall k \in \mathds{N}, dec_p(n+1) = x \Rightarrow| \{ q \in \mathcal{A}_{n+k+1} , x_q(n+k+1) = x \} | > \frac{2\mathcal{N}}{3}$.
+	$ \forall k \in \mathds{N}, dec_p(r+1) = x \Rightarrow| \{ q \in \mathcal{A}_{r+k+1} , x_q(r+k+1) = x \} | > \frac{2\mathcal{N}}{3}$.
 
-	Soit $k \in \mathds{N}$, on suppose que $dec_p(n+1) = x$.
+	Soit $k \in \mathds{N}$, on suppose que $dec_p(r+1) = x$.
 
 	\begin{itemize}
 
-		\item Si $dec_p(n) = x$, le lemme découle de l'hypothèse de récurrence.
-		\item Sinon $dec_p(n) = \bot$. On en déduit que, au round n+1, le processus p avait reçu une fonction de réception $M_p^{n+1}$ telle que $M_p^{n+1}(x) > \frac{2\mathcal{N}}{3}$.
-			Donc $| \{ q \in \mathcal{A}_n , x_q(n) = x \} | > \frac{2\mathcal{N}}{3}$.
+		\item Si $dec_p(r) = x$, le lemme découle de l'hypothèse de récurrence.
+		\item Sinon $dec_p(r) = \bot$. On en déduit que, au round r+1, le processus p avait reçu une fonction de réception $M_p^{r+1}$ telle que $M_p^{r+1}(x) > \frac{2\mathcal{N}}{3}$.
+			Donc $| \{ q \in \mathcal{A}_r , x_q(r) = x \} | > \frac{2\mathcal{N}}{3}$.
 			On conclut alors en utilisant le lemme 2.
 
 	\end{itemize}
@@ -348,13 +348,13 @@ On montre cela par récurrence sur n.
 
 \begin{lemma}
 	Aucune décision ne peut être en conflit avec une décision précédente.
-	$ \forall n \in \mathds{N}, k \in \mathds{N}, \forall p \in \mathcal{A}_n, q \in \mathcal{A}_{n+k},dec_p(n) = \bot \vee dec_q(n+k) = \bot \vee dec_p(n) = dec_q(m)$.
+	$ \forall r \in \mathds{N}, k \in \mathds{N}, \forall p \in \mathcal{A}_r, q \in \mathcal{A}_{r+k},dec_p(r) = \bot \vee dec_q(r+k) = \bot \vee dec_p(r) = dec_q(m)$.
 \end{lemma}
 \begin{proof}
 
-	Si $dec_p(n) = x_1 \neq \bot$,   le lemme 3 montre que $|\{h \in \mathcal{A}_{n+1}, x_h(n+k) = x_1\}| > \frac{2\mathcal{N}}{3}$.
+	Si $dec_p(r) = x_1 \neq \bot$,   le lemme 3 montre que $|\{h \in \mathcal{A}_{r+1}, x_h(r+k) = x_1\}| > \frac{2\mathcal{N}}{3}$.
 
-	Si $dec_q(n+k) = x_2 \neq \bot$,   le lemme 3 montre que $|\{h \in \mathcal{A}_{n+k+1}, x_h(n+k) = x_2\}|> \frac{2\mathcal{N}}{3}$.
+	Si $dec_q(r+k) = x_2 \neq \bot$,   le lemme 3 montre que $|\{h \in \mathcal{A}_{r+k+1}, x_h(r+k) = x_2\}|> \frac{2\mathcal{N}}{3}$.
 
 Ces deux supermajorités se recoupent nécessairement, donc $x_1 = x_2$.
 \end{proof}
@@ -363,19 +363,19 @@ Ce dernier lemme permet de prouver l'accord de toute exécution de l'algorithme.
 
 \subsection{Terminaison}
 
-On prouve la terminaison pour toute exécution de l'algorithme dont le graphe dynamique actif vérifie les prédicats suivants :
+On prouve la terminaison pour toute exécution de l'algorithme dont le graphe dynamique vérifie les prédicats suivants :
 \begin{itemize}
-	\item $\forall n \in \mathds{N}, \exists m \in \mathds{N}, \exists S \subseteq \mathcal{A}_m, |S| > \frac{2\mathcal{N}}{3} \wedge m > n \wedge (\forall q \in S, HO_{actif}(q, m) = S)$
+	\item $\forall r \in \mathds{N}, \exists m \in \mathds{N}, \exists S \subseteq \mathcal{A}_m, |S| > \frac{2\mathcal{N}}{3} \wedge m > r \wedge (\forall q \in S, HO_{actif}(q, m) = S)$
 	\item $\mathds{G}$ admet infiniment souvent un noyau contenant une supermajorité de processus actifs :
-		$\forall n \in \mathds{N}, \exists m \in \mathds{N}, \exists \Pi_0 \subseteq \mathcal{A}_m, |\Pi_0| > \frac{2\mathcal{N}}{3} \wedge m > n \wedge (\forall q \in \Pi, \Pi_0 \subseteq HO_{actif}(q,m))$.
+		$\forall r \in \mathds{N}, \exists m \in \mathds{N}, \exists \Pi_0 \subseteq \mathcal{A}_m, |\Pi_0| > \frac{2\mathcal{N}}{3} \wedge m > r \wedge (\forall q \in \Pi, \Pi_0 \subseteq HO_{actif}(q,m))$.
 \end{itemize}
 
 \begin{proof}
 
-	Comme $\Pi$ est un ensemble fini, la suite $(\mathcal{A}_n)_{n \in \mathds{N}}$ atteint un maximum à partir d'un certain round n.
-	Ainsi $\forall n_0 > n, \mathcal{A}_{n_0} = \mathcal{A}_n$.
+	Comme $\Pi$ est un ensemble fini, la suite $(\mathcal{A}_r)_{r \in \mathds{N}}$ atteint un maximum à partir d'un certain round r.
+	Ainsi $\forall r_0 > r, \mathcal{A}_{r_0} = \mathcal{A}_r$.
 	À partir de là, la preuve avec départs asynchrones est identique à celle avec départs synchones. 
-	À partir du premier prédicat, on obtient $m > n$ et $S \subseteq \mathcal{A}_n$ tel que :
+	À partir du premier prédicat, on obtient $m > r$ et $S \subseteq \mathcal{A}_r$ tel que :
 	\begin{itemize}
 
 		\item $\forall q \in S, HO_{actif}(q, m) = S$
@@ -396,7 +396,7 @@ On prouve la terminaison pour toute exécution de l'algorithme dont le graphe dy
 
 D'après le lemme 2 de la section précédente, cette supermajorité se conserve aux rounds suivants.
 
-	À partir du second prédicat, on obtient $r > m$ et $\Pi_0 \subseteq \mathcal{A}_n$, tels que :
+	À partir du second prédicat, on obtient $r > m$ et $\Pi_0 \subseteq \mathcal{A}_r$, tels que :
 	\begin{itemize}
 
 		\item $\forall q \in \Pi, \Pi_0 \subseteq HO_{actif}(q, m)$
@@ -420,10 +420,10 @@ D'après le lemme 2 de la section précédente, cette supermajorité se conserve
 
 	\end{itemize}
 
-	On a donc, $\forall p \in \mathcal{A}_n, \Pi_1 \subseteq (M_p^{r_0})^{-1}(\overline{x}) $
-	Donc, $\forall p \in \mathcal{A}_n, |(M_p^{r_0})^{-1}(\overline{x})| > \frac{2\mathcal{N}}{3} $.
+	On a donc, $\forall p \in \mathcal{A}_r, \Pi_1 \subseteq (M_p^{r_0})^{-1}(\overline{x}) $
+	Donc, $\forall p \in \mathcal{A}_r, |(M_p^{r_0})^{-1}(\overline{x})| > \frac{2\mathcal{N}}{3} $.
 
-	Finalement, $\forall p \in \mathcal{A}_n, dec_p(r_0) = \overline{x}$.
+	Finalement, $\forall p \in \mathcal{A}_r, dec_p(r_0) = \overline{x}$.
 
 \end{proof}
 
@@ -435,7 +435,7 @@ Les trois sections précédentes montrent que l'algorithme "one-third rule" assu
 
 		 L'algorithme "one-third rule" asssure le consensus lorsque les prédicats suivants sont vérifiés :
 		\begin{itemize}
-			\item $\forall n \in \mathds{N}, \exists m \in \mathds{N}, \exists S \subseteq \mathcal{A}_m, |S| > \frac{2\mathcal{N}}{3} \wedge m > n \wedge (\forall q \in S, HO_{actif}(q, m) = S)$
+			\item $\forall r \in \mathds{N}, \exists m \in \mathds{N}, \exists S \subseteq \mathcal{A}_m, |S| > \frac{2\mathcal{N}}{3} \wedge m > r \wedge (\forall q \in S, HO_{actif}(q, m) = S)$
 			\item $\mathds{G}$ admet infiniment souvent un noyau contenant une supermajorité de processus actifs.
 		\end{itemize}
 	\end{theorem}
