@@ -619,6 +619,10 @@ qed
 
 subsection \<open>Proof of  Termination\<close>
 
+locale toto =fixes p :: Proc
+begin
+
+end
 text \<open>
   We now show that every process must eventually decide.
 

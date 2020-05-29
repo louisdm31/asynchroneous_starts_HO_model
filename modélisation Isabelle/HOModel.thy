@@ -75,10 +75,10 @@ text \<open>
   Clearly, \<open>consensus\<close> implies \<open>weak_consensus\<close>.
 \<close>
 
-lemma consensus_then_weak_consensus:
+(*lemma consensus_then_weak_consensus:
   assumes "consensus vals dec rho"
   shows "weak_consensus vals dec rho"
-  using assms by sorry
+  using assms by sorry*)
 
 text \<open>
   Over Boolean values (``binary Consensus''), \<open>weak_consensus\<close>

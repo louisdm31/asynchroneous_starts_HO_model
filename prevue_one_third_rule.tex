@@ -392,7 +392,7 @@ On prouve la terminaison pour toute exécution de l'algorithme dont le graphe dy
 	\end{itemize}
 
 	On a donc, $\forall p q \in S, M_p^m = M_q^m$, donc, d'après la façon dont $T_p$ est construite, $\forall p q \in S, x_p(m) = x_q(m)$.
-	À la fin du round m, S constitue donc une supermajorité de processus ayant tous une même valeur pour la variable x, que l'on notera $\overline{x}$
+	À la fin du round m, S constitue donc une supermajorité de processus ayant tous une même valeur pour la variable $x$, que l'on notera $\overline{x}$
 
 D'après le lemme 2 de la section précédente, cette supermajorité se conserve aux rounds suivants.
 
@@ -405,18 +405,18 @@ D'après le lemme 2 de la section précédente, cette supermajorité se conserve
 
 	\end{itemize}
 
-	D'après le lemme 1 de la section précédente, $\forall p \in \mathcal{A}_n, x_p(r) = \overline{x}$.
+	D'après le lemme 1 de la section précédente, $\forall p \in \mathcal{A}_r, x_p(r) = \overline{x}$.
 
-	Par une récurrence triviale, on montre que  $\forall r_0 > r, \forall p \in \mathcal{A}_n, x_p(r_0) = \overline{x}$.
+	Par une récurrence triviale, on montre que  $\forall r_0 > r, \forall p \in \mathcal{A}_r, x_p(r_0) = \overline{x}$.
 	On utilise le fait que plus aucun processus ne se réveille, car $r \geq n$.
 
 
-	À partir du second prédicat, on obtient $r_0 > r$ et $\Pi_1 \subseteq \mathcal{A}_n$, tels que :
+	À partir du second prédicat, on obtient $r_0 > r$ et $\Pi_1 \subseteq \mathcal{A}_r$, tels que :
 	\begin{itemize}
 
 		\item $\forall q \in \Pi, \Pi_1 \subseteq HO_{actif}(q, m)$
 		\item $|\Pi_1| > \frac{2\mathcal{N}}{3}$
-		\item On a de plus $\forall p \in \mathcal{A}_n, x_p(r_0) = \overline{x}$
+		\item On a de plus $\forall p \in \mathcal{A}_r, x_p(r_0) = \overline{x}$
 
 	\end{itemize}
 
