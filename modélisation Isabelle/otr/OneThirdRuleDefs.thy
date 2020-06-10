@@ -176,8 +176,8 @@ definition OTR_commGlobal where
 
 definition OTR_commActive where
   "OTR_commActive HOs rho \<equiv> 
-  \<forall>r. \<exists>rs rp S P. rs \<ge> r \<and> (\<forall>p \<in> S. rho rs p \<noteq> Aslept) \<and> card S > (2*N) div 3 \<and> (\<forall>p \<in> S. S = HOs rs p) \<and>
-   rp \<ge> r \<and> card P > (2*N) div 3 \<and> (\<forall>p \<in> P. rho rp p \<noteq> Aslept) \<and> (\<forall>p \<in> P. \<forall> q. p \<in> HOs rp q)"
+  \<forall>r p. \<exists>rs rp S. rs \<ge> r \<and> (\<forall>p \<in> S. rho rs p \<noteq> Aslept) \<and> card S > (2*N) div 3 \<and> (\<forall>p \<in> S. S = HOs rs p) \<and>
+   rp \<ge> r \<and> card {q \<in> HOs rp p. rho rp q \<noteq> Aslept} > (2*N) div 3"
 
 subsection \<open>The \emph{One-Third Rule} Heard-Of Machine\<close>
 
