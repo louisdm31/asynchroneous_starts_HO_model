@@ -640,59 +640,50 @@ lemma commute_set : "card {q. \<exists>s. A s q \<and> B s q} = card {q. \<exist
 
 theorem OTR_termination:
   assumes run: "HORun (HOMachine_to_Algorithm OTR_M) rho HOs" (is "HORun ?A _ _")
-  and commG: "HOcommActive OTR_M HOs rho"
+  and commG: "HOcommGlobal OTR_M HOs"
+  and commS: "HOcommSchedule OTR_M (Schedule rho)"
   and non_inf: "\<exists>r. rho r p \<noteq> Aslept"
   shows "\<exists>r v. rho r p = Active \<lparr> x = v, decide = True \<rparr>"
 proof -
-have commG_unf:"\<forall>r p. \<exists>rs rp S. rs \<ge> r \<and> (\<forall>p \<in> S. rho rs p \<noteq> Aslept) \<and> card S > (2*N) div 3 \<and> (\<forall>p \<in> S. S = HOs rs p) \<and>
-   rp \<ge> r \<and> card {q \<in> HOs rp p. rho rp q \<noteq> Aslept} > (2*N) div 3"
-    using commG by (simp add:OTR_commActive_def OTR_HOMachine_def)
-then obtain rs S where Sact:"\<forall>p \<in> S. rho rs p \<noteq> Aslept" and
-  pic:"card S > (2*N) div 3" and pi:"\<forall>p \<in> S. S = HOs rs p" by force
+  have "\<exists>n. Schedule rho n = UNIV" using commS by (simp add:OTR_HOMachine_def OTR_commSchedule_def )
+  then obtain n where "\<forall>p. rho n p \<noteq> Aslept" by auto
+  have commG_unf:"\<forall>r p. \<exists>rs rp S. rs \<ge> r \<and> card S > (2*N) div 3 \<and> (\<forall>p \<in> S. S = HOs rs p) \<and>
+    rp \<ge> r \<and> card (HOs rp p) > (2*N) div 3"
+      using commG by (simp add:OTR_commGlobal_def OTR_HOMachine_def)
+  then obtain rs S where "rs \<ge> n" and pic:"card S > (2*N) div 3" and pi:"\<forall>p \<in> S. S = HOs rs p" by force
 
   have allact:"\<forall>p \<in> S. \<exists>ss. rho rs p = Active ss"
   proof
     fix p
     assume "p \<in> S"
-    thus "\<exists>ss. rho rs p = Active ss" using \<open>\<forall>p \<in> S. rho rs p \<noteq> Aslept\<close> by (cases "rho rs p") auto
+    have "rho rs p \<noteq> Aslept" using nonAsleepAgain[of rho n p _ _ _ "rs - n"] run \<open>rs \<ge> n\<close> HORun_def \<open>\<forall>p. rho n p \<noteq> Aslept\<close> by force
+    thus "\<exists>ss. rho rs p = Active ss" by (cases "rho rs p") auto
   qed
   let "?msgs q r" = "HOrcvdMsgs (HOMachine_to_Algorithm OTR_M) q (HOs r q) (rho r)"
 
   have msgs_eq:"\<forall>p q. p \<in> S \<longrightarrow> q \<in> S \<longrightarrow> ?msgs q rs = ?msgs p rs"
-  proof 
+  proof (rule+)
     fix p 
-    show "\<forall>q. p \<in> S \<longrightarrow> q \<in> S \<longrightarrow> ?msgs q rs = ?msgs p rs"
-    proof
-      fix q
-      show "p \<in> S \<longrightarrow> q \<in> S \<longrightarrow> ?msgs q rs = ?msgs p rs"
-      proof 
-        assume pinS:"p \<in> S"
-        show "q \<in> S \<longrightarrow> ?msgs q rs = ?msgs p rs"
-        proof
-          assume qinS:"q \<in> S"
-          show "?msgs q rs = ?msgs p rs"
-          proof
-            fix h
-            show "?msgs q rs h = ?msgs p rs h"
-            proof (cases "h \<in> S")
-              assume "h \<in> S"
-              from allact and this obtain sh where "rho rs h = Active sh" by auto
-              hence "?msgs p rs h = (if h \<in> S then Content (x sh) else Void)"
-                using pi Sact HOrcvdMsgs_def HOMachine_to_Algorithm_def OTR_HOMachine_def OTR_sendMsg_def
-                by (metis (no_types, lifting) CHOAlgorithm.select_convs(2) HOrcvMsgs_q.simps(1) pinS) 
-              moreover have "?msgs q rs h = (if h \<in> S then Content (x sh) else Void)"
-                using pi Sact HOrcvdMsgs_def HOMachine_to_Algorithm_def OTR_HOMachine_def OTR_sendMsg_def \<open>rho rs h = Active sh\<close>
-                by (metis (no_types, lifting) CHOAlgorithm.select_convs(2) HOrcvMsgs_q.simps(1) qinS) 
-              finally show "?msgs q rs h = ?msgs p rs h" by auto
-            next
-              assume "\<not> h \<in> S"
-              hence "?msgs p rs h = Void" using pi Sact HOrcvdMsgs_def by (metis (no_types, lifting) pinS) 
-              moreover have "?msgs q rs h = Void" using pi Sact HOrcvdMsgs_def \<open>\<not> h \<in> S\<close> by (metis (no_types, lifting) qinS) 
-              finally show "?msgs q rs h = ?msgs p rs h" by auto
-            qed
-          qed
-        qed
-      qed
+    fix q
+    assume pinS:"p \<in> S"
+    assume qinS:"q \<in> S"
+    fix h
+    show "?msgs q rs h = ?msgs p rs h"
+    proof (cases "h \<in> S")
+      assume "h \<in> S"
+      from allact and this obtain sh where "rho rs h = Active sh" by auto
+      hence "?msgs p rs h = (if h \<in> S then Content (x sh) else Void)"
+        using pi HOrcvdMsgs_def HOMachine_to_Algorithm_def OTR_HOMachine_def OTR_sendMsg_def
+        by (metis (no_types, lifting) CHOAlgorithm.select_convs(2) HOrcvMsgs_q.simps(1) pinS) 
+      moreover have "?msgs q rs h = (if h \<in> S then Content (x sh) else Void)"
+        using pi HOrcvdMsgs_def HOMachine_to_Algorithm_def OTR_HOMachine_def OTR_sendMsg_def \<open>rho rs h = Active sh\<close>
+        by (metis (no_types, lifting) CHOAlgorithm.select_convs(2) HOrcvMsgs_q.simps(1) qinS) 
+      finally show "?msgs q rs h = ?msgs p rs h" by auto
+    next
+      assume "\<not> h \<in> S"
+      hence "?msgs p rs h = Void" using pi HOrcvdMsgs_def by (metis (no_types, lifting) pinS) 
+      moreover have "?msgs q rs h = Void" using pi HOrcvdMsgs_def \<open>\<not> h \<in> S\<close> by (metis (no_types, lifting) qinS) 
+      finally show "?msgs q rs h = ?msgs p rs h" by auto
     qed
   qed
 

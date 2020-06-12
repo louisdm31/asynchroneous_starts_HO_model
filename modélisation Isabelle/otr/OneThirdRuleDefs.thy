@@ -171,13 +171,13 @@ definition OTR_commPerRd where
   "OTR_commPerRd HOrs \<equiv> True"
 
 definition OTR_commGlobal where
-  "OTR_commGlobal HOs \<equiv>
-    \<forall>r. \<exists>r0 \<Pi>. r0 \<ge> r \<and> (\<forall>p. HOs r0 p = \<Pi>) \<and> card \<Pi> > (2*N) div 3"
+  "OTR_commGlobal HOs \<equiv> 
+  \<forall>r p. \<exists>rs rp S. rs \<ge> r \<and> card S > (2*N) div 3 \<and> (\<forall>p \<in> S. S = HOs rs p) \<and>
+   rp \<ge> r \<and> card (HOs rp p) > (2*N) div 3"
 
-definition OTR_commActive where
-  "OTR_commActive HOs rho \<equiv> 
-  \<forall>r p. \<exists>rs rp S. rs \<ge> r \<and> (\<forall>p \<in> S. rho rs p \<noteq> Aslept) \<and> card S > (2*N) div 3 \<and> (\<forall>p \<in> S. S = HOs rs p) \<and>
-   rp \<ge> r \<and> card {q \<in> HOs rp p. rho rp q \<noteq> Aslept} > (2*N) div 3"
+definition OTR_commSchedule where
+  "OTR_commSchedule sched \<equiv> \<exists>n. sched n = UNIV"
+
 
 subsection \<open>The \emph{One-Third Rule} Heard-Of Machine\<close>
 
@@ -195,7 +195,7 @@ definition OTR_HOMachine where
      CnextState = (\<lambda> p st msgs crd st'. OTR_nextState p st msgs st'),
      HOcommPerRd = OTR_commPerRd,
      HOcommGlobal = OTR_commGlobal,
-     HOcommActive = OTR_commActive \<rparr>"
+     HOcommSchedule = OTR_commSchedule \<rparr>"
 
 
 
