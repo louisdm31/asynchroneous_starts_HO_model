@@ -733,37 +733,34 @@ proof -
     using A3[where ?n = "Suc rs"] run commute_set[of "\<lambda>s q. rho (Suc rs) q = Active s" "\<lambda>s q. x s = v"] by auto
 
 
-have inf_sl_or_v:"\<forall>p. (\<forall>r. rho r p = Aslept) \<or> (\<exists>rx. \<forall>rr sp. rho (rx+rr) p = Active sp \<longrightarrow> x sp = v)"
+have inf_sl_or_v:"\<forall>p. \<exists>rx \<ge> n. \<forall>rr sp. rho (rx+rr) p = Active sp \<longrightarrow> x sp = v"
 proof
   fix p
-  show "(\<forall>r. rho r p = Aslept) \<or> (\<exists>rx. \<forall>rr sp. rho (rx+rr) p = Active sp \<longrightarrow> x sp = v)"
-  proof (cases "\<forall>r. rho r p = Aslept")
-    assume "\<forall>r. rho r p = Aslept"
-    thus "(\<forall>r. rho r p = Aslept) \<or> (\<exists>rx. \<forall>rr sp. rho (rx+rr) p = Active sp \<longrightarrow> x sp = v)" by auto
-  next
-    assume "\<not> (\<forall>r. rho r p = Aslept)"
-    then obtain rp where "rho rp p \<noteq> Aslept" by auto
-    let ?rp = "max rp (Suc rs)"
-    from commG_unf obtain rpp where "?rp \<le> rpp" and maj_rpp:"2 * N div 3 < card {q \<in> HOs rpp p. rho rpp q \<noteq> Aslept}" by blast
+  show "\<exists>rx \<ge> n. \<forall>rr sp. rho (rx+rr) p = Active sp \<longrightarrow> x sp = v"
+  proof -
+    from commG_unf obtain rpp where "Suc rs \<le> rpp" and maj_rpp:"2 * N div 3 < card (HOs rpp p)" by blast
 
-    have maj_xv:"\<forall>rpp ss. ?rp \<le> rpp \<longrightarrow> 2 * N div 3 < card {q \<in> HOs rpp p. rho rpp q \<noteq> Aslept}
-      \<longrightarrow> rho (Suc rpp) p = Active ss \<longrightarrow> x ss = v"
+    have maj_xv:"\<forall>rpp ss. Suc rs \<le> rpp \<longrightarrow> 2 * N div 3 < card (HOs rpp p) \<longrightarrow> rho (Suc rpp) p = Active ss \<longrightarrow> x ss = v"
     proof (rule+)
       fix rpp
       fix ss
-      assume "?rp \<le> rpp"
-      assume majj:"2 * N div 3 < card {q \<in> HOs rpp p. rho rpp q \<noteq> Aslept}"
+      assume "Suc rs \<le> rpp"
+      assume majj:"2 * N div 3 < card (HOs rpp p)"
       moreover assume "rho (Suc rpp) p = Active ss"
-      moreover from \<open>rho rp p \<noteq> Aslept\<close> have "rho rpp p \<noteq> Aslept"
-        using nonAsleepAgain[of rho rp p _ HOs _ "rpp - rp"] run HORun_def \<open>?rp \<le> rpp\<close> by force
+      moreover from \<open>\<forall>p. rho n p \<noteq> Aslept\<close> have "rho rpp p \<noteq> Aslept"
+        using nonAsleepAgain[of rho n p _ HOs _ "rpp - n"] run HORun_def \<open>n \<le> rs\<close> \<open>Suc rs \<le> rpp\<close> by force
       then obtain sp where "rho rpp p = Active sp" by (cases "rho rpp p") auto
-      moreover have "{q. ?msgs p rpp q \<noteq> Void \<and> ?msgs p rpp q \<noteq> Bot} = {q \<in> HOs rpp p. rho rpp q \<noteq> Aslept}" using HOrcvdMsgs_def
+      moreover have "{q \<in> HOs rpp p. rho rpp q \<noteq> Aslept} = {q. ?msgs p rpp q \<noteq> Void \<and> ?msgs p rpp q \<noteq> Bot}" using HOrcvdMsgs_def
         by (metis (no_types, lifting) HOrcvMsgs_q.elims HOrcvMsgs_q.simps(2) message.simps(3) message.simps(5))
-      hence "2 * N div 3 < card {q. ?msgs p rpp q \<noteq> Void \<and> ?msgs p rpp q \<noteq> Bot}" using majj by auto
+      have "\<forall>p. rho rpp p \<noteq> Aslept"
+        using \<open>\<forall>p. rho n p \<noteq> Aslept\<close> nonAsleepAgain[of _ n _ ?A _ _ "rpp - n"] \<open>Suc rs \<le> rpp\<close> \<open>n \<le> rs\<close> run HORun_def by fastforce
+      hence "HOs rpp p = {q \<in> HOs rpp p. rho rpp q \<noteq> Aslept}" using Collect_cong by fastforce
+      hence "2 * N div 3 < card {q. ?msgs p rpp q \<noteq> Void \<and> ?msgs p rpp q \<noteq> Bot}"
+        using majj \<open>\<dots> = {q. ?msgs p rpp q \<noteq> Void \<and> ?msgs p rpp q \<noteq> Bot}\<close> by auto
 
       moreover have "2 * N div 3 < card {q. \<exists>sq. x sq = v \<and> rho (Suc rs + (rpp - (Suc rs))) q = Active sq}"
-        using majv \<open>?rp \<le> rpp\<close> by blast
-      hence "2 * N div 3 < card {q. \<exists>sq. x sq = v \<and> rho rpp q = Active sq}" using \<open>?rp \<le> rpp\<close> by auto
+        using majv \<open>Suc rs \<le> rpp\<close> by blast
+      hence "2 * N div 3 < card {q. \<exists>sq. x sq = v \<and> rho rpp q = Active sq}" using \<open>Suc rs \<le> rpp\<close> by auto
       ultimately show "x ss = v" using A2[of rho HOs p rpp v sp ss] run by simp
     qed
 
@@ -772,12 +769,12 @@ proof
       fix rr
       show "\<forall>sp. rho (Suc rpp+rr) p = Active sp \<longrightarrow> x sp = v"
       proof (induction rr)
-        show "\<forall>sp. rho (Suc rpp+0) p = Active sp \<longrightarrow> x sp = v" using maj_xv maj_rpp \<open>?rp \<le> rpp\<close> by force
+        show "\<forall>sp. rho (Suc rpp+0) p = Active sp \<longrightarrow> x sp = v" using maj_xv maj_rpp \<open>Suc rs \<le> rpp\<close> by fastforce
       next
         case (Suc rr)
         assume "\<forall>sp. rho (Suc rpp+rr) p = Active sp \<longrightarrow> x sp = v"
-        moreover from \<open>rho rp p \<noteq> Aslept\<close> have "rho (Suc rpp+rr) p \<noteq> Aslept"
-          using nonAsleepAgain[of rho rp p _ HOs _ "Suc rpp + rr - rp"] run HORun_def \<open>?rp \<le> rpp\<close> by force
+        moreover from \<open>\<forall>p. rho n p \<noteq> Aslept\<close> have "rho (Suc rpp+rr) p \<noteq> Aslept"
+          using nonAsleepAgain[of rho n p _ HOs _ "Suc rpp + rr - n"] run HORun_def \<open>Suc rs \<le> rpp\<close> \<open>n \<le> rs\<close> by fastforce
         then obtain sp where "rho (Suc rpp+rr) p = Active sp" by (cases "rho (Suc rpp+rr) p") auto
         hence "x sp = v" using \<open>\<forall>sp. rho (Suc rpp+rr) p = Active sp \<longrightarrow> x sp = v\<close> by auto
         show "\<forall>sp. rho (Suc rpp+Suc rr) p = Active sp \<longrightarrow> x sp = v"
@@ -786,13 +783,18 @@ proof
           assume ssp_def:"rho (Suc rpp+Suc rr) p = Active ssp"
           show "x ssp = v"
           proof cases
-            assume "2 * N div 3 < card {q \<in> HOs (Suc rpp+rr) p. rho (Suc rpp+rr) q \<noteq> Aslept}"
-            moreover have "?rp \<le> Suc rpp + rr" using \<open>?rp \<le> rpp\<close> by auto
-            ultimately show "x ssp = v" using maj_xv ssp_def by auto
+            assume "2 * N div 3 < card (HOs (Suc rpp+rr) p)"
+            moreover have "rs \<le> Suc rpp + rr" using \<open>Suc rs \<le> rpp\<close> by auto
+            ultimately show "x ssp = v" using maj_xv ssp_def
+              by (metis (no_types, lifting) \<open>Suc rs \<le> rpp\<close> add_Suc add_Suc_right
+              le_Suc_eq less_add_Suc1 nat_le_iff_add not_add_less1)
           next
-            assume "\<not> (2 * N div 3 < card {q \<in> HOs (Suc rpp+rr) p. rho (Suc rpp+rr) q \<noteq> Aslept})"
-            moreover have "{q. ?msgs p (Suc rpp+rr) q \<noteq> Void \<and> ?msgs p (Suc rpp+rr) q \<noteq> Bot} =
-              {q \<in> HOs (Suc rpp+rr) p. rho (Suc rpp+rr) q \<noteq> Aslept}"
+            assume "\<not> (2 * N div 3 < card (HOs (Suc rpp+rr) p))"
+            moreover have "\<forall>p. rho (Suc rpp+rr) p \<noteq> Aslept"
+              using \<open>\<forall>p. rho n p \<noteq> Aslept\<close> nonAsleepAgain[of _ n _ ?A _ _ "Suc rpp + rr - n"]
+              \<open>Suc rs \<le> rpp\<close> \<open>n \<le> rs\<close> run HORun_def by fastforce
+            hence "HOs (Suc rpp+rr) p = {q \<in> HOs (Suc rpp+rr) p. rho (Suc rpp+rr) q \<noteq> Aslept}" using Collect_cong by fastforce
+            also have "\<dots>  = {q. ?msgs p (Suc rpp+rr) q \<noteq> Void \<and> ?msgs p (Suc rpp+rr) q \<noteq> Bot}"
               using HOrcvdMsgs_def
               by (metis (no_types, lifting) HOrcvMsgs_q.elims HOrcvMsgs_q.simps(2) message.simps(3) message.simps(5))
             ultimately have "\<not> (2 * N div 3 < card {q. ?msgs p (Suc rpp+rr) q \<noteq> Void \<and> ?msgs p (Suc rpp+rr) q \<noteq> Bot})" by auto
@@ -806,18 +808,18 @@ proof
         qed
       qed
     qed
-    thus "(\<forall>r. rho r p = Aslept) \<or> (\<exists>rx. \<forall>rr sp. rho (rx+rr) p = Active sp \<longrightarrow> x sp = v)" by blast
+    thus "\<exists>rx \<ge> n. \<forall>rr sp. rho (rx+rr) p = Active sp \<longrightarrow> x sp = v" using \<open>Suc rs \<le> rpp\<close> \<open>n \<le> rs\<close> by (meson le_SucI le_trans)
   qed
 qed
 
-have "\<forall>subP. \<exists>maxr. \<forall>p \<in> subP. (\<forall>r. rho r p = Aslept) \<or> (\<forall>r sp. r > maxr \<longrightarrow> rho r p = Active sp \<longrightarrow> x sp = v)"
+have "\<forall>subP. \<exists>maxr \<ge> n. \<forall>p \<in> subP. \<forall>r sp. r > maxr \<longrightarrow> rho r p = Active sp \<longrightarrow> x sp = v"
 proof
   fix subP 
-  show "\<exists>maxr. \<forall>p \<in> subP. (\<forall>r. rho r p = Aslept) \<or> (\<forall>r sp. r > maxr \<longrightarrow> rho r p = Active sp \<longrightarrow> x sp = v)"
+  show "\<exists>maxr \<ge> n. \<forall>p \<in> subP. \<forall>r sp. r > maxr \<longrightarrow> rho r p = Active sp \<longrightarrow> x sp = v"
   proof (induction "card subP" arbitrary:subP)
     case 0
     hence "subP = {}" by auto
-    thus "\<exists>maxr. \<forall>p \<in> subP. (\<forall>r. rho r p = Aslept) \<or> (\<forall>r sp. r > maxr \<longrightarrow> rho r p = Active sp \<longrightarrow> x sp = v)" by auto
+    thus "\<exists>maxr \<ge> n. \<forall>p \<in> subP. \<forall>r sp. r > maxr \<longrightarrow> rho r p = Active sp \<longrightarrow> x sp = v" by auto
   next
     case (Suc m)
     hence "\<exists>subsubP pp. subP = subsubP \<union> {pp} \<and> pp \<notin> subsubP" by (metis Un_insert_right card_eq_SucD sup_bot_right)
@@ -825,45 +827,56 @@ proof
     have "card subsubP = m" using \<open>subP = subsubP \<union> {pp}\<close> \<open>pp \<notin> subsubP\<close> Suc.hyps by auto
     then obtain maxr where IH_sub:"\<forall>p \<in> subsubP. (\<forall>r. rho r p = Aslept) \<or> (\<forall>r sp. r > maxr \<longrightarrow> rho r p = Active sp \<longrightarrow> x sp = v)"
       using Suc.hyps(1)[of subsubP] by auto
-    hence "(\<forall>r. rho r pp = Aslept) \<or> (\<exists>rx. \<forall>rr sp. rho (rx + rr) pp = Active sp \<longrightarrow> x sp = v)" using inf_sl_or_v by auto
-    thus "\<exists>maxr. \<forall>p \<in> subP. (\<forall>r. rho r p = Aslept) \<or> (\<forall>r sp. r > maxr \<longrightarrow> rho r p = Active sp \<longrightarrow> x sp = v)" 
-    proof 
-      assume "\<forall>r. rho r pp = Aslept"
-      hence "\<forall>p \<in> subP. (\<forall>r. rho r p = Aslept) \<or> (\<forall>r sp. r > maxr \<longrightarrow> rho r p = Active sp \<longrightarrow> x sp = v)"
-        using IH_sub \<open>subP = subsubP \<union> {pp}\<close> by auto
-      thus "\<exists>maxr. \<forall>p \<in> subP. (\<forall>r. rho r p = Aslept) \<or> (\<forall>r sp. r > maxr \<longrightarrow> rho r p = Active sp \<longrightarrow> x sp = v)" by auto
-    next
-      assume "\<exists>rx. \<forall>rr sp. rho (rx + rr) pp = Active sp \<longrightarrow> x sp = v"
-      then obtain rx where pp_get_v:"\<forall>rr sp. rho (rx + rr) pp = Active sp \<longrightarrow> x sp = v" by auto
-      have "\<forall>p \<in> subP. (\<forall>r. rho r p = Aslept) \<or> (\<forall>r sp. r > (max rx maxr) \<longrightarrow> rho r p = Active sp \<longrightarrow> x sp = v)" 
-      proof
-        fix p
-        assume " p \<in> subP"
-        hence "p \<in> subsubP \<or> p = pp" using \<open>subP = subsubP \<union> {pp}\<close> by auto
-        thus "(\<forall>r. rho r p = Aslept) \<or> (\<forall>r sp. r > (max rx maxr) \<longrightarrow> rho r p = Active sp \<longrightarrow> x sp = v)"
-        proof 
-          assume "p \<in> subsubP"
-          hence "(\<forall>r. rho r p = Aslept) \<or> (\<forall>r sp. r > maxr \<longrightarrow> rho r p = Active sp \<longrightarrow> x sp = v)" using IH_sub by auto
-          thus "(\<forall>r. rho r p = Aslept) \<or> (\<forall>r sp. r > (max rx maxr) \<longrightarrow> rho r p = Active sp \<longrightarrow> x sp = v)" by auto
-        next
-          assume "p = pp"
-          hence "\<forall>r sp. r > (max rx maxr) \<longrightarrow> rho r p = Active sp \<longrightarrow> x sp = v"
-            using pp_get_v by (metis pp_get_v le_add_diff_inverse max.strict_boundedE order_less_imp_le)
-          thus "(\<forall>r. rho r p = Aslept) \<or> (\<forall>r sp. r > (max rx maxr) \<longrightarrow> rho r p = Active sp \<longrightarrow> x sp = v)" by auto
-        qed
+    hence "\<exists>rx \<ge> n. \<forall>rr sp. rho (rx + rr) pp = Active sp \<longrightarrow> x sp = v" using inf_sl_or_v by auto
+    then obtain rx where "rx \<ge> n" and pp_get_v:"\<forall>rr sp. rho (rx + rr) pp = Active sp \<longrightarrow> x sp = v" by auto
+    have "\<forall>p \<in> subP. \<forall>r sp. r > (max rx maxr) \<longrightarrow> rho r p = Active sp \<longrightarrow> x sp = v" 
+    proof
+      fix p
+      assume " p \<in> subP"
+      hence "p \<in> subsubP \<or> p = pp" using \<open>subP = subsubP \<union> {pp}\<close> by auto
+      thus "\<forall>r sp. r > (max rx maxr) \<longrightarrow> rho r p = Active sp \<longrightarrow> x sp = v"
+      proof 
+        assume "p \<in> subsubP"
+        hence "\<forall>r sp. r > maxr \<longrightarrow> rho r p = Active sp \<longrightarrow> x sp = v" using IH_sub by auto
+        thus "\<forall>r sp. r > (max rx maxr) \<longrightarrow> rho r p = Active sp \<longrightarrow> x sp = v" by auto
+      next
+        assume "p = pp"
+        hence "\<forall>r sp. r > (max rx maxr) \<longrightarrow> rho r p = Active sp \<longrightarrow> x sp = v"
+          using pp_get_v by (metis pp_get_v le_add_diff_inverse max.strict_boundedE order_less_imp_le)
+        thus "\<forall>r sp. r > (max rx maxr) \<longrightarrow> rho r p = Active sp \<longrightarrow> x sp = v" by auto
       qed
-      thus "\<exists>maxr. \<forall>p \<in> subP. (\<forall>r. rho r p = Aslept) \<or> (\<forall>r sp. r > maxr \<longrightarrow> rho r p = Active sp \<longrightarrow> x sp = v)" by blast
     qed
+    moreover have "max rx maxr \<ge> n" using \<open>rx \<ge> n\<close> by auto
+    ultimately show "\<exists>maxr \<ge> n. \<forall>p \<in> subP. \<forall>r sp. r > maxr \<longrightarrow> rho r p = Active sp \<longrightarrow> x sp = v" by blast
   qed
 qed
-then obtain max_univ where "\<forall>p \<in> UNIV. (\<forall>r. rho r p = Aslept) \<or> (\<forall>r sp. max_univ < r \<longrightarrow> rho r p = Active sp \<longrightarrow> x sp = v)" by metis
-from commG_unf obtain rpp where "max_univ \<le> rpp" and maj_rpp:"2 * N div 3 < card {q \<in> HOs rpp p. rho rpp q \<noteq> Aslept}" by blast
-
-
-
-
-
+then obtain max_univ where "max_univ \<ge> n" and "\<forall>p \<in> UNIV. \<forall>r sp. max_univ < r \<longrightarrow> rho r p = Active sp \<longrightarrow> x sp = v" by metis
 hence " \<forall>r sp. max_univ < r \<longrightarrow> rho r p = Active sp \<longrightarrow> x sp = v" using non_inf by auto
+from commG_unf obtain rpp where "max_univ \<le> rpp" and maj_rpp:"2 * N div 3 < card (HOs rpp p)" by blast
+have "rpp \<ge> n" using \<open>max_univ \<ge> n\<close> \<open>max_univ \<le> rpp\<close> by auto
+hence "rho rpp p \<noteq> Aslept" using \<open>\<forall>p. rho n p \<noteq> Aslept\<close> nonAsleepAgain[of rho n p ?A HOs _ "rpp - n"] run HORun_def by force
+then obtain spp where "rho rpp p = Active spp" by (cases "rho rpp p") auto
+
+
+  have "CHOnextConfig ?A (rho rpp) (HOs rpp) (\<lambda>l. undefined) (rho (Suc rpp))" using run by (auto simp:HORun_def CHORun_def)
+  hence "\<exists>s'. rho (Suc rpp) p = Active s' \<and> CnextState ?A p spp (?msgs p rpp) undefined s'"
+    using \<open>rho rpp p = Active spp\<close> by (auto simp:CHOnextConfig_def)
+  then obtain sq where nxx:"rho (Suc rpp) p = Active sq" and "CnextState ?A p spp (?msgs p rpp) undefined sq" by auto
+  hence "CnextState ?A p spp (?msgs p rpp) undefined sq" by auto
+  hence nxt:"OTR_nextState p spp (?msgs p rpp) sq" by (auto simp:OTR_HOMachine_def HOMachine_to_Algorithm_def)
+
+  have "\<forall>h \<in> Q. ?msgs p rpp h \<noteq> Bot"
+  proof (rule+)
+    fix h
+    assume "h \<in> Q"
+    assume "?msgs p rpp h = Bot"
+    hence "rho rpp h = Aslept" using HOrcvdMsgs_def
+      by (metis HOrcvMsgs_q.elims message.distinct(5) message.simps(3))
+    thus "False" using Pact \<open>h \<in> Q\<close> by auto
+  qed
+
+
+
 
   have v:"\<forall>p. rho rp p \<noteq> Aslept \<longrightarrow> (\<exists>b. rho (Suc rp) p = Active (\<lparr> x = v, decide = b \<rparr>))"
   proof (rule allI)
