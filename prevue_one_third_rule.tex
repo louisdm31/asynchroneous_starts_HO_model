@@ -1,3 +1,16 @@
+%\documentclass{article}
+%\usepackage{amsmath}
+%\usepackage{algorithm}
+%\usepackage{amssymb}
+%\usepackage{amsthm}
+%\usepackage{dsfont}
+%\usepackage[left=2cm, right=2cm, top=2cm]{geometry}
+%\usepackage[utf8]{inputenc}
+%\newtheorem{lemma}{Lemme}
+%\newtheorem{theorem}{Théorème}
+%\newtheorem{definition}{Définition}
+%\setlength{\parskip}{0.22cm}
+%%\newcommand{\st0}{q^0}
 \documentclass{article}
 \usepackage{amsmath}
 \usepackage[noend]{sources_Heard-Of/distribalgo}
@@ -12,6 +25,7 @@
 \newtheorem{definition}{Définition}
 \setlength{\parskip}{0.22cm}
 %\newcommand{\st0}{q^0}
+
 
 \title{Preuve de correction de l'algorithme One-Third Rule avec départs asynchrones}
 \date{4 mai 2020}
@@ -70,11 +84,12 @@ Nous ne discutons pas ici des raisons de l'absence de communication de $q$ vers 
 	\`a~\cite{CB09} dans le cas d'un syst\`eme avec des pannes b\'enignes.
 
 Formellement, une \emph{ex\'ecution} de l'algorithme  $(States_p, Init_p, S_p,T_p)_{p\in \Pi}$ est 
-	un triplet $\big( (\mathds{G}_r)_{r \in \mathds{N}} ,  (\mathcal{A}_r)_{r \in \mathds{N}} , (\sigma^0_p)_{p \in \Pi} \big)$ où :
+	un triplet $\big( \mathds{G} ,  \mathcal{A} , (\sigma^0_p)_{p \in \Pi} \big)$ où :
 	\begin{itemize}
 	\item $\mathds{G}$ est un \emph{graphe dynamique} sur $\Pi$, i.e., une suite infinie de graphes dirig\'es 
 	$\mathds{G}_r = (\Pi, E_r)$ dont l'ensemble des n\oe uds est $\Pi$ ; 
-	\item $\mathcal{A} = (\mathcal{A}_r)_{r \in \mathds{N}}$ est une suite croissante de sous-ensembles de $\Pi$ 
+	\item le \emph{calendrier des activations} $\mathcal{A} = (\mathcal{A}_r)_{r \in \mathds{N}}$ est une suite 
+	croissante de sous-ensembles de $\Pi$ 
 	avec $\mathcal{A}_0 = \emptyset$ ;
 	\item pour chaque processus $p\in \Pi$, $\sigma^0_p \in Init_p$.
 	\end{itemize}
@@ -142,13 +157,21 @@ Dorénavant, $M_p^r$ est appelée \emph{fonction de réception de $p$ au round $
 On consid\`ere une famille non vide ${\cal G}$ de graphes dynamiques comme d\'efinis ci-dessus
 	ou, de fa\c{c}on \'equivalente un pr\'edicat de communication. % A introduire avant ?
 	
-\begin{definition}
+\begin{definition}\label{def:resforte}
 	Un algorithme \emph{résout fortement le consensus dans ${\cal G}$} si toute exécution 
 	$( \mathds{G} ,  \mathcal{A} , (\sigma^0_p)_{p \in \Pi})$    de cet algorithme
 	avec $ \mathds{G} \in {\cal G}$  vérifie l'intégrité, l'accord et la terminaison.
 \end{definition}
 
-\begin{definition}
+\begin{definition}\label{def:res}
+	Un algorithme \emph{résout  le consensus dans ${\cal G}$} si toute exécution 
+	$( \mathds{G} ,  \mathcal{A} , (\sigma^0_p)_{p \in \Pi})$     de cet algorithme  avec
+	$ \mathds{G} \in {\cal G}$  et des processus qui deviennent tous actifs, i.e., 
+	$$ \exists r_0 \in \mathds{N}, \  \mathcal{A}_{r_0}  = \Pi ,$$ 
+	vérifie l'intégrité, l'accord et la terminaison.
+\end{definition}
+
+\begin{definition}\label{def:faible}
 	Un algorithme \emph{résout faiblement le consensus dans ${\cal G}$} si toute exécution 
 	$( \mathds{G} ,  \mathcal{A} , (\sigma^0_p)_{p \in \Pi})$     de cet algorithme  avec
 	$ \mathds{G} \in {\cal G}$  et des d\'eparts synchrones, i.e., 
@@ -318,11 +341,11 @@ Donc $x$ est l'élément le plus fréquent de M. Donc la ligne 10 du code assure
 
 \end{proof}
 
-\begin{lemma}
+\begin{lemma}\label{lem:supcons}
 
 Toute supermajorité (ie. plus de deux tiers des processus) de valeurs se conserve :
-
-	$ | \{ q \in \mathcal{A}_{r+1} , x_q(r) = x \} | > \frac{2 n}{3} \Rightarrow \forall k \in \mathds{N}, | \{ q \in \mathcal{A}_{r+k+1} , x_q(r+k) = x \} | > \frac{2 n}{3}$.
+	$$ | \{ q \in \mathcal{A}_{r+1} , x_q(r) = x \} | > 
+	\frac{2 n}{3} \Rightarrow \forall k \in \mathds{N}, | \{ q \in \mathcal{A}_{r+k+1} , x_q(r+k) = x \} | > \frac{2 n}{3} . $$
 
 \end{lemma}
 
@@ -397,95 +420,82 @@ Ces deux supermajorités se recoupent nécessairement, donc $x_1 = x_2$.
 Ce dernier lemme permet de prouver l'accord dans toute exécution de l'algorithme.
 
 \subsection{Terminaison}
+ 
+Pour la terminaison, on introduit tout d'abord la notion de graphe dirig\'e $G=(V,E)$ \emph{$S$-uniforme}, o\`u $S\subseteq V$ est
+	un ensemble de n\oe uds de $G$ :
+	$$ \forall q \in S, \  \{ p \in V : (p,q) \in E\} = S .$$
+Autrement dit, l'ensemble des voisins entrants d'un n\oe ud de $S$ est $S$.
 
-On prouve la terminaison pour toute exécution de l'algorithme dont le graphe dynamique vérifie les prédicats suivants :
+Le graphe $G$ est dit $p$-\emph{superconnect\'e} si 
+	$$ | \{ q \in V : (q ,p ) \in E\} | > 2 |V|/3 .$$
+
+On prouve alors la terminaison pour toute exécution de l'algorithme dont le graphe dynamique $ \mathds{G} $ et le calendrier des 
+	activations $ {\cal A}$ vérifient  les prédicats suivants :
 \begin{itemize}
-	\item $\mathds{G}$ est infiniment souvent $\exists S$-uniforme :
-		$$\forall r \in \mathds{N}, \exists m \in \mathds{N}, \exists S \subseteq \mathcal{A}_m, |S| > \frac{2 n}{3} \wedge m > r \wedge (\forall q \in S, HO_{actif}(q, m) = S)$$
-	\item Tout processus actif entend infiniment souvent une supermajorité de processus actifs :
-		$$\forall r \in \mathds{N}, \forall p \in \mathcal{A}_r, \exists m \in \mathds{N}, |HO_{actif}(p,m)| > \frac{2 n}{3} \wedge m > r$$.
-\end{itemize}
+	\item $\mathds{G}$ est \emph{infiniment souvent  fortement uniforme} :
+		$$\forall r \in \mathds{N}, \exists t \in \mathds{N}, \exists S_t \subseteq \Pi, \  \ 
+		 t > r  \wedge |S_t | > \frac{2 n}{3} \wedge  \mathds{G}_t \mbox{ est $S_t $-uniforme} .$$
+	\item $\mathds{G}$ est \emph{infiniment souvent  connect\'e} :
+		$$\forall r \in \mathds{N}, \forall p\in\Pi, \exists t \in \mathds{N}, \  \ 
+		 t > r  \wedge \mathds{G}_t \mbox{ est $p$-superconnect\'e} .$$
+		\end{itemize}
+		
+Par ailleurs, on consid\`ere la notion de r\'esolubilit\'e o\`u tous les processus deviennent actifs (D\'efinition~\ref{def:res}) :
+	$$\exists r_0 \in \mathds{N}, \ \ \mathcal{A}_{r_0} = \Pi . $$
 
 \begin{proof}
 
-	À partir du premier prédicat, on obtient $m \in \mathds{N}$ et $S \subseteq \mathcal{A}_m$ tel que :
+	À partir de ces deux prédicats, on obtient $t \geq r_0 $ et $S_t \subseteq \mathcal{A}_t = \Pi $ tel que :
 	\begin{itemize}
 
-		\item $\forall q \in S, HO_{actif}(q, m) = S$
-		\item $|S| > \frac{2 n}{3}$
+		\item $\forall q \in S_t, \ \ HO_{actif}(q, t ) = S_t $
+		\item $|S_t | > \frac{2 n}{3}$.
 
 	\end{itemize}
 
-	On en déduit que, pour tout $p \in S$, la fonction de réception $M_p^m$ est définie par :
+	Puisque $\mathcal{A}_t = \Pi $, on en déduit que, pour tout processus $p \in S_t$, la fonction de réception $M_p^t$  v\'erifie :
 	\begin{itemize}
 
-		\item $M_p^m(q) = x_q(m-1)$ pour tout $q \in S$
-		\item $M_p^m(q)$ non défini sinon
+		\item $M_p^t (q) = x_q( t-1 )$,  pour tout processus $q \in S_t$
+		\item $M_p^t (q)  $ non défini sinon.
 
 	\end{itemize}
 
-	On a donc, $\forall p q \in S, M_p^m = M_q^m$, donc, d'après la façon dont $T_p$ est construite, $\forall p q \in S, x_p(m) = x_q(m)$.
-	À la fin du round m, S constitue donc une supermajorité de processus ayant tous une même valeur pour la variable $x$, que l'on notera $\overline{x}$
+Si $p$ et $q$ sont deux processus de $S_t$,   les deux fonctions de r\'eception
+	$ M_p^t$ et $ M_q^t$ sont \'egales.
+D'après la façon dont les fonctions de transition sont d\'efinies en ligne 9, on a :
+	 $$ \forall p, \, q \in S_t, \ \ x_p(t) = x_q(t)   .$$
+À la fin du round $t$, $S_t$ constitue donc une supermajorité de processus ayant tous une même valeur pour la variable $x$, 
+	que l'on notera $\overline{x}$.
+D'après le lemme~\ref{lem:supcons}, cette supermajorité se conserve aux rounds suivants.
+	
+Soit $p$ un processus quelconque.
+Comme $\mathds{G}$ est infiniment souvent  connect\'e, il existe un round $t_p$ 
+	tel que 
+	$$ t_p >t \wedge | HO (p,t_p)  | > \frac{2 n}{3} . $$
+Par suite, $p$ va mettre sa variable $x_p$ \`a jour (ligne 9) au round~$t_p$.
 
-D'après le lemme 2 de la section précédente, cette supermajorité se conserve aux rounds suivants.
+La valeur $\overline{x}$ est supermajoritaire dans le syst\`eme \`a partir du round $r$ et donc 
+	$$ | \{ q\in \Pi : x_q(t'-1) \neq \overline{x}  \} | < \frac{n}{3} .$$
+Il en r\'esulte que 
+	$$  | \{ q\in HO(p,t')  : x_q(t'-1) =   \overline{x}  \} | >   | \{ q\in HO(p,t')  : x_q(t'-1) \neq   \overline{x}  \} | $$ 
+	et le processus $p$ actualise sa variable $x_p$ \`a $\overline{x} $ d'apr\`es la fonction de transition $T_p$ 
+	(ligne 9).
 
-	On considère maintenant un processus $p \in \bigcup\limits_{r \in \mathds{N}} \mathcal{A}_r$ non infiniment passif.
-
-	À partir du second prédicat, on obtient un round $r_p$ tels que :
-	\begin{itemize}
-
-		\item $r_p > m$
-		\item $p \in \mathcal{A}_{r_p}$
-		\item $|HO_{actif}(p, r_p)| > \frac{2 n}{3}$
-		\item On a de plus $\forall q \in S, x_q(r_p-1) = \overline{x}$
-
-	\end{itemize}
-
-	On montre maintenant par récurrence sur $k$ que $\forall k \in \mathds{N}, x_p(r_p+k) = \overline{x}$.
-
-	\textbf{Initialisation} :
-	D'après le lemme 1 de la section précédente, $x_p(r_p) = \overline{x}$.
-
-	\textbf{Hérédité :}
-	On suppose que $x_p(r_p+k) = \overline{x}$.
-	\begin{itemize}
-
-		\item Si $HO_{actif}(p,r_p+k+1)| \leq \frac{2 n}{3}$, on a $x_p(r_p+k+1) = x_p(r_p+k) = \overline{x}$
-		\item Sinon |$HO_{actif}(p,r_p+k+1)| > \frac{2 n}{3}$, on applique de nouveau le lemme 1, on obtient $x_p(r_p+k+1) = \overline{x}$
-
-	\end{itemize}
-
-	On pose maintenant $r^0 = max \{r_q, q \in \bigcup\limits_{r \in \mathds{N}} \mathcal{A}_r\}$.
-	Donc, $\forall h > r^0, \forall p \in \mathcal{A}_h, x_p(h) = \overline{x}$.
-
-	Considérons maintemant un processus $q \in \mathcal{A}_r$ et montrons que ce processus termine.
-	À partir du second prédicat, on obtient $r^1_q > r^0$ tels que :
-	\begin{itemize}
-
-		\item $|HO_{actif}(q, r^1_q)| > \frac{2 n}{3}$
-		\item On a de plus $\forall p \in \mathcal{A}_r, x_p(r_p^1-1) = \overline{x}$
-
-	\end{itemize}
-
-	On a donc, $HO_{actif}(q,r^1_q) = (M_q^{r_q^1})^{-1}(\overline{x}) $
-	Donc, $ \widetilde{M_p^{r_q^1}}(\overline{x}) > \frac{2 n}{3} $.
-	Finalement, d'après la ligne 10 du pseudo-code, $dec_p(r_q^1) = \overline{x}$.
-	Donc la terminaison est assurée.
-
+Le lemme~\ref{lem:supcons} et l'argument ci-dessus montrent que la variable $x_p$ se stabilise \`a la valeur
+	$\overline{x} $  \`a partir du round $t_p$.
+La propri\'et\'e de $p$-superconnexion prouve l'existence d'un round $s_p$ tel que
+	$$ s_p > \max_{q\in\Pi} t_q \wedge | HO (p,s_p)  | > \frac{2 n}{3} . $$
+D'apr\`es la fonction de transition $T_p$ (ligne 11 du code de l'algorithme), le processus $p$ va d\'ecider
+	$\overline{x} $  \`a partir du round $s_p$, ce qui prouve la propri\'et\'e de terminaison.
 \end{proof}
 
-\section{Conclusion}
-
-Les trois sections précédentes montrent que l'algorithme "one-third rule" assure le consensus :
-
-	\begin{theorem}
-
-		 L'algorithme "one-third rule" asssure le consensus lorsque les prédicats suivants sont vérifiés :
-		\begin{itemize}
-			\item $\mathds{G}$ est infiniment souvent $\exists S $-uniforme.
-			\item Tout processus entend infiniment souvent une supermajorité de processus actifs.
-		\end{itemize}
-	\end{theorem}
+Les trois sections précédentes montrent le th\'eor\`eme suivant (en r\'ef\'erence \`a la D\'efinition~\ref{def:res}). 
+\begin{theorem}
+L'algorithme "one-third rule" r\'esout  le consensus dans l'ensemble des graphes dynamiques 
+	qui sont infiniment souvent  fortement uniformes et infiniment souvent  connect\'es. 
+\end{theorem}
 
 
 \end{document}
+
