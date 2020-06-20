@@ -1,0 +1,214 @@
+\documentclass{article}
+\usepackage{amsmath}
+\usepackage[noend]{sources_Heard-Of/distribalgo}
+\usepackage{algorithm}
+\usepackage{amssymb}
+\usepackage{amsthm}
+\usepackage{dsfont}
+\usepackage[left=2cm, right=2cm, top=2cm]{geometry}
+\usepackage[utf8]{inputenc}
+\newtheorem{lemma}{Lemme}
+\newtheorem{theorem}{Théorème}
+\newtheorem{definition}{Définition}
+\setlength{\parskip}{0.22cm}
+%\newcommand{\st0}{q^0}
+
+
+\title{Résolubilité du consensus sous différents prédicats}
+\date{17 juin 2020}
+\author{Louis Penet de Monterno}
+\begin{document}
+\maketitle
+
+\section{Théorèmes d'impossibilité}
+
+Soit $p \in \Pi$ un pocessus fixé.
+On pose $\Phi$ le prédicat $\forall t \in \mathds{N}, \forall q \in \Pi, path(\mathds{G}(t : t+k), p, q)$, où $path(G, p, q)$ signifie qu'il existe un chemin de $p$ vers $q$ dans le graphe $G$.
+
+\begin{theorem}
+	Le consensus n'est pas fortement résoluble sous l'hypothèse $P_k(\Phi)$ où $k$ est un entier quelquonque.
+\end{theorem}
+\begin{proof}
+	Si la racine est passive pour toujours, le prédicat n'est pas exploitable.
+\end{proof}
+
+On pose $\Psy$ le prédicat $\forall t \in \mathds{N}, \exists p \in \Pi, \forall q \in \Pi, path(\mathds{G}(t : t+k), p, q)$.
+\begin{theorem}
+	Le consensus n'est pas résoluble sous l'hypothèse $P_k(\Psy)$ où $k$ est un entier quelquonque.
+\end{theorem}
+\begin{proof}
+	On suppose qu'un algorithme $A$ résoud le consensus sous le prédicat $P_k(\Psy)$. Soient $p_1, p_2 \in Pi$.
+	\begin{itemize}
+
+		\item \textbf{Scénario 1 :} $\mathds{G}_n$ est pour tout $n$ égal à l'étoile centrée en $p_1$. On exécute l'algorithme $A$. La terminaison assure que $p_1$ décidera en un round $r$.
+		\item \textbf{Scénario 2 :} Pour tout $n \leq r$, $\mathds{G}_n$ est l'étoile centrée en $p_1$. Pour tout $n > r$, $\mathds{G}_n$ est l'étoile centrée en $p_2$. On suppose que $p_2$
+			s'active au round $r+1$. Dans ces conditions, $p_2$ ne reçoit jamais de message. La terminaison et l'intégrité assurent que $p_2$ décide finalement sa valeur initiale.
+			Dans ces conditions, l'accord est impossible à assurer.
+
+	\end{itemize}
+\end{proof}
+
+\section{Algorithme "Uniforme Voting"}
+
+Dans cette section, on propose une adaptation de l'algorithme  "Uniforme Voting", prévue pour fonctionner avec des départs asynchrones.
+Soit $V$ un ensemble totalement ordonné.
+
+\begin{itemize}
+
+	\item Pour tout processus $p$, on pose
+		$State_p = V \times Bool \times Bool \times V \times Bool \times Bool \times Bool$.
+	\item Pour tout processus $p$, on pose
+		$Init_p = \{\langle v, False, False, v, False, False, False \rangle, v \in V\}$
+	\item Les messages sont de type $V \times (V \times Bool \uplus \{nil\})$.
+
+\end{itemize}
+
+On définit $fst : V \times (V \times Bool \uplus \{nil\}) \uplus \{nil\} \rightarrow V \uplus \{nil\}$ par
+\begin{itemize}
+	\item $fst(nil) = nil$
+	\item $fst(\langle v, w \rangle) = v$
+\end{itemize}
+
+On définit $snd : V \times (Bool \times Bool \uplus \{nil\}) \uplus \{nil\} \rightarrow (V \times Bool) \uplus \{nil\}$ par
+\begin{itemize}
+	\item $fst(nil) = nil$
+	\item $fst(\langle v, w \rangle) = w$
+\end{itemize}
+
+On définit l'algorithme "Uniforme Voting" à l'aide du pseudo-code suivant :
+\begin{algorithm}[htb]
+\scriptsize{
+\begin{distribalgo}[1]
+\begin{tabular}{ll}
+\begin{minipage}{41em}
+
+
+\INDENT{\textbf{Initialization:}}
+	\STATE $x^1_p :=\, v_p$ ~~~~\{\emph{$v_p$ is the initial value of $p$}\}
+	\STATE $vote^1_p \in Bool$, initiallement $False$
+	\STATE $dec^1_p \in Bool$, initialement $False$
+	\BLANK
+	\STATE $x^2_p :=\, v_p$
+	\STATE $vote^2_p \in Bool$, initiallement $False$
+	\STATE $dec^2_p \in Bool$, initialement $False$
+	\BLANK
+	\STATE $startup \in Bool$, initially $False$
+
+\ENDINDENT
+\BLANK
+
+\INDENT{\textbf{Fonctions sur une instance}}
+	\INDENT{$T^1_p(M, ref ~ x, ref ~ vote, ref ~ dec):$}
+		\STATE $ x := min M(\Pi) \setminus \{nil\}$ 
+		\IF{$M(\Pi) = \{v\}$}
+		\COMMENT{tous les messages valent $v$, aucun $nil$}
+			\STATE $vote := v$
+		\ENDIF
+	\ENDINDENT
+	\BLANK
+
+	\INDENT{$T^2_p(M, ref ~ x, ref ~ vote, ref ~ dec):$}
+
+		\IF{$\exists v \in V, q \in \Pi, M(q) = \langle v, True \rangle$}
+			\STATE $x := v$ \COMMENT{au moins un vote reçu}
+		\ELSIF{$min(\Pi) \nsubseteq \{nil\}$}
+			\STATE $x := fst (min (M(\Pi) \setminus {nil}))$
+			\COMMENT{plus petite valeur reçue}
+		\ENDIF
+		\IF{$M(\Pi) = \{\langle v, True \rangle\}$}
+		\COMMENT{tous les messages sont des votes pour $v$}
+			\STATE $dec := True$
+		\ENDIF
+		\STATE $vote_p := False$
+	\ENDINDENT
+\ENDINDENT
+
+\end{minipage}
+&
+\begin{minipage}{31em}
+
+\INDENT{\textbf{Round $r=2\phi-1\,$:}}
+	\INDENT{$S_p:$}
+		\IF{$statup$}
+			\STATE send $\langle\, x^1_p\, ,\, \langle \, x^2_p \, ,\, vote^2_p \, \rangle \, \rangle$ to all processes
+		\ELSE
+			\STATE send $\langle\, x^1_p\, ,\, nil \, \rangle$ to all processes
+		\ENDIF
+	\ENDINDENT
+	\BLANK
+	\INDENT{$T_p(M):$}
+		\STATE $T^1(fst \circ M, x^1_p, vote^1_p, dec^1_p)$
+		\IF{$statup$}
+			\STATE $T^2(snd \circ M, x^2_p, vote^2_p, dec^2_p)$
+		\ENDIF
+		\IF{$dec^1_p \wedge dec^2_p $}
+			\STATE $DECIDE(min ~ x^1_p ~ x^2_p)$
+		\ENDIF
+		\STATE $statup := True$
+	\ENDINDENT
+\ENDINDENT
+
+\INDENT{\textbf{Round $r=2\phi\,$:}}
+	\INDENT{$S_p:$}
+		\STATE send $\langle x^2_p , \langle x^1_p, vote^1_p \rangle \rangle$ to all processes
+	\ENDINDENT
+	\BLANK
+	\INDENT{$T_p(M)$}
+		\STATE $T^1_p(fst \circ M, x_p^2, vote^2_p, dec^2_p)$
+		\STATE $T^2_p(snd \circ M, x_p^1, vote^1_p, dec^1_p)$
+		\IF{$dec^1_p \wedge dec^2_p $}
+			\STATE $DECIDE(min ~ x^1_p ~ x^2_p)$
+		\ENDIF
+		\STATE
+	\ENDINDENT
+\ENDINDENT
+
+\end{minipage}
+\end{tabular}
+
+\caption{The {\em UniformVoting} algorithm}
+\label{unifvotfig}
+\end{distribalgo}
+}
+\end{algorithm}
+
+\begin{theorem}
+	L'algorithme "Uniforme Voting" ainsi adapté résoud le consensus sous l'hypothèse $P_k(\Phi)$ lorsque les processu connaissent $k$.
+\end{theorem}
+\begin{proof}
+	On montre trivialement qu'il existe un algorithme A qui traduit $P_k(\Phi)$ en $\mathcal{P}_{nek}$. On montre maintenant que "Uniforme Voting" résoud le consensus sous $\mathcal{P}_{nek}$.
+
+	À partir du prédicat $\exists n, \mathcal{A}_n = \Pi$, on obtient un round n tel que tous les processus sont actif.
+	Pen
+	L'intégrité et l'accord résultent du fait que $\mathcal{P}_{nek} \Rightarrow \mathcal{P}_{nosplit}$. On prouve maintenant la terminaison.
+\end{proof}
+
+\begin{theorem}
+
+	L'algorithme "Uniform Voting" résoud faiblement le consensus 
+
+	\begin{itemize}
+
+	\item Le graphe dynamique vérifie $\mathcal{P}_{nek}$.
+	\item L'ensemble des valeurs $\mathcal{V}$ est bien-fondé.
+	\item Les processus connaissent une borne supérieur $\mathcal{N}$ sur la taille du système.
+
+	\end{itemize}
+\end{theorem}
+
+\begin{proof}
+
+	On considère une exécution de "Uniforme Voting". Cette exécution définie donc
+	une fonction $x : \Pi \rightarrow \mathds{N} \rightarrow \mathcal{V}$ et une fonction $vote$ de même type.
+	Une fois la traduction faite, on peut obtenir une suite $(p_n)_{n \in \mathds{N}}$ où $\forall n \in \mathds{N}, p_n \in K(n)$.
+
+	\textbf{Assertion :} $\forall n \in \mathds{N}, \forall q \in \Pi, x(q,n+1) \leq x(p_{n+1},n)$.
+	\begin{itemize}
+
+	\item cas 1 : $n = 2 \Phi$. Dans ce cas, $q$ a reçu $x(p_n,n)$ 
+
+	\end{itemize}
+
+	On montre maintenant que la suite $(x(p_n, n))_{n \in \mathds{N}}$ est décroissante.
+\end{proof}
+\end{document}
