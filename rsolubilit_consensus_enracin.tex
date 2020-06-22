@@ -22,8 +22,8 @@
 
 \section{Théorèmes d'impossibilité}
 
-Soit $p \in \Pi$ un pocessus fixé.
-On pose $\Phi$ le prédicat $\forall t \in \mathds{N}, \forall q \in \Pi, path(\mathds{G}(t : t+k), p, q)$, où $path(G, p, q)$ signifie qu'il existe un chemin de $p$ vers $q$ dans le graphe $G$.
+Soit $\xi \in \Pi$ un pocessus fixé.
+On pose $\Phi$ le prédicat $\forall t \in \mathds{N}, \forall q \in \Pi, path(\mathds{G}(t : t+k), \xi, q)$, où $path(G, \xi, q)$ signifie qu'il existe un chemin de $\xi$ vers $q$ dans le graphe $G$.
 
 \begin{theorem}
 	Le consensus n'est pas fortement résoluble sous l'hypothèse $P_k(\Phi)$ où $k$ est un entier quelquonque.
@@ -32,18 +32,18 @@ On pose $\Phi$ le prédicat $\forall t \in \mathds{N}, \forall q \in \Pi, path(\
 	Si la racine est passive pour toujours, le prédicat n'est pas exploitable.
 \end{proof}
 
-On pose $\Psy$ le prédicat $\forall t \in \mathds{N}, \exists p \in \Pi, \forall q \in \Pi, path(\mathds{G}(t : t+k), p, q)$.
+On pose $\Psi$ le prédicat $\forall t \in \mathds{N}, \exists p \in \Pi, \forall q \in \Pi, path(\mathds{G}(t : t+k), p, q)$.
 \begin{theorem}
-	Le consensus n'est pas résoluble sous l'hypothèse $P_k(\Psy)$ où $k$ est un entier quelquonque.
+	Le consensus n'est pas résoluble sous l'hypothèse $P_k(\Psi)$ où $k$ est un entier quelquonque.
 \end{theorem}
 \begin{proof}
-	On suppose qu'un algorithme $A$ résoud le consensus sous le prédicat $P_k(\Psy)$. Soient $p_1, p_2 \in Pi$.
+	On suppose qu'un algorithme $A$ résoud le consensus sous le prédicat $P_k(\Psi)$. Soient $p_1, p_2 \in \Pi$.
 	\begin{itemize}
 
 		\item \textbf{Scénario 1 :} $\mathds{G}_n$ est pour tout $n$ égal à l'étoile centrée en $p_1$. On exécute l'algorithme $A$. La terminaison assure que $p_1$ décidera en un round $r$.
 		\item \textbf{Scénario 2 :} Pour tout $n \leq r$, $\mathds{G}_n$ est l'étoile centrée en $p_1$. Pour tout $n > r$, $\mathds{G}_n$ est l'étoile centrée en $p_2$. On suppose que $p_2$
-			s'active au round $r+1$. Dans ces conditions, $p_2$ ne reçoit jamais de message. La terminaison et l'intégrité assurent que $p_2$ décide finalement sa valeur initiale.
-			Dans ces conditions, l'accord est impossible à assurer.
+			s'active au round $r+1$. Dans ces conditions, $p_2$ ne reçoit jamais de message. La terminaison et l'intégrité assurent que $p_2$ décide finalement sa valeur initiale,
+			tandis que $p_1$ a déjà décidé. Dans ces conditions, l'accord est impossible à assurer.
 
 	\end{itemize}
 \end{proof}
@@ -61,18 +61,18 @@ Soit $V$ un ensemble totalement ordonné.
 		$Init_p = \{\langle v, False, False, v, False, False, False \rangle, v \in V\}$
 	\item Les messages sont de type $V \times (V \times Bool \uplus \{nil\})$.
 
-\end{itemize}
 
-On définit $fst : V \times (V \times Bool \uplus \{nil\}) \uplus \{nil\} \rightarrow V \uplus \{nil\}$ par
-\begin{itemize}
-	\item $fst(nil) = nil$
-	\item $fst(\langle v, w \rangle) = v$
-\end{itemize}
+	\item On définit $fst : V \times (V \times Bool \uplus \{nil\}) \uplus \{nil\} \rightarrow V \uplus \{nil\}$ par
+	\begin{itemize}
+		\item $fst(nil) = nil$
+		\item $fst(\langle v, w \rangle) = v$
+	\end{itemize}
 
-On définit $snd : V \times (Bool \times Bool \uplus \{nil\}) \uplus \{nil\} \rightarrow (V \times Bool) \uplus \{nil\}$ par
-\begin{itemize}
-	\item $fst(nil) = nil$
-	\item $fst(\langle v, w \rangle) = w$
+	\item On définit $snd : V \times (Bool \times Bool \uplus \{nil\}) \uplus \{nil\} \rightarrow (V \times Bool) \uplus \{nil\}$ par
+	\begin{itemize}
+		\item $fst(nil) = nil$
+		\item $fst(\langle v, w \rangle) = w$
+	\end{itemize}
 \end{itemize}
 
 On définit l'algorithme "Uniforme Voting" à l'aide du pseudo-code suivant :
@@ -91,8 +91,6 @@ On définit l'algorithme "Uniforme Voting" à l'aide du pseudo-code suivant :
 	\STATE $x^2_p :=\, v_p$
 	\STATE $vote^2_p \in Bool$, initiallement $False$
 	\STATE $dec^2_p \in Bool$, initialement $False$
-	\BLANK
-	\STATE $startup \in Bool$, initially $False$
 
 \ENDINDENT
 \BLANK
@@ -100,9 +98,8 @@ On définit l'algorithme "Uniforme Voting" à l'aide du pseudo-code suivant :
 \INDENT{\textbf{Fonctions sur une instance}}
 	\INDENT{$T^1_p(M, ref ~ x, ref ~ vote, ref ~ dec):$}
 		\STATE $ x := min M(\Pi) \setminus \{nil\}$ 
-		\IF{$M(\Pi) = \{v\}$}
-		\COMMENT{tous les messages valent $v$, aucun $nil$}
-			\STATE $vote := v$
+		\IF{$M(\Pi) = \{v\}$} 
+			\STATE $vote := True$ ~~~~\{tous les messages valent $v$, aucun $nil$\}
 		\ENDIF
 	\ENDINDENT
 	\BLANK
@@ -110,14 +107,12 @@ On définit l'algorithme "Uniforme Voting" à l'aide du pseudo-code suivant :
 	\INDENT{$T^2_p(M, ref ~ x, ref ~ vote, ref ~ dec):$}
 
 		\IF{$\exists v \in V, q \in \Pi, M(q) = \langle v, True \rangle$}
-			\STATE $x := v$ \COMMENT{au moins un vote reçu}
-		\ELSIF{$min(\Pi) \nsubseteq \{nil\}$}
-			\STATE $x := fst (min (M(\Pi) \setminus {nil}))$
-			\COMMENT{plus petite valeur reçue}
+			\STATE $x := v$ ~~~~\{au moins un vote reçu\}
+		\ELSE
+			\STATE $x := fst (min (M(\Pi) \setminus {nil}))$ ~~~~\{plus petite valeur reçue\}
 		\ENDIF
 		\IF{$M(\Pi) = \{\langle v, True \rangle\}$}
-		\COMMENT{tous les messages sont des votes pour $v$}
-			\STATE $dec := True$
+			\STATE $dec := True$ ~~~~\{tous les messages sont des votes pour $v$\}
 		\ENDIF
 		\STATE $vote_p := False$
 	\ENDINDENT
@@ -127,28 +122,30 @@ On définit l'algorithme "Uniforme Voting" à l'aide du pseudo-code suivant :
 &
 \begin{minipage}{31em}
 
-\INDENT{\textbf{Round $r=2\phi-1\,$:}}
+\INDENT{\textbf{Round $r=0\,$:}}
 	\INDENT{$S_p:$}
-		\IF{$statup$}
-			\STATE send $\langle\, x^1_p\, ,\, \langle \, x^2_p \, ,\, vote^2_p \, \rangle \, \rangle$ to all processes
-		\ELSE
-			\STATE send $\langle\, x^1_p\, ,\, nil \, \rangle$ to all processes
-		\ENDIF
+		\STATE send $\langle\, x^1_p\, ,\, nil \, \rangle$ to all processes
+	\ENDINDENT
+	\INDENT{$T_p(M):$}
+		\STATE $T^1(fst \circ M, x^1_p, vote^1_p, dec^1_p)$
+	\ENDINDENT
+\ENDINDENT
+
+\INDENT{\textbf{Round $r=2\phi+2\,$:}}
+	\INDENT{$S_p:$}
+		\STATE send $\langle\, x^1_p\, ,\, \langle \, x^2_p \, ,\, vote^2_p \, \rangle \, \rangle$ to all processes
 	\ENDINDENT
 	\BLANK
 	\INDENT{$T_p(M):$}
 		\STATE $T^1(fst \circ M, x^1_p, vote^1_p, dec^1_p)$
-		\IF{$statup$}
-			\STATE $T^2(snd \circ M, x^2_p, vote^2_p, dec^2_p)$
-		\ENDIF
+		\STATE $T^2(snd \circ M, x^2_p, vote^2_p, dec^2_p)$
 		\IF{$dec^1_p \wedge dec^2_p $}
 			\STATE $DECIDE(min ~ x^1_p ~ x^2_p)$
 		\ENDIF
-		\STATE $statup := True$
 	\ENDINDENT
 \ENDINDENT
 
-\INDENT{\textbf{Round $r=2\phi\,$:}}
+\INDENT{\textbf{Round $r=2\phi+1\,$:}}
 	\INDENT{$S_p:$}
 		\STATE send $\langle x^2_p , \langle x^1_p, vote^1_p \rangle \rangle$ to all processes
 	\ENDINDENT
@@ -159,7 +156,6 @@ On définit l'algorithme "Uniforme Voting" à l'aide du pseudo-code suivant :
 		\IF{$dec^1_p \wedge dec^2_p $}
 			\STATE $DECIDE(min ~ x^1_p ~ x^2_p)$
 		\ENDIF
-		\STATE
 	\ENDINDENT
 \ENDINDENT
 
@@ -172,6 +168,53 @@ On définit l'algorithme "Uniforme Voting" à l'aide du pseudo-code suivant :
 }
 \end{algorithm}
 
+\textbf{Observations :} Cet algorithme consiste en fait à exécuter deux instances de "Uniforme Voting" en parallèle.
+L'état est donc la concaténation de deux sous-états.
+Les deux fonctions $T^1$ et $T^2$ définissent le comportement de chaque instance induviduellement.
+Au round $0$, seule la première instance démarre.
+Aux rounds impairs, la première instance effectue sa phase d'échange de vote, tandis que la seconde, sa phase d'échange de valeurs.
+Aux rounds pairs, c'est l'inverse.
+À chaque round, les processus reçoivent des messages de la forme $\langle x_1 , \langle x_2, vote_2 \rangle \rangle$.
+Si $M$ est la fonction de réception, pour un round donné, et un processus fixé, $fst \circ M$ est la fonction de réception restreinte à l'échange de valeurs.
+De même $snd \circ M$ est celle restreinte à l'échange de vote.
+On constate que 
+
+\subsection{Intégrité}
+
+\begin{lemma}
+	Toute exécution de l'algorithme "Uniforme Voting" vérifie l'intégrité.
+\end{lemma}
+\begin{proof}
+	On montre par récurrence sur $r$ que $\forall n \in \mathds{N}, \forall p \in \mathcal{A}_{n+1},  x^1_p(n) \in \{\sigma^0_q, q \in \Pi\}$ (resp. $x^2_p(n) \in \{\sigma^0_q, q \in \Pi\}$).
+
+	\textbf{Initialization :} Triviale, car $p \in \mathcal{A}_1 \Rightarrow x^1_p(0) = \sigma^0(p)$.
+
+	\textbf{Hérédité :} On suppose, pour un $n$ fixé, que $\forall p \in \mathcal{A}_{n+1},  x^1_p(n) \in \{\sigma^0_q, q \in \Pi\}$.
+	Soit $p \in \mathcal{A}_{n+2}$. Soit $r$ le round auquel $p$ s'est activé.
+	\begin{itemize}
+
+		\item Si $n-r+1$ est impair, et si $p$ a reçu un vote $\langle v, True \rangle$, on a $x^1_p(n+1) = v$. On applique l'hypothèse de récurrence au procesus qui a émis ce vote.
+			Ainsi, il existe un procesus $q$ tel que  $x^1_p(n+1) = x^1_q(n) \in \{\sigma^0_q, q \in \Pi\}$.
+		\item Sinon, $x^1_p(n+1) = min (M(\Pi) \setminus \{nil\})$. On considère le procesus $q$ tel que $min (M(\Pi) \setminus \{nil\}) = M(q)$,
+			et on applique à $q$ l'hypothèse de récurrence. Ainsi $x^1_p(n+1) = x^1_q(n) \in \{\sigma^0_q, q \in \Pi\}$.
+
+	\end{itemize}
+
+	Ainsi, en utilisant les deux versions de cet invariant, on montre que $\forall n \in \mathds{N}, \forall p \in \mathcal{A}_n, min (x^1_p(n), x^2_p(n)) \in \{\sigma^0_q, q \in \Pi\}$.
+	Cela prouve l'intégrité.
+
+\subsection{Accord}
+
+	\begin{lemma}
+		Toute exécution de "Uniforme Voting" vérifie l'accord lorsque le graphe de communication vérifie $\mathcal{P}_{nek}$.
+	\end{lemma}
+	\begin{proof}
+		On montre l'accord pour chacune des deux instances de l'algorithme.
+		Supposons que, pour $n \in \mathds{N}$ et $p \in \mathcal{A}_n$ fixée, la première instance décide une valeur $v$.
+		La ligne 18 du pseudo-code assure que $snd \circ M_p^n(\Pi) = \{\langle v, True \rangle\}$.
+		Ainsi $\xi$ envoie $\{\langle v, True \rangle\}$ au round $n$.
+
+
 \begin{theorem}
 	L'algorithme "Uniforme Voting" ainsi adapté résoud le consensus sous l'hypothèse $P_k(\Phi)$ lorsque les processu connaissent $k$.
 \end{theorem}
@@ -179,7 +222,9 @@ On définit l'algorithme "Uniforme Voting" à l'aide du pseudo-code suivant :
 	On montre trivialement qu'il existe un algorithme A qui traduit $P_k(\Phi)$ en $\mathcal{P}_{nek}$. On montre maintenant que "Uniforme Voting" résoud le consensus sous $\mathcal{P}_{nek}$.
 
 	À partir du prédicat $\exists n, \mathcal{A}_n = \Pi$, on obtient un round n tel que tous les processus sont actif.
-	Pen
+
+	\textbf{Intégrité :}
+
 	L'intégrité et l'accord résultent du fait que $\mathcal{P}_{nek} \Rightarrow \mathcal{P}_{nosplit}$. On prouve maintenant la terminaison.
 \end{proof}
 
