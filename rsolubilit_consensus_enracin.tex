@@ -124,14 +124,14 @@ On définit l'algorithme "Uniforme Voting" à l'aide du pseudo-code suivant :
 
 \INDENT{\textbf{Round $r=0\,$:}}
 	\INDENT{$S_p:$}
-		\STATE send $\langle\, x^1_p\, ,\, nil \, \rangle$ to all processes
+		\STATE send $\langle nil, \langle  x^1_p , False \rangle \rangle$ to all processes
 	\ENDINDENT
 	\INDENT{$T_p(M):$}
-		\STATE $T^1(fst \circ M, x^1_p, vote^1_p, dec^1_p)$
+		\STATE $T^2(snd \circ M, x^1_p, vote^1_p, dec^1_p)$
 	\ENDINDENT
 \ENDINDENT
 
-\INDENT{\textbf{Round $r=2\phi+2\,$:}}
+\INDENT{\textbf{Round $r=2\phi+1\,$:}}
 	\INDENT{$S_p:$}
 		\STATE send $\langle\, x^1_p\, ,\, \langle \, x^2_p \, ,\, vote^2_p \, \rangle \, \rangle$ to all processes
 	\ENDINDENT
@@ -145,7 +145,7 @@ On définit l'algorithme "Uniforme Voting" à l'aide du pseudo-code suivant :
 	\ENDINDENT
 \ENDINDENT
 
-\INDENT{\textbf{Round $r=2\phi+1\,$:}}
+\INDENT{\textbf{Round $r=2\phi+2\,$:}}
 	\INDENT{$S_p:$}
 		\STATE send $\langle x^2_p , \langle x^1_p, vote^1_p \rangle \rangle$ to all processes
 	\ENDINDENT
@@ -177,42 +177,119 @@ Aux rounds pairs, c'est l'inverse.
 À chaque round, les processus reçoivent des messages de la forme $\langle x_1 , \langle x_2, vote_2 \rangle \rangle$.
 Si $M$ est la fonction de réception, pour un round donné, et un processus fixé, $fst \circ M$ est la fonction de réception restreinte à l'échange de valeurs.
 De même $snd \circ M$ est celle restreinte à l'échange de vote.
-On constate que 
+On constate que, à chaque round, les instances qui en sont à la phase d'échange de valeur communiquent exclusivement entre elles, et de même pour celles qui en sont à l'échange de vote.
+On note donc $\mathcal{U}_{vote}^n$, qui à chaque processus $p$ associe l'objet $\langle x^i_p, vote^i_p, dec^i_p \rangle$
+correspondant à l'instance qui en est à l'échange de vote au round $n$, ou $nil$ si inactif. On note de même $\mathcal{U}_{val}^n$.
 
 \subsection{Intégrité}
+\begin{lemma}
+	$\forall n \in \mathds{N}, \forall p \in \mathcal{A}_{n+1},  x^1_p(n) \in \{\sigma^0_q, q \in \Pi\}$ (resp. $x^2_p(n) \in \{\sigma^0_q, q \in \Pi\}$).
+\end{lemma}
+\begin{proof}
+
+	On montre ce lemma par récurrence sur $n$.
+
+	\textbf{Initialization :} Triviale, car $p \in \mathcal{A}_1 \Rightarrow x^1_p(0) = \sigma^0(p)$.
+
+	\textbf{Hérédité :} On suppose, pour un $n$ fixé, que $\forall p \in \mathcal{A}_{n+1},  x^1_p(n) \in \{\sigma^0_q, q \in \Pi\}$.
+	Soit $p \in \mathcal{A}_{n+2}$. Soit $r$ le round auquel $p$ s'est activé. Du point de vue du procesus $p$, le numéro du round $n$ est en fait $n-r$.
+	\begin{itemize}
+
+		\item Si $n-r$ est impair, et si $p$ a reçu un vote $\langle v, True \rangle$, on a $x^1_p(n+1) = v$ (cf. ligne 14-15 dans le pseudo-code).
+			On applique l'hypothèse de récurrence au procesus qui a émis ce vote.
+			Ainsi, il existe un procesus $q$ tel que  $x^1_p(n+1) = x^1_q(n) \in \{\sigma^0_q, q \in \Pi\}$.
+		\item Sinon, $x^1_p(n+1) = min (M(\Pi) \setminus \{nil\})$ (cf. lignes 10 et 17 dans le pseudo-code).
+			On considère le procesus $q$ tel que $min (M(\Pi) \setminus \{nil\}) = M(q)$,
+			et on applique à $q$ l'hypothèse de récurrence. Ainsi $x^1_p(n+1) = x^1_q(n) \in \{\sigma^0_q, q \in \Pi\}$.
+
+	\end{itemize}
+\end{proof}
 
 \begin{lemma}
 	Toute exécution de l'algorithme "Uniforme Voting" vérifie l'intégrité.
 \end{lemma}
 \begin{proof}
-	On montre par récurrence sur $r$ que $\forall n \in \mathds{N}, \forall p \in \mathcal{A}_{n+1},  x^1_p(n) \in \{\sigma^0_q, q \in \Pi\}$ (resp. $x^2_p(n) \in \{\sigma^0_q, q \in \Pi\}$).
-
-	\textbf{Initialization :} Triviale, car $p \in \mathcal{A}_1 \Rightarrow x^1_p(0) = \sigma^0(p)$.
-
-	\textbf{Hérédité :} On suppose, pour un $n$ fixé, que $\forall p \in \mathcal{A}_{n+1},  x^1_p(n) \in \{\sigma^0_q, q \in \Pi\}$.
-	Soit $p \in \mathcal{A}_{n+2}$. Soit $r$ le round auquel $p$ s'est activé.
-	\begin{itemize}
-
-		\item Si $n-r+1$ est impair, et si $p$ a reçu un vote $\langle v, True \rangle$, on a $x^1_p(n+1) = v$. On applique l'hypothèse de récurrence au procesus qui a émis ce vote.
-			Ainsi, il existe un procesus $q$ tel que  $x^1_p(n+1) = x^1_q(n) \in \{\sigma^0_q, q \in \Pi\}$.
-		\item Sinon, $x^1_p(n+1) = min (M(\Pi) \setminus \{nil\})$. On considère le procesus $q$ tel que $min (M(\Pi) \setminus \{nil\}) = M(q)$,
-			et on applique à $q$ l'hypothèse de récurrence. Ainsi $x^1_p(n+1) = x^1_q(n) \in \{\sigma^0_q, q \in \Pi\}$.
-
-	\end{itemize}
-
-	Ainsi, en utilisant les deux versions de cet invariant, on montre que $\forall n \in \mathds{N}, \forall p \in \mathcal{A}_n, min (x^1_p(n), x^2_p(n)) \in \{\sigma^0_q, q \in \Pi\}$.
+	En utilisant les deux versions de ce lemme, on montre que $\forall n \in \mathds{N}, \forall p \in \mathcal{A}_n, min (x^1_p(n), x^2_p(n)) \in \{\sigma^0_q, q \in \Pi\}$.
 	Cela prouve l'intégrité.
+\end{proof}
 
 \subsection{Accord}
 
+\begin{lemma}
+	Toute exécution de l'algorithme "Uniforme Voting" vérifie l'accord lorsque le graphe dynamique vérifie le prédicat $\exists \xi \in \Pi, \forall n \in \mathds{N}, \xi \in K(n)$.
+\end{lemma}
+\begin{proof}
+	Supposons que la première instance de $p$ décide au round $n$ une valeur $v$, et que cette instance soit la première à décider parmi les autres instances synchrones.
+	On sait que $\xi \in \mathcal{A}_n$, sinon tous les processus recevrait au moins un message $nil$ à chaque rounds, cela empêcherait tout vote, dou=nc toute décision.
+	On montre par récurrence sur $k$ que $\forall k \in \mathds{N}, \forall q \in \mathcal{A}_{n+k}, x^1_q(n+2k) = v \wedge x^1_q(n+2k+1) = v \wedge vote^1_q(n+2k+1) = True$.
+
+	\textbf{Initialization :} La ligne 18 du pseudo-code montre que $snd \circ M^n_p(\xi) = \{\langle v, True \rangle\}$.
+		Ainsi, au round $n$, $\xi$ a envoyé à tous les processus un message de la forme $\langle *, \langle v, True \rangle \rangle$.
+		La ligne 15 du pseudo-code montre que, pour tout $q \in \mathcal{A}_n$, $M_p^n(\xi)$ est de la forme $\langle *, \langle v, True \rangle \rangle$.
+		Donc $\forall q \in \Pi, x^1_q(n) = v$.
+
+		On ajoute maintenant la preuve que $\forall q \in \Pi, x^1_q(n+1) = v \wedge vote^1_q(n+1) = True$.
+		La ligne 10 du pseudo-code montre que $x^1_q(n+1) = min(M(\Pi) \setminus \{nil\}$ avec $M = fst \circ M_q^{n+1}$.
+		De plus les instances s'activent toujours lors des phrases d'échanges de votes. Donc $M^{-1}(V) = \mathcal{A}_{n}$.
+		Sachant que $\forall q \in \mathcal{A}_n, x^1_q(n) = v$, on obtient $M(\Pi) \setminus \{nil\} = \{v\}$. Donc $x^1_q(n+1) = v \wedge vote^1_q(n+1) = True$.
+		Cela clos l'initialisation.
+
+	\textbf{Hérédité :} Pour $k$ fixé, on suppose que $\forall q \in \mathcal{A}_{n+k}, x^1_q(n+2k) = v \wedge x^1_q(n+2k+1) = v \wedge vote^1_q(n+2k+1) = True$.
+		Soit $q \in \mathcal{A}_{n+k+2}$.
+		Lors du round $n+k+2$, tous les processus reçoivent de la part de $\xi$, un message de la forme $\langle *, \langle v, True \rangle \rangle$
+		Donc $\forall q \in \Pi, x^1_q(n+2k+2) = v$.
+		De la même manière que pour l'initialisation, on en déduit que $\forall q \in \Pi, x^1_q(n+2k+3) = v \wedge vote^1_q(n+2k+3) = True$.
+		Cela clos l'hérédité.
+	\begin{itemize}
+
+	À partir de cette proposition, on montre que toute décision ultérieure au round $n$ décidra nécessairement $v$. Cela prouve l'accord de chacune des instances de l'algorithme,
+	donc cela prouve l'accord de l'algorithme dans son ensemble.
+\end{proof}
+
+\subsection{Terminaison}
+
 	\begin{lemma}
-		Toute exécution de "Uniforme Voting" vérifie l'accord lorsque le graphe de communication vérifie $\mathcal{P}_{nek}$.
+		Soit $r$ le round auquel $\xi$ s'active.
+		Pour toute exécution vérifiant $\forall n \in \mathds{N}, \xi \in K(n)$,
+		la suite $(x^1_\xi(n+r))_{n \in \mathds{N}}$ (resp. $(x^2_\xi(n+r))_{n \in \mathds{N}}$) est décroissante.
+	\end{lemma}
+	\begin{proof}
+		Soit $n \in \mathds{N}$.
+		\begin{itemize}
+
+			\item Si $n+1$ est pair, la ligne 10 du pseudo-code assure que $x^1_\xi(n+r+1) = min(M(\Pi) \setminus \{nil\})$ avec $M = fst \circ M_\xi^{n+r+1}$.
+				Or $M_\xi^{n+1}(\xi) = \langle x^1_\xi(n), * \rangle$.
+				Donc $x^1_\xi(n+1) \leq x^1_\xi(n)$.
+			\item Si $n+1$ est impair et si $\exists v \in V, \exists q \in \mathcal{A}_{n+r+1}, M(q) = \langle v, True \rangle$ avec $M = snd \circ M_\xi^{n+r+1}$,
+				on a nécessairement $v = x^1_\xi(n+r)$, puisque $\xi$ a envoyé $x^1_\xi(n+r)$ au round $n+r$ (cf. lignes 11-12).
+				Donc $x^1_\xi(n+r+1) = x^1_\xi(n+r)$.
+			\item Sinon la ligne 17 du pseudo-code assure que $x^1_\xi(n+r+1) = min(fst \circ M(\Pi) \setminus \{nil\})$ avec $M = snd \circ M_\xi^{n+r+1}$.
+				Or $M_\xi^{n+r+1}(\xi) = \langle x^1_\xi(n+r), * \rangle$.
+				Donc $x^1_\xi(n+r+1) \leq x^1_\xi(n+r)$.
+
+		\end{itemize}
+		Dans tous les cas, $x^1_\xi(n+r+1) \leq x^1_\xi(n+r)$.
+	\end{proof}
+		
+
+	\begin{lemma}
+		Toute exécution de "Uniforme Voting" vérifie la terminaison lorsque le graphe de communication vérifie $\forall n \in \mathds{N}, \xi \in K(n)$.
 	\end{lemma}
 	\begin{proof}
 		On montre l'accord pour chacune des deux instances de l'algorithme.
+		En combinant le lemme 1 et le lemme précédent, on montre que la suite $(x^1_\xi(n+r))_{n \in \mathds{N}}$ se stabilise sur une valeur $v$ à partir d'un certain round $n+r$.
+		Au round $2n+r+1$, le processus $\xi$ envoie donc un message de la forme $\langle v, * \rangle$ à tous les processus.
+		La ligne 10 du pseudo-code assure que
+		On a donc $x^1_\xi(r+2n)$
 		Supposons que, pour $n \in \mathds{N}$ et $p \in \mathcal{A}_n$ fixée, la première instance décide une valeur $v$.
 		La ligne 18 du pseudo-code assure que $snd \circ M_p^n(\Pi) = \{\langle v, True \rangle\}$.
 		Ainsi $\xi$ envoie $\{\langle v, True \rangle\}$ au round $n$.
+
+
+
+
+
+	\end{proof}
 
 
 \begin{theorem}
