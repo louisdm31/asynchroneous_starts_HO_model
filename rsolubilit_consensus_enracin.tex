@@ -48,6 +48,24 @@ On pose $\Psi$ le prédicat $\forall t \in \mathds{N}, \exists p \in \Pi, \foral
 	\end{itemize}
 \end{proof}
 
+\begin{theorem}
+	Le consensus n'est pas résoluble sous l'hypothèse $P_{borné}(\Phi)$.
+\end{theorem}
+\begin{proof}
+	On suppose qu'un algorithme $A$ résoud le consensus sous le prédicat $P_{borné}(\Phi)$. Soient $p_1, p_2 \in \Pi$.
+	\begin{itemize}
+
+		\item \textbf{Scénario 1 :} $\mathds{G}_n$ est pour tout $n$ égal à l'étoile centrée en $p_1$. On exécute l'algorithme $A$. La terminaison assure que $p_1$ décidera en un round $r_1$.
+		\item \textbf{Scénario 2 :} $\mathds{G}_n$ est pour tout $n$ égal à l'étoile centrée en $p_2$. On exécute l'algorithme $A$. La terminaison assure que $p_2$ décidera en un round $r_2$.
+		\item \textbf{Scénario 3 :} Pour tout $n \leq r_0 + r_1$, $\mathds{G}_n$ est le graphe sans aucune arête. Pour tout $n > r_0 + r_1$, $\mathds{G}_n$ est l'étoile centrée en $p_1$.
+			Pour $p_1$, ce scénario est indistinguable du scénario 1, donc $p_1$ décidera au round $r_1$.
+			Pour $p_2$, ce scénario est indistinguable du scénario 1, au moins jusqu'au round $r_2$. Donc $p_2$ décidera au round $r_2$.
+			Dans ces conditions, l'accord est impossible à assurer.
+
+	\end{itemize}
+\end{proof}
+
+
 \section{Algorithme "Uniforme Voting"}
 
 Dans cette section, on propose une adaptation de l'algorithme  "Uniforme Voting", prévue pour fonctionner avec des départs asynchrones.
@@ -183,25 +201,39 @@ correspondant à l'instance qui en est à l'échange de vote au round $n$, ou $n
 
 \subsection{Intégrité}
 \begin{lemma}
-	$\forall n \in \mathds{N}, \forall p \in \mathcal{A}_{n+1},  x^1_p(n) \in \{\sigma^0_q, q \in \Pi\}$ (resp. $x^2_p(n) \in \{\sigma^0_q, q \in \Pi\}$).
+	$\forall n \in \mathds{N}, \forall p \in \mathcal{A}_{n+1}, \forall x \in V, \mathcal{U}_{val}^n(p) = \langle x, *, * \rangle \Rightarrow x \in \{\sigma^0_q, q \in \Pi\}$
+	(resp. $\mathcal{U}_{vote}^n(p)$).
 \end{lemma}
 \begin{proof}
 
 	On montre ce lemma par récurrence sur $n$.
 
-	\textbf{Initialization :} Triviale, car $p \in \mathcal{A}_1 \Rightarrow x^1_p(0) = \sigma^0(p)$.
+	\textbf{Initialization :} Triviale, car $p \in \mathcal{A}_1 \Rightarrow x^1_p(0) = x^2_p(0) = \sigma^0(p)$.
 
-	\textbf{Hérédité :} On suppose, pour un $n$ fixé, que $\forall p \in \mathcal{A}_{n+1},  x^1_p(n) \in \{\sigma^0_q, q \in \Pi\}$.
-	Soit $p \in \mathcal{A}_{n+2}$. Soit $r$ le round auquel $p$ s'est activé. Du point de vue du procesus $p$, le numéro du round $n$ est en fait $n-r$.
+	\textbf{Hérédité :} On suppose, pour un $n$ fixé, que, pour tout $p \in \mathcal{A}_{n+1}$, pour tout $x \in V$ :
 	\begin{itemize}
 
-		\item Si $n-r$ est impair, et si $p$ a reçu un vote $\langle v, True \rangle$, on a $x^1_p(n+1) = v$ (cf. ligne 14-15 dans le pseudo-code).
-			On applique l'hypothèse de récurrence au procesus qui a émis ce vote.
-			Ainsi, il existe un procesus $q$ tel que  $x^1_p(n+1) = x^1_q(n) \in \{\sigma^0_q, q \in \Pi\}$.
-		\item Sinon, $x^1_p(n+1) = min (M(\Pi) \setminus \{nil\})$ (cf. lignes 10 et 17 dans le pseudo-code).
-			On considère le procesus $q$ tel que $min (M(\Pi) \setminus \{nil\}) = M(q)$,
-			et on applique à $q$ l'hypothèse de récurrence. Ainsi $x^1_p(n+1) = x^1_q(n) \in \{\sigma^0_q, q \in \Pi\}$.
+		\item $\mathcal{U}_{val}^n(p)  = \langle x, *, * \rangle \Rightarrow x \in \{\sigma^0_q, q \in \Pi\}$
+		\item $\mathcal{U}_{vote}^n(p) = \langle x, *, * \rangle \Rightarrow x \in \{\sigma^0_q, q \in \Pi\}$.
 
+	\end{itemize}
+	Soit $p \in \mathcal{A}_{n+2}$. On montre maintenant les deux parties de l'invariant.
+	\begin{itemize}
+
+		\item On suppose que $\mathcal{U}^{n+1}_{val}(p) = \langle x, *, * \rangle$.
+			En vertu de la ligne 10 du pseudo-code, on a $x = min (M(\Pi) \setminus \{nil\})$ avec $M = fst \circ M^{n+1}_p$.
+			On applique la seconde hypothèse au procesus qui a émis ce vote.
+			Ainsi, il existe un procesus $q$ tel que, si $\mathcal{U}_{vote}^n(q) = \langle x', *, *\rangle$, on obtient $x = x' \in \{\sigma^0_q, q \in \Pi\}$.
+			Cela prouve la première partie de l'invariant.
+		\item On suppose que $\mathcal{U}^{n+1}_{vote}(p) = \langle x, *, * \rangle$.
+			\begin{itemize}
+				\item Si il existe un $q$ tel que $M(q) = \langle x', True, * \rangle$, on applique la première hypothèse au processus $q$.
+					On obtient $x = x' \in \{\sigma^0_q, q \in \Pi\}$ avec $M = snd \circ M^{n+1}_p$.
+				\item Sinon, $x = min (M(\Pi) \setminus \{nil\})$ (cf. ligne 17 dans le pseudo-code).
+					On considère le procesus $q$ tel que $min (M(\Pi) \setminus \{nil\}) = M(q)$,
+					et on applique à $q$ la première hypothèse. Ainsi, si $\mathcal{U}_{val}^n(q) = \langle x', *, * \rangle$, on a $x = x' \in \{\sigma^0_q, q \in \Pi\}$.
+			\end{itemize}
+			Dans tout les cas, cela prouve la deuxième partie de l'invariant.
 	\end{itemize}
 \end{proof}
 
@@ -219,28 +251,31 @@ correspondant à l'instance qui en est à l'échange de vote au round $n$, ou $n
 	Toute exécution de l'algorithme "Uniforme Voting" vérifie l'accord lorsque le graphe dynamique vérifie le prédicat $\exists \xi \in \Pi, \forall n \in \mathds{N}, \xi \in K(n)$.
 \end{lemma}
 \begin{proof}
-	Supposons que la première instance de $p$ décide au round $n$ une valeur $v$, et que cette instance soit la première à décider parmi les autres instances synchrones.
-	On sait que $\xi \in \mathcal{A}_n$, sinon tous les processus recevrait au moins un message $nil$ à chaque rounds, cela empêcherait tout vote, dou=nc toute décision.
-	On montre par récurrence sur $k$ que $\forall k \in \mathds{N}, \forall q \in \mathcal{A}_{n+k}, x^1_q(n+2k) = v \wedge x^1_q(n+2k+1) = v \wedge vote^1_q(n+2k+1) = True$.
+	Supposons que la première instance de $p$ décide au round $n$ une valeur $v$, et que cette instance soit la première à décider parmi les instances dans $\mathcal{U}^n_{vote}$.
+	On sait que $\xi \in \mathcal{A}_n$, sinon tous les processus recevrait au moins un message $nil$ à chaque rounds, cela empêcherait tout vote, donc toute décision.
+	On montre par récurrence sur $k$ que
+	$\forall k \in \mathds{N}, \forall q \in \mathcal{A}_{n+2k},
+	\mathcal{U}_{vote}^{n+2k }(q) = \langle v, *, * \rangle \wedge
+	\mathcal{U}_{val}^{n+2k+1}(q) = \langle v, True, * \rangle$.
 
-	\textbf{Initialization :} La ligne 18 du pseudo-code montre que $snd \circ M^n_p(\xi) = \{\langle v, True \rangle\}$.
+	\textbf{Initialization :} La ligne 18 du pseudo-code montre que, puisque $p$ a décidé, $snd \circ M^n_p(\Pi) = \{\langle v, True \rangle\}$, Donc $snd \circ M^n_p(\xi) = \langle v, True \rangle$.
 		Ainsi, au round $n$, $\xi$ a envoyé à tous les processus un message de la forme $\langle *, \langle v, True \rangle \rangle$.
-		La ligne 15 du pseudo-code montre que, pour tout $q \in \mathcal{A}_n$, $M_p^n(\xi)$ est de la forme $\langle *, \langle v, True \rangle \rangle$.
-		Donc $\forall q \in \Pi, x^1_q(n) = v$.
+		La ligne 15 du pseudo-code montre que, pour tout $q \in \mathcal{A}_n$, $\mathcal{U}_{vote}^n(q)$ est de la forme $\langle v, *, * \rangle$.
 
-		On ajoute maintenant la preuve que $\forall q \in \Pi, x^1_q(n+1) = v \wedge vote^1_q(n+1) = True$.
-		La ligne 10 du pseudo-code montre que $x^1_q(n+1) = min(M(\Pi) \setminus \{nil\}$ avec $M = fst \circ M_q^{n+1}$.
-		De plus les instances s'activent toujours lors des phrases d'échanges de votes. Donc $M^{-1}(V) = \mathcal{A}_{n}$.
-		Sachant que $\forall q \in \mathcal{A}_n, x^1_q(n) = v$, on obtient $M(\Pi) \setminus \{nil\} = \{v\}$. Donc $x^1_q(n+1) = v \wedge vote^1_q(n+1) = True$.
+		On montre maintenant que pour tout $q \in \mathcal{A}_{n+1}, \mathcal{U}^{n+1}_{val}(q)$ est de la forme $\langle v, True, * \rangle$.
+		La ligne 10 du pseudo-code montre que si $\mathcal{U}^{n+1}_{val} = \langle v', *, * \rangle$, on a $v' = min(M(\Pi) \setminus \{nil\})$ avec $M = fst \circ M_q^{n+1}$.
+		De plus les instances s'activent exclusivement lors des phrases d'échanges de votes. Donc $M^{-1}(V) = \mathcal{A}_{n}$.
+		D'après le paragraphe précédent, on obtient $M(\Pi) \setminus \{nil\} = \{v\}$. Donc $\mathcal{U}^{n+1}(q)$ est de la forme $\langle v, True, * \rangle$.
 		Cela clos l'initialisation.
 
-	\textbf{Hérédité :} Pour $k$ fixé, on suppose que $\forall q \in \mathcal{A}_{n+k}, x^1_q(n+2k) = v \wedge x^1_q(n+2k+1) = v \wedge vote^1_q(n+2k+1) = True$.
-		Soit $q \in \mathcal{A}_{n+k+2}$.
-		Lors du round $n+k+2$, tous les processus reçoivent de la part de $\xi$, un message de la forme $\langle *, \langle v, True \rangle \rangle$
-		Donc $\forall q \in \Pi, x^1_q(n+2k+2) = v$.
-		De la même manière que pour l'initialisation, on en déduit que $\forall q \in \Pi, x^1_q(n+2k+3) = v \wedge vote^1_q(n+2k+3) = True$.
+	\textbf{Hérédité :} Pour $k$ fixé, on suppose que $\forall q \in \mathcal{A}_{n+2k},
+		\mathcal{U}_{vote}^{n+2k }(q) = \langle v, *, * \rangle \wedge
+		\mathcal{U}_{val}^{n+2k+1}(q) = \langle v, True, * \rangle$.
+		Soit $q \in \mathcal{A}_{n+2k+2}$.
+		Lors du round $n+2k+2$, tous les processus reçoivent de la part de $\xi$, un message de la forme $\langle *, \langle v, True \rangle \rangle$
+		Donc pour tout $q \in \mathcal{A}_{n+2k+2}$, $\mathcal{U}_{vote}^{n+2k+2}(q)$ est de la forme $\langle v, *, * \rangle$.
+		De la même manière que pour l'initialisation, on en déduit que $\mathcal{U}^{n+2k+3}(q)$ est de la forme $\langle v, True, * \rangle$.
 		Cela clos l'hérédité.
-	\begin{itemize}
 
 	À partir de cette proposition, on montre que toute décision ultérieure au round $n$ décidra nécessairement $v$. Cela prouve l'accord de chacune des instances de l'algorithme,
 	donc cela prouve l'accord de l'algorithme dans son ensemble.
@@ -273,64 +308,50 @@ correspondant à l'instance qui en est à l'échange de vote au round $n$, ou $n
 		
 
 	\begin{lemma}
-		Toute exécution de "Uniforme Voting" vérifie la terminaison lorsque le graphe de communication vérifie $\forall n \in \mathds{N}, \xi \in K(n)$.
+		Toute exécution de "Uniforme Voting" vérifie la terminaison lorsque le graphe de communication vérifie $\forall n \in \mathds{N}, \xi \in K(n)$
+		et lorsque le calendrier d'activation vérifie $\exists r_0 \in \mathds{N}, \mathcal{A}_{r_0} = \Pi$.
 	\end{lemma}
 	\begin{proof}
 		On montre l'accord pour chacune des deux instances de l'algorithme.
-		En combinant le lemme 1 et le lemme précédent, on montre que la suite $(x^1_\xi(n+r))_{n \in \mathds{N}}$ se stabilise sur une valeur $v$ à partir d'un certain round $n+r$.
-		Au round $2n+r+1$, le processus $\xi$ envoie donc un message de la forme $\langle v, * \rangle$ à tous les processus.
-		La ligne 10 du pseudo-code assure que
-		On a donc $x^1_\xi(r+2n)$
-		Supposons que, pour $n \in \mathds{N}$ et $p \in \mathcal{A}_n$ fixée, la première instance décide une valeur $v$.
-		La ligne 18 du pseudo-code assure que $snd \circ M_p^n(\Pi) = \{\langle v, True \rangle\}$.
-		Ainsi $\xi$ envoie $\{\langle v, True \rangle\}$ au round $n$.
+		En combinant le lemme 1 et le lemme précédent, on montre que la suite $(x^1_\xi(n+r_0))_{n \in \mathds{N}}$ se stabilise sur une valeur $v$ à partir d'un certain round $n+r_0$.
+		Au round $2n+r_0+1$, l'instance $\mathcal{U}^{2n+r_0+1}_{val}(\xi)$ envoie donc un message de la forme $\langle v, * \rangle$ à tous les processus.
+		La ligne 10 du pseudo-code assure que $\forall q \in \mathcal{A}_{2n+r_0+1}$,
+		on a $\mathcal{U}^{2n+r_0+1}_{val}(q)$ de la forme $\langle v', *, * \rangle$ avec $v' \leq v$.
+		Au round suivant, on obtient de même $\mathcal{U}^{2n+r_0+2}_{vote}(q)$ de la forme $\langle v', *, * \rangle$ avec $v' \leq v$.
 
-
-
-
+		La fonction de réception $M_\xi^{2n+r_0+3}$ vérifie donc
+		$\forall q \in \mathcal{A}_{2n+r_0+3}, fst \circ M_\xi^{2n+r_0+3}(q) \leq v$.
+		Comme, au delà du round $n+r_0$, la suite $(x^1_\xi(n+r_0))_{n \in \mathds{N}}$ s'est stabilisée, on a $x^1_\xi(2n+r_0+3) = v$.
+		La ligne 10 du pseudo-code assure que $\forall q \in \mathcal{A}_{2n+r_0+3}, fst \circ M_\xi^{2n+r_0+3}(q) = v$.
+		Donc $\mathcal{U}_{val}^{2n+r_0+3}(\xi) = \langle v, True, * \rangle$.
+		Donc, d'après la ligne 15 du pseudo-code, pour tout $q \in \mathcal{A}_{2n+r_0+4}$, on a $\mathcal{U}_{vote}^{2n+r_0+4}(q)$ de la forme $\langle v, *, * \rangle$
+		Au round suivant, d'après les lignes 10-12 du pseudo-code, on obtient $\mathcal{U}^{2n+r_0+5}_{val}(q)$ de la forme $\langle v, True, * \rangle$.
+		Au round suivant, d'après les lignes 17-19 du pseudo-code, on obtient $\mathcal{U}^{2n+r_0+6}_{vote}(q)$ de la forme $\langle v, *, True \rangle$.
+		Ainsi, toutes les instances de $\mathcal{U}_{vote}^{2n+r_0+6}$ décident.
+		Cela prouve la terminaison.
 
 	\end{proof}
 
 
-\begin{theorem}
-	L'algorithme "Uniforme Voting" ainsi adapté résoud le consensus sous l'hypothèse $P_k(\Phi)$ lorsque les processu connaissent $k$.
-\end{theorem}
-\begin{proof}
-	On montre trivialement qu'il existe un algorithme A qui traduit $P_k(\Phi)$ en $\mathcal{P}_{nek}$. On montre maintenant que "Uniforme Voting" résoud le consensus sous $\mathcal{P}_{nek}$.
-
-	À partir du prédicat $\exists n, \mathcal{A}_n = \Pi$, on obtient un round n tel que tous les processus sont actif.
-
-	\textbf{Intégrité :}
-
-	L'intégrité et l'accord résultent du fait que $\mathcal{P}_{nek} \Rightarrow \mathcal{P}_{nosplit}$. On prouve maintenant la terminaison.
-\end{proof}
 
 \begin{theorem}
 
-	L'algorithme "Uniform Voting" résoud faiblement le consensus 
-
+	L'algorithme "Uniform Voting" résoud le consensus lorsque :
 	\begin{itemize}
 
-	\item Le graphe dynamique vérifie $\mathcal{P}_{nek}$.
-	\item L'ensemble des valeurs $\mathcal{V}$ est bien-fondé.
-	\item Les processus connaissent une borne supérieur $\mathcal{N}$ sur la taille du système.
+		\item le graphe de communication vérifie $P_k(\Phi)$, avec $k$ connu par les processus,
+		\item les processus connaissent $\mathcal{N}$ une borne supérieure sur la taille du système,
+		\item le calendrier d'activation vérifie $\exists r_0 \in \mathds{N}, \mathcal{A}_{r_0} = \Pi$.
 
 	\end{itemize}
 \end{theorem}
 
 \begin{proof}
 
-	On considère une exécution de "Uniforme Voting". Cette exécution définie donc
-	une fonction $x : \Pi \rightarrow \mathds{N} \rightarrow \mathcal{V}$ et une fonction $vote$ de même type.
-	Une fois la traduction faite, on peut obtenir une suite $(p_n)_{n \in \mathds{N}}$ où $\forall n \in \mathds{N}, p_n \in K(n)$.
+	Comme les processus connaissent $k$, il existe un algorithme $A_k$, qui traduit $P_k(\Phi)$ en $\Phi$.
 
-	\textbf{Assertion :} $\forall n \in \mathds{N}, \forall q \in \Pi, x(q,n+1) \leq x(p_{n+1},n)$.
-	\begin{itemize}
+	Comme les processus connaissent $\mathcal{N}$, il existe un algorithme $B_\mathcal{N}$ qui traduit $\Phi$ en $\exists \xi \in \Pi, \forall r \in \mathds{N}, \xi \in K(r)$.
 
-	\item cas 1 : $n = 2 \Phi$. Dans ce cas, $q$ a reçu $x(p_n,n)$ 
-
-	\end{itemize}
-
-	On montre maintenant que la suite $(x(p_n, n))_{n \in \mathds{N}}$ est décroissante.
+	À l'aide de ce dernier prédicat, et de la troisième hypothèse, on montre que l'algorithme "Uniforme Voting" résoud le consensus.
 \end{proof}
 \end{document}
