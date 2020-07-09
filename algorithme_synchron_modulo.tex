@@ -1,0 +1,256 @@
+\documentclass{article}
+\usepackage{amsmath}
+\usepackage[noend]{sources_Heard-Of/distribalgo}
+\usepackage{algorithm}
+\usepackage{amssymb}
+\usepackage{amsthm}
+\usepackage{dsfont}
+\usepackage{stmaryrd}
+\usepackage[left=2cm, right=2cm, top=2cm]{geometry}
+\usepackage[utf8]{inputenc}
+\newtheorem{lemma}{Lemme}
+\newtheorem{theorem}{Théorème}
+\newtheorem{definition}{Définition}
+\setlength{\parskip}{0.22cm}
+%\newcommand{\st0}{q^0}
+
+
+\title{Algorithme de synchronisation modulo k}
+\date{1 juin 2020}
+\author{Louis Penet de Monterno}
+
+\begin{document}
+
+\maketitle
+
+\section{Problème}
+
+Il est courant de rencontrer des algorithmes de consensus, structurés par phases : 
+à chaque rounds pairs, les processus exécutent une certaine fonction de transition. Et au round impairs, une autre fonction de transition est exécutée.
+Lorsque les départs sont synchrones, tous les processus exécutent la même fonction de transition à chaque round.
+Lorsqu'il y a des départs asynchrones, les phases paires des différents processus ne sont plus simultanées, et cela peut compromettre la sûreté de l'algorithme.
+Le but de ce document est de proposer un algorithme permettant de synchroniser les différentes phases malgré les départs asynchrones.
+
+\begin{definition}
+
+	Soit un paramètre $k > 1$. Soit $s_{exit} \in States_p$ un état final.
+	Étant donnée une exécution d'un algorithme $A$, pour tout $p \in \Pi$, on note $t_p$ le round auquel $p$ atteint $s_{exit}$ ($t_p = \infty$ sinon).
+	Cette exécution de l'algorithme $A$ est sûr vis à vis du problème de synchronisation modulo $k$ si,
+	$$\exists c \in \mathds{N}, \forall p \in \bigcup\limits_{i \in \mathds{N}} \mathcal{A}_i, t_p \neq \infty \Rightarrow t_p~mod~k = c$$
+
+\end{definition}
+
+\begin{definition}
+
+	Une exécution de l'algorithme $A$ vérifie la terminaison vis à vis du problème de synchronisation modulo $k$ si,
+	$$\forall p \in \bigcup\limits_{i \in \mathds{N}} \mathcal{A}_i, t_p \neq \infty$$
+
+\end{definition}
+\begin{definition}
+
+	L'algorithme $A$ résoud le problème de synchronisation modulo $n$, si toute exécution de $A$ est sûre et termine.
+
+\end{definition}
+
+\section{Algorithme}
+
+L'objectif est de résoudre ce problème dans les conditions suivantes :
+\begin{itemize}
+
+	\item Le graphe dynamique contient une étoile fixe : $\mathcal{P}_{nek-fixed} \equiv \exists \xi \in \Pi, \forall p \in \Pi, \forall r \in \mathds{N}, \xi \in HO(p, r)$
+	\item Tous les processus s'activent en temps fini : $\mathcal{P}_{non-inf} \equiv \exists r \in \mathds{N}, \mathcal{A}_r = \Pi$
+
+\end{itemize}
+
+\section{Version simplifiée}
+
+\begin{algorithm}[htb]
+\begin{distribalgo}[1]
+\BLANK \INDENT{\textbf{Initialization:}}
+  \STATE $x_p :=\, 0$ 
+
+\ENDINDENT \BLANK
+
+\INDENT{\textbf{Round $0$:}}
+ \INDENT{$S_p:$}
+    \STATE send $nil$ to all processes
+  \ENDINDENT
+  \BLANK
+	\INDENT{$T_p(M):$}
+	\STATE $x_p = min(M(\Pi) \setminus \{nil\})$ ~~~~\COMMENT{$x_p$ prend la valeur du plus petit message}
+  \ENDINDENT
+\ENDINDENT \BLANK
+\INDENT{\textbf{Round $r+1$:}}
+ \INDENT{$S_p:$}
+    \STATE send $x_p+1~mod~n$ to all processes
+  \ENDINDENT
+  \BLANK
+	\INDENT{$T_p(M):$}
+	\STATE $x_p = min(M(\Pi) \setminus \{nil\})$ ~~~~\COMMENT{$x_p$ prend la valeur du plus petit message}
+	\IF{$M(\Pi) = \{0\}$}
+	\STATE $EXIT()$ ~~~~\COMMENT{si tous les messages reçus valent $0$, aucun $nil$, l'algorithme termine}
+	\ENDIF
+  \ENDINDENT
+\ENDINDENT \BLANK
+
+
+\caption{The {\em SyncMod} algorithm} \label{algo:R}
+\end{distribalgo}
+
+\end{algorithm}
+
+\begin{lemma}
+
+	Toute exécution de cet algorithme est sûr vis-à-vis du problème de synchronisation modulo k lorsque les prédicats $\mathcal{P}_{nek-fixed}$ et $\mathcal{P}_{non-inf}$ sont vérifiés.
+
+\end{lemma}
+\begin{proof}
+
+	Soit $\xi$ le processes au centre de l'étoile.
+	On suppose que $p$ termine au round $r$, et est le premier. Nécessairement, $\xi \in HO(p,r)$.
+	La ligne 13 du code montre que la valeur envoyé par $\xi$ est $0$.
+	Donc tous les processes ont reçus un $0$. Les lignes 7 et 12 assurent que tous les processes adoptent $0$.
+	Ainsi, au round $r$, tous les processus ont la même valeur de compteur.
+	Aux rounds suivants, on montre triviallement par récurrence que cette uniformité se conserve aux rounds suivants.
+
+	\textbf{Note :} Cela est vrai même pour les processus qui s'activent après le round $r$.
+	En effet, au moment de leur activation, les processus adoptent la valeur qu'ils reçoivent avant d'envoyer la leur.
+
+	On montre également par récurrence qu'au round $r+i$, tous les processes ont $i~mod~k$ comme valeur de compteur.
+	Donc ils ne peuvent terminer que lorsque $i~mod~k = 0$. Cela prouve la sûret<é.
+
+\end{proof}
+
+On montre maintenant la terminaison dans un cas simple.
+Soit $\mathcal{P}_{star} \equiv \exists \xi \in \Pi, \forall p \in \Pi, \forall r \in \mathds{N}, HO(p, r) = \{\xi\}$
+
+\begin{lemma}
+	Toute exécution de cet algorithme termine vis-à-vis du problème de synchronisation modulo k lorsque les prédicats $\mathcal{P}_{star}$ et $\mathcal{P}_{non-inf}$ sont vérifiés.
+\end{lemma}
+\begin{proof}
+	Soit $r$ le round auquel $\xi$ s'active.
+	On montre trivialement par récurrence que la valeur du compteur de $\xi$ au round $r+i$ est $i~mod~k$.
+	Ainsi, au round $r+k$, le processes $\xi$ envoie $0$ à tous les processus. 
+	De même que pour la preuve précédente, 
+	on montre également par récurrence qu'au round $r+k+i$, tous les processes ont $i~mod~k$ comme valeur de compteur.
+	Donc lors des rounds $r+k+i$ vérifiant $i~mod~k = 0$, tous les processus qui n'ont pas déjà terminés terminent.
+	Cela prouve la terminaison.
+\end{proof}
+
+\subsection{Version complétée}
+
+Afin de prouver la terminaison plus simplement, on modifie l'algorithme pour se ramener à une situation où le graphe dynamique est fixe à partir d'un certain rang.
+L'idée est de considéré que toute liaison est considérée comme défaillante à partir du moment où un message est perdu entre deux processus.
+On garde donc en mémoire une variable $\Sigma$, conservant l'ensemble des processus sont entendus à travers une liaison sûre.
+Si le grahe dynamique vérifie $\mathcal{P}_{nek-fixed}$, le centre de l'étoile $\xi$ est toujours fiable pour tous les processus. Donc $\forall p \in \Pi, \xi \in \Sigma_p(r)$.
+À partir d'un certain rang, les ensembles $\Sigma_p$ se stabilisent. Le graphe dynamique est désormais fixe.
+
+\begin{algorithm}[htb]
+\begin{distribalgo}[1]
+\BLANK \INDENT{\textbf{Initialization:}}
+  \STATE $x_p :=\, 0$ 
+  \STATE $\Sigma := \Pi$
+
+\ENDINDENT \BLANK
+
+\INDENT{\textbf{Round $0$:}}
+ \INDENT{$S_p:$}
+    \STATE send $nil$ to all processes
+  \ENDINDENT
+  \BLANK
+	\INDENT{$T_p(M):$}
+	\STATE $x_p = min(M(\Pi) \setminus \{nil\})$ ~~~~\COMMENT{$x_p$ prend la valeur du plus petit message}
+	\STATE $\Sigma = M^{-1}(\Pi)$ ~~~~\COMMENT{$\Sigma$ devient l'ensemble des processus entendus}
+  \ENDINDENT
+\ENDINDENT \BLANK
+\INDENT{\textbf{Round $r+1$:}}
+ \INDENT{$S_p:$}
+    \STATE send $x_p+1~mod~n$ to all processes
+  \ENDINDENT
+  \BLANK
+	\INDENT{$T_p(M):$}
+	\STATE $x_p = min(M(\Sigma) \setminus \{nil\})$ ~~~~\COMMENT{$x_p$ prend la valeur du plus petit message}
+	\STATE $\Sigma = M^{-1}(\Sigma) \cap \Sigma$ ~~~~\COMMENT{les processus non entendus sont considérés fautifs, ils seront ignorés dans le futur}
+	\IF{$M(\Pi) = \{0\}$}
+	\STATE $EXIT()$ ~~~~\COMMENT{si tous les messages reçus valent $0$, aucun $nil$, l'algorithme termine}
+	\ENDIF
+  \ENDINDENT
+\ENDINDENT \BLANK
+
+
+\caption{The {\em SyncMod} algorithm} \label{algo:R}
+\end{distribalgo}
+
+\end{algorithm}
+
+\begin{theorem}
+
+	Pour tout $n > 2$, cet algorithme résoud la synchronisation modulo $n$, lorsque  :
+	\begin{itemize}
+
+	\item le graphe dynamique vérifie le prédicat $\mathcal{P}_{star} \equiv \exists p \in \Pi, \forall n \in \mathds{N}, \forall h \in \Pi, p \in HO(h,n)$
+	\item le calendrier d'activation vérifie $\exists n \in \mathds{N}, \mathcal{A}_n = \Pi$
+
+	\end{itemize}
+	
+
+\end{theorem}
+\begin{proof}
+
+	On considère une exécution de $A$. On note $x_q^r$ la valeur de la variable $x$ du processus $q$ au round $r$.
+	À partir de la première hypothèse, on obtient $p$ tel que, à chaque round, le graphe de communication contient une étoile centrée sur $p$.
+	À partir de la seconde hypothèse, on obtient $r$ tel que $p \in \mathcal{A}_r \setminus \mathcal{A}_{r-1}$.
+	Aux rounds antérieurs à $r$, aucun processus n'a terminé, car $p$ a envoyé un $nil$ à tous les processus.
+
+	On distingue les deux cas suivants :
+	\begin{itemize}
+
+	\item Si $\sigma^0_p = n-1$, le processus $p$ envoie 0 à tous les processus au round $r$, donc les lignes 7 et 12 assurent que $\forall h \in \mathcal{A}_r, x_h^r = 0$.
+		Cela permet de montrer derectment la dernière proposition ci-dessous et de conclure.
+	\item Sinon, la suite $(x_p^{r+k})_{k \in \mathds{N}}$ est une suite minorée par 0.
+		Cette suite ne peut être strictement décroissante. On considère donc $r_0 = min \{r+k, x^{r+k}_p \leq x_p^{r+k+1}\}$.
+		On montre maintenant les quatre propositions suivantes.
+
+	\end{itemize}
+
+	\textbf{Proposition :} $x_p^{r_0} > 0 \Rightarrow \forall h \in \mathcal{A}_t, x_h^t \leq x_p^t$
+
+	Le processus $p$ a envoyé au round $r_0+1$, la valeur $x_p(r_0)+1~mod~n$. 
+	Les lignes 7 et 12 assurent que $x_h(r_0+1) \leq x_p(r_0)+1~mod~n = x_p(r_0)+1 \leq x_p(r_0+1)$
+
+	\textbf{Proposition :} $\forall t \geq r_0 , x_p^t > 0 \Rightarrow \forall h \in \mathcal{A}_t, x_h^t \leq x_p^t$
+
+	Si $x_p^t > 0 $, le processus $p$ a envoyé au round $t$ la valeur $x_p^t$ à tous les processus. La proposition découle donc des lignes 7 et 12 du pseudo-code.
+	$\forall h \in \mathcal{A}_t, x_h^t \leq x_p^t$
+
+	On pose $t_0 = min \{t, x_p^t = 0\} \in \mathds{N} \cup \{\infty\}$.
+
+	\textbf{Proposition :} $\forall t \in \llbracket r+1,  t_0-2 \rrbracket, x_p^t + 1 < n \Rightarrow min \{x_h^t, h \in \mathcal{A}_t\} < min \{x_h^{t+1}, h \in \mathcal{A}_{t+1}\}$
+
+	Il est impossible d'avoir $x_p(t) = n-1$, auquel cas on obtiendrait $x_p(t+1) = 0$, ce qui contredirait le fait que $t \leq t_0 - 2$.
+	Pour la même raison, $x_p(t) > 0$, donc $x_p(t-1) \neq n - 1$.
+	 La proposition précédente montre que $\forall h \in \mathcal{A}_t, x_h^t < n - 1$.
+	Au round $t+1$, aucun message ne contient donc $0$, tous les messages sont plotôt de la forme $x_h^t+1$.
+	Cela montre donc la proposition.
+
+	\textbf{Proposition :} $t_0 \neq \infty$.
+
+	On suppose par l'absurde que $t_0 = \infty$. On en déduit de la troisième proposition que la suite $(min \{x_h^{r+k}, h \in \mathcal{A}_t\})_{k \in \mathds{N}}$ est une suite strictement croissante.
+	Or cette suite est bornée par $n-1$, d'où contradiction.
+
+	\textbf{Proposition :} $\forall h \in \mathcal{A}_{t_0+n}, q_h = t_0 \vee q_h = t_0 + n$
+
+	On a nécessairement $q_h \geq t_0$, puisqu'aux rounds antérieurs à $t_0$, $p$ diffuse des messages différents de 0.
+	Au rounds $t_0$, on a $\forall h \in \mathcal{A}_{t_0}, x_h^{t_0} = 0$, d'après la ligne 2345 du pseudo-code.
+	On montre trivialement par récurrence que $\forall k \in \mathds{N}, \forall h \in \mathcal{A}_{t_0+k}, x_h^{t_0+k} = k~mod~n$.
+	Ainsi, $q_h = t_0 \vee q_h = t_0 + n$.
+
+	Les processus se réveillant après le round $t_0+n$ se synchronisent dès leur activation, en vertu de la ligne 7 du pseudo-code.
+	Cette dernière proposition, ainsi que la remarqnvue précédente, achèvent la preuve.
+
+\end{proof}
+\end{document}
+
+Pour obtenir une synchronisation modulo 2, cet algorithme ne fonctionne pas en l'état, mais il suffit de l'utiliser pour obtenir une synchronisation modulo 4, qui répond
+également au problème de la synchronisation modulo 2.
+
