@@ -100,9 +100,7 @@ L'objectif est de résoudre ce problème dans les conditions suivantes :
 \end{algorithm}
 
 \begin{lemma}
-
 	Toute exécution de cet algorithme est sûr vis-à-vis du problème de synchronisation modulo k lorsque les prédicats $\mathcal{P}_{nek-fixed}$ et $\mathcal{P}_{non-inf}$ sont vérifiés.
-
 \end{lemma}
 \begin{proof}
 
@@ -117,7 +115,7 @@ L'objectif est de résoudre ce problème dans les conditions suivantes :
 	En effet, au moment de leur activation, les processus adoptent la valeur qu'ils reçoivent avant d'envoyer la leur.
 
 	On montre également par récurrence qu'au round $r+i$, tous les processes ont $i~mod~k$ comme valeur de compteur.
-	Donc ils ne peuvent terminer que lorsque $i~mod~k = 0$. Cela prouve la sûret<é.
+	Donc ils ne peuvent terminer que lorsque $i~mod~k = 0$. Cela prouve la sûreté.
 
 \end{proof}
 
@@ -125,23 +123,32 @@ On montre maintenant la terminaison dans un cas simple.
 Soit $\mathcal{P}_{star} \equiv \exists \xi \in \Pi, \forall p \in \Pi, \forall r \in \mathds{N}, HO(p, r) = \{\xi\}$
 
 \begin{lemma}
-	Toute exécution de cet algorithme termine vis-à-vis du problème de synchronisation modulo k lorsque les prédicats $\mathcal{P}_{star}$ et $\mathcal{P}_{non-inf}$ sont vérifiés.
+	Étant donnée une exécution de cet algorithme. On suppose que le graphe dynamique vérifie $\mathcal{P}_{nek-fixed}$.
+	On suppose également que $\xi$ termine au round $r$.
+	Alors tous les processus non indéfiniment passifs terminent également, lors des rounds ultérieurs à $r$.
 \end{lemma}
+\begin{proof}
+	Si $\xi$ termine au round $r$, $\xi$ s'envoie nécessairement la valeur $0$ à lui-même. Donc $\xi$ envoie $0$ à tous les processus. 
+	Donc tous les processes adoptent $0$.
+	On suit un raisonnement similaire à celui de la preuve de la sûreté.
+	on montre trivialement par récurrence qu'au round $r+i$, tous les processes ont $i~mod~k$ comme valeur de compteur.
+	Donc lors des rounds $r+k+i$ vérifiant $i~mod~k = 0$, tous les processus qui n'ont pas déjà terminés terminent.
+	Cela prouve la terminaison.
+\end{proof}
+\begin{theorem}
+	Toute exécution de cet algorithme termine vis-à-vis du problème de synchronisation modulo k lorsque les prédicats $\mathcal{P}_{star}$ et $\mathcal{P}_{non-inf}$ sont vérifiés.
+\end{theorem}
 \begin{proof}
 	Soit $r$ le round auquel $\xi$ s'active.
 	On montre trivialement par récurrence que la valeur du compteur de $\xi$ au round $r+i$ est $i~mod~k$.
-	Ainsi, au round $r+k$, le processes $\xi$ envoie $0$ à tous les processus. 
-	De même que pour la preuve précédente, 
-	on montre également par récurrence qu'au round $r+k+i$, tous les processes ont $i~mod~k$ comme valeur de compteur.
-	Donc lors des rounds $r+k+i$ vérifiant $i~mod~k = 0$, tous les processus qui n'ont pas déjà terminés terminent.
-	Cela prouve la terminaison.
+	Ainsi, $\xi$ recevra seulement au round $r+k$ sa propre valeur, à savoir $0$. Donc $\xi$ terminera au round $r+k$. Le lemme précédent achève donc la terminaison.
 \end{proof}
 
 \subsection{Version complétée}
 
 Afin de prouver la terminaison plus simplement, on modifie l'algorithme pour se ramener à une situation où le graphe dynamique est fixe à partir d'un certain rang.
-L'idée est de considéré que toute liaison est considérée comme défaillante à partir du moment où un message est perdu entre deux processus.
-On garde donc en mémoire une variable $\Sigma$, conservant l'ensemble des processus sont entendus à travers une liaison sûre.
+L'idée consiste à supposer toute liaison défaillante à partir du moment où un message y est perdu.
+On garde donc en mémoire une variable $\Sigma$, conservant l'ensemble des processus étant entendus à travers une liaison sûre.
 Si le grahe dynamique vérifie $\mathcal{P}_{nek-fixed}$, le centre de l'étoile $\xi$ est toujours fiable pour tous les processus. Donc $\forall p \in \Pi, \xi \in \Sigma_p(r)$.
 À partir d'un certain rang, les ensembles $\Sigma_p$ se stabilisent. Le graphe dynamique est désormais fixe.
 
@@ -183,4 +190,40 @@ Si le grahe dynamique vérifie $\mathcal{P}_{nek-fixed}$, le centre de l'étoile
 
 \end{algorithm}
 
+Exécuter cet algorithme sur un graphe dynamique $\mathds{G}$ revient à exécuter l'algorithme simplifié sur le graphe $\mathds{G}'$, où $\mathds{G}'$ est la version épurée de $\mathds{G}$,
+c'est-à-dire la version de $\mathds{G}$ où les arêtes défaillantes au round $r$ sont éliminées aux rounds $r' > r$.
+Si $\mathds{G}$ vérifie $\mathcal{P}_{nek-fixed}$, le graphe $\mathds{G}'$ ainsi épuré vérifie également $\mathcal{P}_{nek-fixed}$. Cela permet de montrer les lemmes suivants,
+qui sont les simples transpositions des lemmes de sûreté de l'algorithme simplifié.
+
+\begin{lemma}
+	Toute exécution de cet algorithme est sûr vis-à-vis du problème de synchronisation modulo k lorsque les prédicats $\mathcal{P}_{nek-fixed}$ et $\mathcal{P}_{non-inf}$ sont vérifiés.
+\end{lemma}
+\begin{lemma}
+	Étant donnée une exécution de cet algorithme. On suppose que le graphe dynamique vérifie $\mathcal{P}_{nek-fixed}$.
+	On suppose également que $\xi$ termine au round $r$.
+	Alors tous les processus non indéfiniment passifs terminent également, lors des rounds ultérieurs à $r$.
+\end{lemma}
+
+Pour montrer la terminaison de l'algorithme amélioré dans le cas $\mathcal{P}_{nek-fixed}$, il suffit de montrer la terminaison lorsque le graphe est fixe.
+On peut également ignorer les noeuds à partir desquels $\xi$ n'est pas atteignable. Il faut donc montrer que l'algorithme termine lorsque le graphe est fixe, fortement connexe, et contient une étoile.
+
+Une simulation montre qu'avec l'algorithme amélioré, la convergence su réseau vers une valeur de compteur uniforme est très rapide.
+Ci-dessous, la distribution du temps de convergence de 20000 scénarios pour $k = 10$, dans un réseau de $50$ noeuds, 
+
+\begin{table}[ht]
+	\begin{center}
+	\caption{Distribution du temps de convergence}
+	\label{tab:table1}
+	\begin{tabular}{c|c} % <-- Alignments: 1st column left, 2nd middle and 3rd right, with vertical lines in between
+		\textbf{temps de convergence} & \textbf{nombre d'occurrences}\\
+		\hline
+		0 & 0\\
+		1 & 1859\\
+		2 & 16983\\
+		3 & 1157\\
+		4 & 1\\
+		5 & 0\\
+		\end{tabular}
+	\end{center}
+\end{table}
 \end{document}

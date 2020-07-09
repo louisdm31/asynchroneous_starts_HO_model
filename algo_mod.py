@@ -2,7 +2,7 @@ import random
 
 n = 10
 l = 50
-test = 5000
+test = 20000
 
 
 init = [0,1,0,0]
@@ -83,7 +83,7 @@ def test_serie(l, n):
 	distr = [0]*20
 	for w in range(test):
 		init = rand_list(l, n)
-		fin, graph, r = test_sync(init, graph_strong_connect, n)
+		fin, graph, r = test_sync(init, graph_strong_connect_star, n)
 		if r == -1:
 			print(init, graph)
 			break
