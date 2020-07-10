@@ -62,12 +62,16 @@ L'objectif est de résoudre ce problème dans les conditions suivantes :
 
 \end{itemize}
 
-\section{Version simplifiée}
+L'idée de l'algorithme ci-dessous est que chaque processus possède un compteur modulo $k$. À chaque round, il incrémente son compteur, et l'envoie à tous.
+Il reçoit alors les valeurs de compteur de tous ses voisins entrants. Il essaye de se synchroniser avec les autres processus s'ils s'accordent sur une même valeur de compteur.
+Sinon, il essaye de convaincre tous les processus de se synchroniser sur son compteur : il adopte la valeur $k-1$. Au prochain round, il envoie $0$.
+Les processus qui reçoivent ce $0$ sont obligés de l'adopter. Chaque processus ne fait qu'une seule fois cette tentative de synchronisation active.
 
 \begin{algorithm}[htb]
 \begin{distribalgo}[1]
 \BLANK \INDENT{\textbf{Initialization:}}
   \STATE $x_p :=\, 0$ 
+  \STATE $try_p = true$
 
 \ENDINDENT \BLANK
 
@@ -75,34 +79,28 @@ L'objectif est de résoudre ce problème dans les conditions suivantes :
  \INDENT{$S_p:$}
     \STATE send $nil$ to all processes
   \ENDINDENT
+\ENDINDENT
   \BLANK
-	\INDENT{$T_p(M):$}
-	\IF{$M(\Pi) = \{0\}$}
-	\STATE $EXIT()$ ~~~~\COMMENT{si tous les messages reçus valent $0$, aucun $nil$, l'algorithme termine}
-	\ELSIF{$M(\Pi) \setminus \{nil\} = \{v\}$}
-	\STATE $x_p = v$ ~~~~\COMMENT{si tous les messages ont la même valeur, s'aligner}
-	\ELSE
-	\STATE $x_p = 0$ ~~~~\COMMENT{sinon $x_p$ prend la valeur 0}
-	\ENDIF
-  \ENDINDENT
-\ENDINDENT \BLANK
 \INDENT{\textbf{Round $r+1$:}}
  \INDENT{$S_p:$}
     \STATE send $x_p+1~mod~n$ to all processes
   \ENDINDENT
+\ENDINDENT
   \BLANK
+\INDENT{\textbf{Round $r$:}}
 	\INDENT{$T_p(M):$}
 	\IF{$M(\Pi) = \{0\}$}
 	\STATE $EXIT()$ ~~~~\COMMENT{si tous les messages reçus valent $0$, aucun $nil$, l'algorithme termine}
 	\ELSIF{$M(\Pi) \setminus \{nil\} = \{v\}$}
 	\STATE $x_p = v$ ~~~~\COMMENT{si tous les messages ont la même valeur, s'aligner}
+	\ELSIF{$try_p \wedge 0 \notin M(\Pi)$}
+	\STATE $try_p = false$
+	\STATE $x_p = k - 1$
 	\ELSE
 	\STATE $x_p = 0$ ~~~~\COMMENT{sinon $x_p$ prend la valeur 0}
 	\ENDIF
   \ENDINDENT
-\ENDINDENT \BLANK
-
-
+\ENDINDENT 
 \caption{The {\em SyncMod} algorithm} \label{algo:R}
 \end{distribalgo}
 
@@ -115,12 +113,13 @@ L'objectif est de résoudre ce problème dans les conditions suivantes :
 
 	Soit $\xi$ le processes au centre de l'étoile.
 	On suppose que $p$ termine au round $r$, et est le premier. Nécessairement, $\xi \in HO(p,r)$.
-	Les lignes 7 et 17 du code montre que la valeur envoyé par $\xi$ est $0$.
-	Donc tous les processes ont reçus un $0$. Soit $p$ un processus actif quelquonque. Au round $r$, il execute, dans sa fonction de transition, l'une des trois branches possibles.
+	La ligne 12 du code montre que la valeur envoyé par $\xi$ est $0$.
+	Donc tous les processes ont reçus un $0$. Soit $p$ un processus actif quelquonque. Au round $r$, il execute, dans sa fonction de transition, l'une des quatre branches possibles.
 	\begin{itemize}
 
 		\item Si un processes $p$ est dans la première branche, il termine en même temps que $\xi$.
-		\item Sinon, il adopte $0$.
+		\item Il ne peut pas exécuter la troisième branche car $M(\xi) = 0$.
+		\item S'il exécute la deuxième ou la quatrième branche, il adopte $0$.
 
 	\end{itemize}
 
@@ -135,7 +134,7 @@ L'objectif est de résoudre ce problème dans les conditions suivantes :
 	On suppose que $\forall p \in \mathcal{A}_{r+i}, x_p(r+i) = i~mod~k$, on veut montrer que $\forall p \in \mathcal{A}_{r+i+1}, x_p(r+i+1) = i+1~mod~k$.
 	L'hypothèse de récurrence montre qu'au round $r+i+1$, la seule valeur envoyée sera $i~mod~k$.
 	Si un processus termine au round $r+i+1$, on a, d'après les lignes 7 et 17, $i~mod~k = 0$, la sûreté est vérifiée.
-	Sinon, les lignes $10$ ou $20$ s'exécutent, cela achève la récurrence.
+	Sinon, la ligne $14$ s'exécute, cela achève la récurrence.
 
 	La sûreté découle de cette proposition.
 
@@ -165,5 +164,13 @@ Soit $\mathcal{P}_{star} \equiv \exists \xi \in \Pi, \forall p \in \Pi, \forall 
 	On montre trivialement par récurrence que la valeur du compteur de $\xi$ au round $r+i$ est $i~mod~k$.
 	Ainsi, $\xi$ recevra seulement au round $r+k$ sa propre valeur, à savoir $0$. Donc $\xi$ terminera au round $r+k$. Le lemme précédent achève donc la terminaison.
 \end{proof}
+
+On montre maintenant la terminaison dans le cas qui nous intéresse.
+
+\begin{theorem}
+	Toute exécution de cet algorithme termine vis-à-vis du problème de synchronisation modulo k lorsque les prédicats $\mathcal{P}_{nek-fixed}$ et $\mathcal{P}_{non-inf}$ sont vérifiés.
+\end{theorem}
+\begin{proof}
+	Soit $r$ le round auquel $\xi$ s'active.
 
 \end{document}
