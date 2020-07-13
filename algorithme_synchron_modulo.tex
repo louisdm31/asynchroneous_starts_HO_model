@@ -16,7 +16,7 @@
 
 
 \title{Algorithme de synchronisation modulo k}
-\date{1 juin 2020}
+\date{10 juillet 2020}
 \author{Louis Penet de Monterno}
 
 \begin{document}
@@ -47,10 +47,10 @@ Le but de ce document est de proposer un algorithme permettant de synchroniser l
 
 \end{definition}
 \begin{definition}
-
-	L'algorithme $A$ résoud le problème de synchronisation modulo $n$, si toute exécution de $A$ est sûre et termine.
-
+	L'algorithme $A$ résoud le problème de synchronisation modulo $k$, si toute exécution de $A$ est sûre et termine.
 \end{definition}
+
+Pour la suite, on considère une valeur $k > 2$ quelquonque.
 
 \section{Algorithme}
 
@@ -63,9 +63,14 @@ L'objectif est de résoudre ce problème dans les conditions suivantes :
 \end{itemize}
 
 L'idée de l'algorithme ci-dessous est que chaque processus possède un compteur modulo $k$. À chaque round, il incrémente son compteur, et l'envoie à tous.
-Il reçoit alors les valeurs de compteur de tous ses voisins entrants. Il essaye de se synchroniser avec les autres processus s'ils s'accordent sur une même valeur de compteur.
-Sinon, il essaye de convaincre tous les processus de se synchroniser sur son compteur : il adopte la valeur $k-1$. Au prochain round, il envoie $0$.
-Les processus qui reçoivent ce $0$ sont obligés de l'adopter. Chaque processus ne fait qu'une seule fois cette tentative de synchronisation active.
+Il reçoit alors les valeurs de compteur de tous ses voisins entrants. Il essaye de se synchroniser avec les autres processus s'ils s'accordent tous sur une même valeur de compteur
+(deuxième branche dans la fonction de transition).
+
+Sinon, il fait une tentative de "synchronisation forcée", c'est-à-dire il essaye de convaincre tous les processus de se synchroniser sur son propre compteur :
+il adopte la valeur $k-1$ (troisième branche). Au prochain round, il envoie 0.  Les processus qui reçoivent ce 0 sont obligés de l'adopter (quatrième branche).
+Chaque processus ne fait qu'une seule fois cette tentative de synchronisation forcée (la variable $try_p$ sert justement à limiter $p$ à une seule tentative).
+
+\pagebreak[1]
 
 \begin{algorithm}[htb]
 \begin{distribalgo}[1]
@@ -75,7 +80,7 @@ Les processus qui reçoivent ce $0$ sont obligés de l'adopter. Chaque processus
 
 \ENDINDENT \BLANK
 
-\INDENT{\textbf{Round $0$:}}
+\INDENT{\textbf{Round 0:}}
  \INDENT{$S_p:$}
     \STATE send $nil$ to all processes
   \ENDINDENT
@@ -90,14 +95,14 @@ Les processus qui reçoivent ce $0$ sont obligés de l'adopter. Chaque processus
 \INDENT{\textbf{Round $r$:}}
 	\INDENT{$T_p(M):$}
 	\IF{$M(\Pi) = \{0\}$}
-	\STATE $EXIT()$ ~~~~\COMMENT{si tous les messages reçus valent $0$, aucun $nil$, l'algorithme termine}
+	\STATE $EXIT()$ ~~~~\COMMENT{si tous les messages reçus valent 0, aucun $nil$, l'algorithme termine}
 	\ELSIF{$M(\Pi) \setminus \{nil\} = \{v\}$}
 	\STATE $x_p = v$ ~~~~\COMMENT{si tous les messages ont la même valeur, s'aligner}
 	\ELSIF{$try_p \wedge 0 \notin M(\Pi)$}
-	\STATE $try_p = false$ ~~~~\COMMENT{si plusieurs messages sont discordants, faire une tentative de synchronisation active}
+	\STATE $try_p = false$ ~~~~\COMMENT{si plusieurs messages sont discordants, faire une tentative de synchronisation forcée}
 	\STATE $x_p = k - 1$
 	\ELSE
-	\STATE $x_p = 0$ ~~~~\COMMENT{si un $0$ a été reçu, toujours s'aligner}
+	\STATE $x_p = 0$ ~~~~\COMMENT{si un 0 a été reçu, toujours s'aligner}
 	\ENDIF
   \ENDINDENT
 \ENDINDENT 
@@ -113,19 +118,19 @@ Les processus qui reçoivent ce $0$ sont obligés de l'adopter. Chaque processus
 
 	Soit $\xi$ le processes au centre de l'étoile.
 	On suppose que $p$ termine au round $r$, et est le premier. Nécessairement, $\xi \in HO(p,r)$.
-	La ligne 12 du code montre que la valeur envoyé par $\xi$ est $0$.
-	Donc tous les processes ont reçus un $0$. Soit $p$ un processus actif quelquonque. Au round $r$, il execute, dans sa fonction de transition, l'une des quatre branches possibles.
+	La ligne 12 du code montre que la valeur envoyé par $\xi$ est 0.
+	Donc tous les processes ont reçus un 0. Soit $p$ un processus actif quelquonque. Au round $r$, il execute, dans sa fonction de transition, l'une des quatre branches possibles.
 	\begin{itemize}
 
 		\item Si un processes $p$ est dans la première branche, il termine en même temps que $\xi$.
 		\item Il ne peut pas exécuter la troisième branche car $M(\xi) = 0$.
-		\item S'il exécute la deuxième ou la quatrième branche, il adopte $0$.
+		\item S'il exécute la deuxième ou la quatrième branche, il adopte 0.
 
 	\end{itemize}
 
-	On montre maintenant par récurrence la proposition suivante :
+	On montre maintenant par récurrence sur $i$ la proposition suivante :
 
-	"Pour tout $i \in \mathds{N}$, la valeur de $p$ au round $r+i$ est $i~mod~k$ si $p$ est actif et n'a pas djéà terminé à ce round."
+	"Pour tout $i \in \mathds{N}$, la valeur de $p$ au round $r+i$ est $i~mod~k$ si $p$ est actif et n'a pas déjà terminé à ce round."
 
 	\textbf{Initialisation : } voir ci-dessus
 
@@ -133,17 +138,19 @@ Les processus qui reçoivent ce $0$ sont obligés de l'adopter. Chaque processus
 
 	On suppose que $\forall p \in \mathcal{A}_{r+i}, x_p(r+i) = i~mod~k$, on veut montrer que $\forall p \in \mathcal{A}_{r+i+1}, x_p(r+i+1) = i+1~mod~k$.
 	L'hypothèse de récurrence montre qu'au round $r+i+1$, la seule valeur envoyée sera $i~mod~k$.
-	Si un processus termine au round $r+i+1$, on a, d'après les lignes 7 et 17, $i~mod~k = 0$, la sûreté est vérifiée.
+	Si un processus termine au round $r+i+1$, on a, d'après la ligne 12, $i~mod~k = 0$, donc la sûreté est vérifiée.
 	Sinon, la ligne $14$ s'exécute, cela achève la récurrence.
 
 	La sûreté découle de cette proposition.
 
 \end{proof}
 
+Pour les trois lemmes ci-dessous, on se fixe une exécution de l'algorithme.
+On dit que le système est synchonisé au round $i$ si tous les processus actifs ont la même valeur de compteur.
+
 \begin{lemma}
-	Étant donnée une exécution de cet algorithme. On suppose que le graphe dynamique vérifie $\mathcal{P}_{nek-fixed}$.
-	On dit que le système est synchonisé au round $i$ si tous les processus actifs ont la même valeur de compteur.
-	Si au round $i$, $\xi$ est actif et le système est synchonisé, il l'est également au round $i+1$.
+	Sous le prédicat $\mathcal{P}_{nek-fixed}$,
+	si au round $i$, $\xi$ est actif et le système est synchonisé, il l'est également au round $i+1$.
 \end{lemma}
 \begin{proof}
 	Si le système est synchronisé au round $i$, au round $i+1$, tous les processus enverront une même valeur $v$.
@@ -153,14 +160,14 @@ Les processus qui reçoivent ce $0$ sont obligés de l'adopter. Chaque processus
 	La synchronisation est donc maintenue.
 \end{proof}
 \begin{lemma}
-	Étant donnée une exécution de cet algorithme. On suppose que le graphe dynamique vérifie $\mathcal{P}_{nek-fixed}$ et le calendrier d'activation vérifie $\mathcal{P}_{non-inf}$.
-	Si au round $i$, $\xi$ est actif et le système est synchonisé, tous les processus terminent.
+	Sous les prédicats $\mathcal{P}_{nek-fixed}$ et $\mathcal{P}_{non-inf}$,
+	si au round $i$, $\xi$ est actif et le système est synchonisé, tous les processus terminent.
 \end{lemma}
 \begin{proof}
 	Le lemme précédent montre qu'à partir du round $i$, le système reste synchonisé. De plus, à chaque round, la valeur des compteurs est incrémentée.
-	Soit $r$ le round auquel tous les processus sont actifs.
-	Ainsi, après le round $i' = max(i, r)$, le système atteindra un état dans lequel tous les compteurs valent $k-1$.
-	On aura alors, $\forall p \in \Pi, M_p^{i'}(\Pi) = \{0\}$.
+	Soit $r$ le round à partir duquel tous les processus sont actifs.
+	Ainsi, lors d'un round $i' \geq max(i, r)$, le système atteindra un état dans lequel tous les compteurs valent $k-1$.
+	On aura alors, au round suivant, $\forall p \in \Pi, M_p^{i'}(\Pi) = \{0\}$.
 	Donc tous les processus terminent.
 \end{proof}
 
@@ -172,8 +179,8 @@ Soit $\mathcal{P}_{star} \equiv \exists \xi \in \Pi, \forall p \in \Pi, \forall 
 \end{theorem}
 \begin{proof}
 	Soit $r$ le round auquel $\xi$ s'active.
-	On montre trivialement par récurrence que la valeur du compteur de $\xi$ au round $r+i$ est $i~mod~k$.
-	Ainsi, au round $r+k$, $\xi$ enverra $0$ à tous, donc le système se synchronisera sur $0$.
+	On montre trivialement par récurrence sur $i$ que la valeur du compteur de $\xi$ au round $r+i$ est $i~mod~k$.
+	Ainsi, au round $r+k$, $\xi$ enverra 0 à tous, donc le système se synchronisera sur 0.
 	Le lemme précédent montre la terminaison, et le lemme 1 la sûreté.
 \end{proof}
 
@@ -184,14 +191,14 @@ On montre maintenant la terminaison dans le cas qui nous intéresse.
 \end{theorem}
 \begin{proof}
 	Soit $r$ le round auquel $\xi$ s'active.
-	L'algorithme est conçu de telle manière que chaque processus n'exécute la troisième branche de la fonction de transition seulement une seule fois.
+	L'algorithme est conçu de telle manière que chaque processus n'exécute la troisième branche de la fonction de transition qu'une seule fois.
 	Donc il existe un round $r' \geq r$ à partir duquel plus aucun processus n'exécute cette troisième branche.
 
 	\begin{description}
 
 		\item[Cas 1 : ] $\xi$ a exécuté la troisième branche de la fonction de transition au cours d'un round $t \geq r$.
 
-			Dans ce cas, au round $t+1$, $\xi$ envoie $0$ à tous, donc tous les processus s'alignent sur ce $0$. Le système est maintenant synchonisé. Le lemme précédent montre la terminaison.
+			Dans ce cas, au round $t+1$, $\xi$ envoie 0 à tous, donc tous les processus s'alignent sur ce 0. Le système est maintenant synchonisé. Le lemme précédent montre la terminaison.
 
 		\item[Cas 2 : ] $\xi$ n'a jamais exécuté la troisième branche, et n'a pas exécuté la quatrième branche au delà du round $r'$.
 
@@ -199,34 +206,34 @@ On montre maintenant la terminaison dans le cas qui nous intéresse.
 
 		\item[Cas 3 : ] $\xi$ n'a jamais exécuté la troisième branche, mais a exécuté la quatrième branche au round $t \geq r'$.
 
-			Ainsi, au round $t+1$, $\xi$ envoie $1$ à tous. Comme $t \geq r'$, les processus ne peuvent exécuter que la deuxième et la quatrième branche.
-			Les seules valeurs présentes dans le système à la fin du round $t+1$ sont donc $0$ et $1$.
+			Ainsi, au round $t+1$, $\xi$ envoie 1 à tous. Comme $t \geq r'$, les processus ne peuvent exécuter que la deuxième et la quatrième branche.
+			Les seules valeurs présentes dans le système à la fin du round $t+1$ sont donc 0 et 1.
 			On distingue deux sous-cas possibles :
 
 			\begin{description}
 
 				\item[Sous-cas 3.1] $x_\xi(t+1) = 1$
 
-					Dans ce cas, on montre par récurrence que
+					Dans ce cas, on montre par récurrence sur $i$ que
 					$$\forall i \in \mathds{N}, x_\xi(t+i) = i~mod~k \wedge \forall p \in \mathcal{A}_{t+i}, x_p(t+i) \leq x_\xi(t+i)$$
 
 					\textbf{Initialisation : } voir ci-dessus.
 
-					\textbf{Hérédité : } On suppose que 
-					$$\forall i \in \mathds{N}, x_\xi(t+i) = i~mod~k \wedge \forall p \in \mathcal{A}_{t+i}, x_p(t+i) \leq x_\xi(t+i)$$
-					L'hypothèse de récurrence montre que les messages envoyés au round $t+i+1$ sont compris entre $1$ et $i+1~mod~k$.
+					\textbf{Hérédité : } Pour $i$ donné, on suppose que 
+					$$x_\xi(t+i) = i~mod~k \wedge \forall p \in \mathcal{A}_{t+i}, x_p(t+i) \leq x_\xi(t+i)$$
+					L'hypothèse de récurrence montre que les messages envoyés au round $t+i+1$ sont compris entre 1 et $i+1~mod~k$.
 					Le processus $\xi$ reçoit toujours sa propre valeur, à savoir $i+1~mod~k$, mais n'en reçoit jamais d'autre, celà provoquerait l'exécution de la troisième branche.
 					On a pourtant supposé que $\xi$ n'exécutait jamais cette branche. Cela prouve $x_\xi(t+i+1) = i+1~mod~k$.
 
-					Les autres processus reçoivent au round $t+i+1$ des valeurs comprises entre $1$ et $i+1~mod~k$, cela prouve $\forall p \in \mathcal{A}_{t+i}, x_p(t+i) \leq x_\xi(t+i)$.
+					Les autres processus reçoivent au round $t+i+1$ des valeurs comprises entre 1 et $i+1~mod~k$, cela prouve $\forall p \in \mathcal{A}_{t+i}, x_p(t+i) \leq x_\xi(t+i)$.
 
-					Cette récurrence montre qu'au round $t+k$, $\xi$ envoie $0$ à tous, ce qui synchrones le système. Le lemme précédent assure la terminaison.
+					Cette récurrence montre qu'au round $t+k$, $\xi$ envoie 0 à tous, ce qui synchrones le système. Le lemme précédent assure la terminaison.
 
 				\item[Sous-cas 3.2] $x_\xi(t+1) = 0$
 
-					Dans ce cas, $\xi$ envoie $1$ à tous les processus au round $t+i+1$. Les valeurs envoyées par les autres processus sont nécessairement $1$ et $2$.
-					$\xi$ ne peut pas avoir reçu un $2$, car on a supposé que $\xi$ n'a jamais exécuté la troisième branche. Donc la valeur de $\xi$ à la fin du round est nécessairement $1$.
-					Pour les autres processus, les seules valeurs possibles sont $0$ et $1$. On est donc ramené au cas précédent.
+					Dans ce cas, $\xi$ envoie 1 à tous les processus au round $t+i+1$. Les valeurs envoyées par les autres processus sont nécessairement 1 et 2.
+					$\xi$ ne peut pas avoir reçu un 2, car on a supposé que $\xi$ n'a jamais exécuté la troisième branche. Donc la valeur de $\xi$ à la fin du round est nécessairement 1.
+					Pour les autres processus, les seules valeurs possibles sont 0 et 1. On est donc ramené au cas précédent.
 			\end{description}
 	\end{description}
 
