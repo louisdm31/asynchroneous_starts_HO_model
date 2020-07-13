@@ -20,53 +20,125 @@
 \begin{document}
 \maketitle
 
+\section{Notations}
+
+On considère un prédicat $\Phi$ sur un graphe. On définit les transformateurs de prédicats de la manière suivante.
+
+\begin{definition}
+	On définit le prédicat $P_k(\Phi)$ sur un graphe dynamique
+	$\mathds{G}$ par $$P_k(\Phi) \equiv \forall t \in \mathds{N}, \mathds{G}(t:t+k) \models \Phi$$
+\end{definition}
+\begin{definition}
+	On définit le prédicat $P_{borné}(\Phi)$ sur un graphe dynamique
+	$\mathds{G}$ par $$P_{borné}(\Phi) \equiv \exists b \in \mathds{N}, \forall t \in \mathds{N}, \mathds{G}(t:t+b) \models \Phi$$
+\end{definition}
+\begin{definition}
+	On définit le prédicat $P_{fini}(\Phi)$ sur un graphe dynamique
+	$\mathds{G}$ par $$P_{fini}(\Phi) \equiv  \forall t \in \mathds{N}, \exists b \in \mathds{N}, \mathds{G}(t:t+b) \models \Phi$$
+\end{definition}
+
+On pose les prédicats sur un graphe $\mathds{G} = (V, E)$ suivants :
+\begin{itemize}
+
+	\item $\mathcal{P}_{nek} \equiv \exists p \in \Pi, \forall q \in \Pi, (p, q) \in E$
+	\item Soit $\xi \in \Pi$ un processus donné. $\mathcal{P}_{nek-fixed} \equiv \forall q \in \Pi, (\xi, q) \in E$
+
+\end{itemize}
+
+\begin{definition}
+	On définit le prédicat $\mathcal{P}_{non-inf}$ sur un calendrier d'activation par 
+	$$\mathcal{P}_{non-inf} \equiv \exists k \in \mathds{N}, \mathcal{A}_k = \Pi$$
+\end{definition}
+
 \section{Théorèmes d'impossibilité}
 
-Soit $\xi \in \Pi$ un pocessus fixé.
-On pose $\Phi$ le prédicat $\forall t \in \mathds{N}, \forall q \in \Pi, path(\mathds{G}(t : t+k), \xi, q)$, où $path(G, \xi, q)$ signifie qu'il existe un chemin de $\xi$ vers $q$ dans le graphe $G$.
-
 \begin{theorem}
-	Le consensus n'est pas fortement résoluble sous l'hypothèse $P_k(\Phi)$ où $k$ est un entier quelquonque.
+	Il n'existe pas d'algorithme qui résolve le consensus sous le prédicat $P_k(\mathcal{P}_{nek-fixed})$, même si les processus connaissent la taille du réseau.
 \end{theorem}
 \begin{proof}
-	Si la racine est passive pour toujours, le prédicat n'est pas exploitable.
+	On suppose qu'un tel algorithme existe, et on l'exécute dans les scénarios suivants.
+
+	\begin{description}
+		\item[Scénario 0 : ] Le graphe dynamique est une étoile constante, centrée sur $\xi$. $\xi$ est passif pour toujours. Les autres processus ont 0 comme valeur initiale.
+			Et ils s'activent en temps fini. La terminaison assure qu'il décident tous 0 en temps fini.
+
+		\item[Scénario 1 : ] Le graphe dynamique est une étoile constante, centrée sur $\xi$. $\xi$ est passif pour toujours. Les autres processus ont 1 comme valeur initiale.
+			Et ils s'activent en temps fini. La terminaison assure qu'il décident tous 1 en temps fini.
+
+		\item[Scénario 2 : ] Le graphe dynamique est une étoile constante, centrée sur $\xi$. $\xi$ est passif pour toujours. Les autres processus ont différentes valeurs initiales.
+			En particulier, un processus $p_0$ a 0 comme valeur initiale, et $p_1$ a 1.
+			Et ils s'activent en temps fini. Pour $p_0$, ce scénario est indistinguable du scénario 0, donc $p_0$ décide 0.
+			Pour $p_1$, ce scénario est indistinguable du scénario 1, donc $p_1$ décide 1.  Cela viole l'accord.
+	\end{description}
 \end{proof}
 
-On pose $\Psi$ le prédicat $\forall t \in \mathds{N}, \exists p \in \Pi, \forall q \in \Pi, path(\mathds{G}(t : t+k), p, q)$.
 \begin{theorem}
-	Le consensus n'est pas résoluble sous l'hypothèse $P_k(\Psi)$ où $k$ est un entier quelquonque.
+	Il n'existe pas d'algorithme qui résolve le consensus sous les prédicats $P_k(\mathcal{P}_{nek})$ et $\mathcal{P}_{non-inf}$, même si les processus connaissent la taille du réseau.
 \end{theorem}
 \begin{proof}
-	On suppose qu'un algorithme $A$ résoud le consensus sous le prédicat $P_k(\Psi)$. Soient $p_1, p_2 \in \Pi$.
-	\begin{itemize}
+	On suppose qu'un tel algorithme existe, et on l'exécute dans les scénarios suivants.
+	Soient $p_1, p_2 \in \Pi$.
+	\begin{description}
 
-		\item \textbf{Scénario 1 :} $\mathds{G}_n$ est pour tout $n$ égal à l'étoile centrée en $p_1$. On exécute l'algorithme $A$. La terminaison assure que $p_1$ décidera en un round $r$.
-		\item \textbf{Scénario 2 :} Pour tout $n \leq r$, $\mathds{G}_n$ est l'étoile centrée en $p_1$. Pour tout $n > r$, $\mathds{G}_n$ est l'étoile centrée en $p_2$. On suppose que $p_2$
-			s'active au round $r+1$. Dans ces conditions, $p_2$ ne reçoit jamais de message. La terminaison et l'intégrité assurent que $p_2$ décide finalement sa valeur initiale,
+		\item[Scénario 1 :] $\mathds{G}_r$ est pour tout $r$ égal à l'étoile centrée en $p_1$. La terminaison assure que $p_1$ décidera en un round $t$.
+		\item[Scénario 2 :] Pour tout $r \leq t$, $\mathds{G}_r$ est l'étoile centrée en $p_1$. Pour tout $r > t$, $\mathds{G}_r$ est l'étoile centrée en $p_2$. On suppose que $p_2$
+			s'active au round $t+1$. Dans ces conditions, $p_2$ ne reçoit jamais de message. La terminaison et l'intégrité assurent que $p_2$ décide finalement sa valeur initiale,
 			tandis que $p_1$ a déjà décidé. Dans ces conditions, l'accord est impossible à assurer.
 
-	\end{itemize}
+	\end{description}
 \end{proof}
 
 \begin{theorem}
-	Le consensus n'est pas résoluble sous l'hypothèse $P_{borné}(\Phi)$.
+	Il n'existe pas d'algorithme qui résolve le consensus sous les prédicats $P_{borné}(\mathcal{P}_{nek-fixed})$ et $\mathcal{P}_{non-inf}$, même si les processus connaissent la taille du réseau.
 \end{theorem}
 \begin{proof}
-	On suppose qu'un algorithme $A$ résoud le consensus sous le prédicat $P_{borné}(\Phi)$. Soient $p_1, p_2 \in \Pi$.
-	\begin{itemize}
+	On suppose qu'un tel algorithme existe, et on l'exécute dans les scénarios suivants.
+	Soient $p_1, p_2 \in \Pi$.
+	\begin{description}
 
-		\item \textbf{Scénario 1 :} $\mathds{G}_n$ est pour tout $n$ égal à l'étoile centrée en $p_1$. On exécute l'algorithme $A$. La terminaison assure que $p_1$ décidera en un round $r_1$.
-		\item \textbf{Scénario 2 :} $\mathds{G}_n$ est pour tout $n$ égal à l'étoile centrée en $p_2$. On exécute l'algorithme $A$. La terminaison assure que $p_2$ décidera en un round $r_2$.
-		\item \textbf{Scénario 3 :} Pour tout $n \leq r_0 + r_1$, $\mathds{G}_n$ est le graphe sans aucune arête. Pour tout $n > r_0 + r_1$, $\mathds{G}_n$ est l'étoile centrée en $p_1$.
+		\item[Scénario 1 :] $\mathds{G}_n$ est pour tout $n$ égal à l'étoile centrée en $p_1$. On exécute l'algorithme $A$. La terminaison assure que $p_1$ décidera en un round $r_1$.
+		\item[Scénario 2 :] $\mathds{G}_n$ est pour tout $n$ égal à l'étoile centrée en $p_2$. On exécute l'algorithme $A$. La terminaison assure que $p_2$ décidera en un round $r_2$.
+		\item[Scénario 3 :] Pour tout $n \leq r_0 + r_1$, $\mathds{G}_n$ est le graphe sans aucune arête. Pour tout $n > r_0 + r_1$, $\mathds{G}_n$ est l'étoile centrée en $p_1$.
 			Pour $p_1$, ce scénario est indistinguable du scénario 1, donc $p_1$ décidera au round $r_1$.
 			Pour $p_2$, ce scénario est indistinguable du scénario 1, au moins jusqu'au round $r_2$. Donc $p_2$ décidera au round $r_2$.
 			Dans ces conditions, l'accord est impossible à assurer.
 
-	\end{itemize}
+	\end{description}
 \end{proof}
 
+\section{Exécution en série}
+
+Pour la section suivant, on aura besoin de la notion d'exécution en série d'algorithme.
+Intuitivement, étant donné deux algorithmes $A$ et $B$, l'algorithme $A;B$ consiste à exécuter $A$, et dès que $A$ atteint un état final, commencer à exécuter $B$.
+
+On suppose donné un algorithme $A = (States_p^A, Init_p^A, S_p^A, T_p^A)$ et un algorithme $B = (States_p^B, Init_p^B, S_p^B, T_p^B)$ (voir document sur la preuve de "one-third rule").
+On suppose que $States_p^A$ contient un sous-ensemble $F \subseteq States_p^A$ d'états finaux. On suppose que $T_p^A$ est stable sur $F$.
+
+\begin{definition}
+	On définit l'algorithme $A;B$ comme le tuple $(States_p^{AB}, Init_p^{AB}, S_p^{AB}, T_p^{AB})$ où :
+	\begin{itemize}
+
+		\item $States_p^{AB} = (States_p^A \times Init_p^B) \cup (F \times States_p^B)$
+		\item $Init_p^{AB} = Init_p^A \times Init_p^B$
+		\item $S_p^{AB}$ définit par, pour tout $s = (s_A, s_B)$, 
+			$$S_p^{AB}(s) = \left \{ \begin{array}{l ll}
+				\langle S_p^A(s_A), nil        \rangle & \mbox{si}~s_A \notin F & A~\mbox{en cours d'exécution} \\
+				\langle S_p^A(s_A), S_p^B(s_B) \rangle & \mbox{si}~s_A \in F    & B~\mbox{en cours d'exécution} \end{array} \right$$
+			\item $T_p^{AB}$ définit par, pour tout $s = (s_A, s_B) \in States_p^{AB}$, pour tout $M = (M_A, M_B)$, 
+			$$T_p^{AB}(s, M) = \left \{ \begin{array}{l ll}
+				\langle T_p^A(s_A, M_A), s_B             \rangle & \mbox{si}~s_A \notin F & A~\mbox{en cours d'exécution} \\
+				\langle T_p^A(s_A, M_A), T_p^B(s_B, m_B) \rangle & \mbox{si}~s_A \in F    & B~\mbox{en cours d'exécution} \end{array} \right$$
+
+	\end{itemize}
 
 \section{Algorithme "Uniforme Voting"}
+
+Il reste maintenant à traiter le cas le plus favorable, à savoir le cas où les prédicats $\mathcal{P}_{nek-fixed}$ et $\mathcal{P}_{non-inf}$ sont vérifiés.
+
+\begin{theorem}
+	L'algorithme "Uniforme Voting" exécuté en série à la suite de l'algorithme "SyncMod" avec $k = 4$
+	résout le consensus lorsque les prédicats $\mathcal{P}_{nek-fixed}$ et $\mathcal{P}_{non-inf}$ sont vérifiés.
+\end{theorem}
 
 Dans cette section, on propose une adaptation de l'algorithme  "Uniforme Voting", prévue pour fonctionner avec des départs asynchrones.
 Soit $V$ un ensemble totalement ordonné.
