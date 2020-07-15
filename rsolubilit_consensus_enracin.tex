@@ -122,23 +122,101 @@ On suppose que $States_p^A$ contient un sous-ensemble $F \subseteq States_p^A$ d
 		\item $Init_p^{AB} = Init_p^A \times Init_p^B$
 		\item $S_p^{AB}$ définit par, pour tout $s = (s_A, s_B)$, 
 			$$S_p^{AB}(s) = \left \{ \begin{array}{l ll}
-				\langle S_p^A(s_A), nil        \rangle & \mbox{si}~s_A \notin F & A~\mbox{en cours d'exécution} \\
-				\langle S_p^A(s_A), S_p^B(s_B) \rangle & \mbox{si}~s_A \in F    & B~\mbox{en cours d'exécution} \end{array} \right$$
+				\langle S_p^A(s_A), nil        \rangle & \mbox{si}~s_A \notin F & \{A~\mbox{en cours d'exécution}\} \\
+				\langle S_p^A(s_A), S_p^B(s_B) \rangle & \mbox{si}~s_A \in F    & \{B~\mbox{en cours d'exécution} \end{array}\} \right$$
 			\item $T_p^{AB}$ définit par, pour tout $s = (s_A, s_B) \in States_p^{AB}$, pour tout $M = (M_A, M_B)$, 
 			$$T_p^{AB}(s, M) = \left \{ \begin{array}{l ll}
-				\langle T_p^A(s_A, M_A), s_B             \rangle & \mbox{si}~s_A \notin F & A~\mbox{en cours d'exécution} \\
-				\langle T_p^A(s_A, M_A), T_p^B(s_B, m_B) \rangle & \mbox{si}~s_A \in F    & B~\mbox{en cours d'exécution} \end{array} \right$$
+				\langle T_p^A(s_A, M_A), s_B             \rangle & \mbox{si}~s_A \notin F & \{A~\mbox{en cours d'exécution} \\
+				\langle T_p^A(s_A, M_A), T_p^B(s_B, M_B) \rangle & \mbox{si}~s_A \in F    & \{B~\mbox{en cours d'exécution} \end{array} \right$$
 
 	\end{itemize}
+\end{definition}
 
 \section{Algorithme "Uniforme Voting"}
 
 Il reste maintenant à traiter le cas le plus favorable, à savoir le cas où les prédicats $\mathcal{P}_{nek-fixed}$ et $\mathcal{P}_{non-inf}$ sont vérifiés.
 
+\begin{algorithm}[htb]
+\scriptsize{
+\begin{distribalgo}[1]
+\begin{tabular}{ll}
+\begin{minipage}{33em}
+
+
+\INDENT{\textbf{Initialization:}}
+  \STATE $x_p := v_p$ ~~~~~~~~\{\emph{$v_p$ is the initial value of $p$}\}
+  \STATE $vote_p \in V\cup\{ ? \}$, initially $?$
+
+\ENDINDENT
+\BLANK
+
+\INDENT{\textbf{Round $r=0$:}}
+ \INDENT{$S_p^r:$}
+    \STATE send $nil$ to all processes
+  \ENDINDENT
+  \BLANK
+  \INDENT{$T_p^r:$}
+	\STATE $ x_p := min M(\Pi) \setminus \{nil\}$ ~~~~~~~~\{plus petites valeur reçue\}
+  \ENDINDENT
+\ENDINDENT
+
+\INDENT{\textbf{Round $r=2\phi+2$:}}
+ \INDENT{$S_p^r:$}
+    \STATE send $\langle x_p \rangle$ to all processes
+  \ENDINDENT
+  \BLANK
+  \INDENT{$T_p^r:$}
+	\STATE $ x_p := min M(\Pi) \setminus \{nil\}$ ~~~~~~~~\{plus petites valeur reçue\}
+	\IF{$M(\Pi) = \{v\}$}
+      \STATE $vote_p := v$ ~~~~~~~~\{toute les valeurs reçues identiques, aucun nil\}
+    \ENDIF
+  \ENDINDENT
+\ENDINDENT
+
+\INDENT{\textbf{Round $r=2\phi+1$:}}
+  \INDENT{$S_p^r:$}
+    \STATE send $\langle x_p , vote_p \rangle$ to all processes
+  \ENDINDENT
+  \BLANK
+ \INDENT{$T_p^r:$}
+
+	  \IF{$M(q) = \langle v, v \rangle$}
+		  \STATE $x_p:= v$ ~~~~~~~~\{un vote reçu\}
+     \ELSE
+       \STATE $x_p :=$ smallest  $w$ from  $\langle w , ? \rangle$ received
+       \ENDIF
+	   \IF{$M(\Pi) = \langle v, v \rangle$}
+		  \STATE $DECIDE(v)$ ~~~~~~~~\{décider si $p$ ne reçoit que des votes identiques\}
+	  \ENDIF
+         \STATE $vote_p :=\ ?$
+  \ENDINDENT
+\ENDINDENT
+
+\end{minipage}
+\end{tabular}
+
+\caption{The {\em UniformVoting} algorithm}
+\label{unifvotfig}
+\end{distribalgo}
+}
+\end{algorithm}
+
 \begin{theorem}
 	L'algorithme "Uniforme Voting" exécuté en série à la suite de l'algorithme "SyncMod" avec $k = 4$
 	résout le consensus lorsque les prédicats $\mathcal{P}_{nek-fixed}$ et $\mathcal{P}_{non-inf}$ sont vérifiés.
 \end{theorem}
+\begin{proof}
+	Tout d'abord, grâce à la synchronisation, les phases d'échange de vote et d'échange de valeurs de l'algorithme "Uniforme Voting" seront synchronisées.
+	Montrons maintenant que l'algorithme "Uniforme Voting" résout le consensus lorsque les processus démarrent de manière synchronisés modulo 2.
+	L'ébauche de preuve présentée ci-dessous est fortement inspirée de celle détaillée dans l'article sur le modèle Heard-Of.
+
+	\begin{description}
+		\item[Intégrité :] Il suffit de montrer par récurrence qu'à chaque round, les valeurs stockées dans les processus actifs appartiennent nécessairement à l'ensemble des valeurs initiales.
+		\item[Accord :] Si un processus $p$ décide une valeur $v$ au round $r$, nécessairement, le processus $\xi$ au centre de l'étoile a voté $v$ au round $r$.
+			Donc, à partir du round $r$, la seule valeur présente dans le système est $v$. Donc toute valeur décidée ultérieurement sera nécessairement $v$.
+		\item[Terminaison :]
+	\end{description}
+\end{proof}
 
 Dans cette section, on propose une adaptation de l'algorithme  "Uniforme Voting", prévue pour fonctionner avec des départs asynchrones.
 Soit $V$ un ensemble totalement ordonné.
@@ -174,14 +252,8 @@ On définit l'algorithme "Uniforme Voting" à l'aide du pseudo-code suivant :
 
 
 \INDENT{\textbf{Initialization:}}
-	\STATE $x^1_p :=\, v_p$ ~~~~\{\emph{$v_p$ is the initial value of $p$}\}
+	\STATE $x^1_p := v_p$ ~~~~\{\emph{$v_p$ is the initial value of $p$}\}
 	\STATE $vote^1_p \in Bool$, initiallement $False$
-	\STATE $dec^1_p \in Bool$, initialement $False$
-	\BLANK
-	\STATE $x^2_p :=\, v_p$
-	\STATE $vote^2_p \in Bool$, initiallement $False$
-	\STATE $dec^2_p \in Bool$, initialement $False$
-
 \ENDINDENT
 \BLANK
 
@@ -212,7 +284,7 @@ On définit l'algorithme "Uniforme Voting" à l'aide du pseudo-code suivant :
 &
 \begin{minipage}{31em}
 
-\INDENT{\textbf{Round $r=0\,$:}}
+\INDENT{\textbf{Round $r=0$:}}
 	\INDENT{$S_p:$}
 		\STATE send $\langle nil, \langle  x^1_p , False \rangle \rangle$ to all processes
 	\ENDINDENT
@@ -221,9 +293,9 @@ On définit l'algorithme "Uniforme Voting" à l'aide du pseudo-code suivant :
 	\ENDINDENT
 \ENDINDENT
 
-\INDENT{\textbf{Round $r=2\phi+1\,$:}}
+\INDENT{\textbf{Round $r=2\phi+1$:}}
 	\INDENT{$S_p:$}
-		\STATE send $\langle\, x^1_p\, ,\, \langle \, x^2_p \, ,\, vote^2_p \, \rangle \, \rangle$ to all processes
+		\STATE send $\langle x^1_p , \langle  x^2_p  , vote^2_p  \rangle  \rangle$ to all processes
 	\ENDINDENT
 	\BLANK
 	\INDENT{$T_p(M):$}
@@ -235,7 +307,7 @@ On définit l'algorithme "Uniforme Voting" à l'aide du pseudo-code suivant :
 	\ENDINDENT
 \ENDINDENT
 
-\INDENT{\textbf{Round $r=2\phi+2\,$:}}
+\INDENT{\textbf{Round $r=2\phi+2$:}}
 	\INDENT{$S_p:$}
 		\STATE send $\langle x^2_p , \langle x^1_p, vote^1_p \rangle \rangle$ to all processes
 	\ENDINDENT
