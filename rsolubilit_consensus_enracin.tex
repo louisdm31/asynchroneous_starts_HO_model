@@ -20,6 +20,11 @@
 \begin{document}
 \maketitle
 
+Le but de ce document est de déterminer la résolubilité du consensus lorsque le graphe dynamique est supposé contenir une étoile.
+On envisagera plusieurs variantes du précédent prédicat, que l'on construira, entre autre, à l'aide de transformateurs de prédicats.
+On montrera que le consensus n'est pas résoluble, sauf dans la variante la plus forte, à savoir dans le cas où le graphe est constamment en étoile,
+où le centre de l'étoile est fixe, et où tous les processus s'activent en temps fini.
+
 \section{Notations}
 
 On considère un prédicat $\Phi$ sur un graphe. On définit les transformateurs de prédicats de la manière suivante.
@@ -28,6 +33,9 @@ On considère un prédicat $\Phi$ sur un graphe. On définit les transformateurs
 	On définit le prédicat $P_k(\Phi)$ sur un graphe dynamique
 	$\mathds{G}$ par $$P_k(\Phi) \equiv \forall t \in \mathds{N}, \mathds{G}(t:t+k) \models \Phi$$
 \end{definition}
+
+$\Phi$ est toujours équivalent à $P_k(\Phi)$, puisqu'on peut trivialement construire un algorithme $A_k$ qui traduise $P_k(\Phi)$ en $\Phi$.
+
 \begin{definition}
 	On définit le prédicat $P_{borné}(\Phi)$ sur un graphe dynamique
 	$\mathds{G}$ par $$P_{borné}(\Phi) \equiv \exists b \in \mathds{N}, \forall t \in \mathds{N}, \mathds{G}(t:t+b) \models \Phi$$
@@ -37,68 +45,77 @@ On considère un prédicat $\Phi$ sur un graphe. On définit les transformateurs
 	$\mathds{G}$ par $$P_{fini}(\Phi) \equiv  \forall t \in \mathds{N}, \exists b \in \mathds{N}, \mathds{G}(t:t+b) \models \Phi$$
 \end{definition}
 
-On pose les prédicats sur un graphe $\mathds{G} = (V, E)$ suivants :
+Le prédicat $\mathcal{P}_{borné}(\Phi)$ est une version affaiblie de $\Phi$, où $\Phi$ est vérifié avec délai borné, mais inconnu des processus.
+Le prédicat $\mathcal{P}_{fini}(\Phi)$ est une version d'avantage affaiblie de $\Phi$, où $\Phi$ est vérifié avec délai inconnu des processus, et pouvant varier au cours du temps.
+
+On définit les prédicats suivants :
 \begin{itemize}
-
-	\item $\mathcal{P}_{nek} \equiv \exists p \in \Pi, \forall q \in \Pi, (p, q) \in E$
-	\item Soit $\xi \in \Pi$ un processus donné. $\mathcal{P}_{nek-fixed} \equiv \forall q \in \Pi, (\xi, q) \in E$
-
+	\item Le graphe $G = (V, E)$ vérifie le prédicat $\Phi_{nek}$ si et seulement si $\exists p \in \Pi, \forall q \in \Pi, (p, q) \in E$.
+	\item Le graphe dynamique $\mathds{G}$ vérifie le prédicat $\mathcal{P}_{nek}$ si pour tout $\forall n \in \mathds{N}, \mathds{G}_n \models \Phi_{nek}$. 
+	\item Étant donné $\xi \in \Pi$. Le graphe $G = (V, E)$ vérifie le prédicat $\Phi_{\xi-nek}$ si et seulement si $\forall q \in \Pi, (\xi, q) \in E$.
+	\item Le graphe dynamique $\mathds{G}$ vérifie le prédicat $\mathcal{P}_{\xi-nek}$ si pour tout $\forall n \in \mathds{N}, \mathds{G}_n \models \Phi_{\xi-nek}$. 
+	\item Le calendrier d'activation $\mathcal{A}$ vérifie le prédicat $\mathcal{P}_{non-inf}$ si et seulement si $\exists k \in \mathds{N}, \mathcal{A}_k = \Pi$.
 \end{itemize}
-
-\begin{definition}
-	On définit le prédicat $\mathcal{P}_{non-inf}$ sur un calendrier d'activation par 
-	$$\mathcal{P}_{non-inf} \equiv \exists k \in \mathds{N}, \mathcal{A}_k = \Pi$$
-\end{definition}
 
 \section{Théorèmes d'impossibilité}
 
+Ce premier théorème montre que le prédicat $\mathcal{P}_{non-inf}$ est indispensable pour la résolution du consensus dans un graphe avec étoile recouvrante.
+
 \begin{theorem}
-	Il n'existe pas d'algorithme qui résolve le consensus sous le prédicat $P_k(\mathcal{P}_{nek-fixed})$, même si les processus connaissent la taille du réseau.
+	Il n'existe pas d'algorithme qui résolve le consensus sous le prédicat $\mathcal{P}_{\xi-nek}$, même si les processus connaissent la taille du réseau.
 \end{theorem}
 \begin{proof}
-	On suppose qu'un tel algorithme existe, et on l'exécute dans les scénarios suivants.
+	On suppose qu'un tel algorithme existe, et on construit une exécution qui viole l'accord.
 
 	\begin{description}
-		\item[Scénario 0 : ] Le graphe dynamique est une étoile constante, centrée sur $\xi$. $\xi$ est passif pour toujours. Les autres processus ont 0 comme valeur initiale.
+		\item[Exécution 0 : ] Le graphe dynamique est une étoile constante, centrée sur $\xi$. $\xi$ est passif pour toujours. Les autres processus ont 0 comme valeur initiale.
 			Et ils s'activent en temps fini. La terminaison assure qu'il décident tous 0 en temps fini.
 
-		\item[Scénario 1 : ] Le graphe dynamique est une étoile constante, centrée sur $\xi$. $\xi$ est passif pour toujours. Les autres processus ont 1 comme valeur initiale.
+		\item[Exécution 1 : ] Le graphe dynamique est une étoile constante, centrée sur $\xi$. $\xi$ est passif pour toujours. Les autres processus ont 1 comme valeur initiale.
 			Et ils s'activent en temps fini. La terminaison assure qu'il décident tous 1 en temps fini.
 
-		\item[Scénario 2 : ] Le graphe dynamique est une étoile constante, centrée sur $\xi$. $\xi$ est passif pour toujours. Les autres processus ont différentes valeurs initiales.
+		\item[Exécution 2 : ] Le graphe dynamique est une étoile constante, centrée sur $\xi$. $\xi$ est passif pour toujours. Les autres processus ont différentes valeurs initiales.
 			En particulier, un processus $p_0$ a 0 comme valeur initiale, et $p_1$ a 1.
 			Et ils s'activent en temps fini. Pour $p_0$, ce scénario est indistinguable du scénario 0, donc $p_0$ décide 0.
 			Pour $p_1$, ce scénario est indistinguable du scénario 1, donc $p_1$ décide 1.  Cela viole l'accord.
 	\end{description}
 \end{proof}
 
+Ce deuxième théorème montre que la racine de l'étoile recouvrante doit être fixe pour que le consensus soit résoluble.
+
 \begin{theorem}
-	Il n'existe pas d'algorithme qui résolve le consensus sous les prédicats $P_k(\mathcal{P}_{nek})$ et $\mathcal{P}_{non-inf}$, même si les processus connaissent la taille du réseau.
+	Il n'existe pas d'algorithme qui résolve le consensus sous les prédicats $\mathcal{P}_{nek}$ et $\mathcal{P}_{non-inf}$, même si les processus connaissent la taille du réseau.
 \end{theorem}
 \begin{proof}
-	On suppose qu'un tel algorithme existe, et on l'exécute dans les scénarios suivants.
+	On suppose qu'un tel algorithme existe, et on construit une exécution qui viole l'accord.
 	Soient $p_1, p_2 \in \Pi$.
 	\begin{description}
 
-		\item[Scénario 1 :] $\mathds{G}_r$ est pour tout $r$ égal à l'étoile centrée en $p_1$. La terminaison assure que $p_1$ décidera en un round $t$.
-		\item[Scénario 2 :] Pour tout $r \leq t$, $\mathds{G}_r$ est l'étoile centrée en $p_1$. Pour tout $r > t$, $\mathds{G}_r$ est l'étoile centrée en $p_2$. On suppose que $p_2$
-			s'active au round $t+1$. Dans ces conditions, $p_2$ ne reçoit jamais de message. La terminaison et l'intégrité assurent que $p_2$ décide finalement sa valeur initiale,
+		\item[Exécution 1 :] $\mathds{G}_r$ est pour tout $r$ égal à l'étoile centrée en $p_1$. $p_1$ s'active en temps fini, donc la terminaison assure que $p_1$ décidera en un round $t$.
+		\item[Exécution 2 :] Pour tout $r \leq t$, $\mathds{G}_r$ est l'étoile centrée en $p_1$. $p_1$ s'active au même round que dans l'exécution précédente.
+			Pour tout $r > t$, $\mathds{G}_r$ est l'étoile centrée en $p_2$. On suppose que $p_2$ s'active au round $t+1$.
+			Dans ces conditions, $p_2$ ne reçoit jamais de message. La terminaison et l'intégrité assurent que $p_2$ décide finalement sa valeur initiale,
 			tandis que $p_1$ a déjà décidé. Dans ces conditions, l'accord est impossible à assurer.
 
 	\end{description}
 \end{proof}
 
+Enfin, ce dernier théorème montre que le prédicat $\mathcal{P}_{\xi-nek}$ doit être vérifié à chaque round, et non après un certain délai inconnu des processus.
+
 \begin{theorem}
-	Il n'existe pas d'algorithme qui résolve le consensus sous les prédicats $P_{borné}(\mathcal{P}_{nek-fixed})$ et $\mathcal{P}_{non-inf}$, même si les processus connaissent la taille du réseau.
+	Il n'existe pas d'algorithme qui résolve le consensus sous les prédicats $P_{borné}(\Phi_{\xi-nek})$ et $\mathcal{P}_{non-inf}$, même si les processus connaissent la taille du réseau.
 \end{theorem}
 \begin{proof}
-	On suppose qu'un tel algorithme existe, et on l'exécute dans les scénarios suivants.
+	On suppose qu'un tel algorithme existe, et on construit une exécution qui viole l'accord.
 	Soient $p_1, p_2 \in \Pi$.
 	\begin{description}
 
-		\item[Scénario 1 :] $\mathds{G}_n$ est pour tout $n$ égal à l'étoile centrée en $p_1$. On exécute l'algorithme $A$. La terminaison assure que $p_1$ décidera en un round $r_1$.
-		\item[Scénario 2 :] $\mathds{G}_n$ est pour tout $n$ égal à l'étoile centrée en $p_2$. On exécute l'algorithme $A$. La terminaison assure que $p_2$ décidera en un round $r_2$.
-		\item[Scénario 3 :] Pour tout $n \leq r_0 + r_1$, $\mathds{G}_n$ est le graphe sans aucune arête. Pour tout $n > r_0 + r_1$, $\mathds{G}_n$ est l'étoile centrée en $p_1$.
+		\item[Exécution 1 :] $\mathds{G}_n$ est pour tout $n$ égal à l'étoile centrée en $p_1$. On exécute l'algorithme $A$.
+			$p_1$ s'active en temps fini, donc la terminaison assure que $p_1$ décidera en un round $r_1$.
+		\item[Exécution 2 :] $\mathds{G}_n$ est pour tout $n$ égal à l'étoile centrée en $p_2$. On exécute l'algorithme $A$.
+			$p_2$ s'active en temps fini, donc la terminaison assure que $p_2$ décidera en un round $r_2$.
+		\item[Exécution 3 :] Pour tout $n \leq r_0 + r_1$, $\mathds{G}_n$ est le graphe sans aucune arête. Pour tout $n > r_0 + r_1$, $\mathds{G}_n$ est l'étoile centrée en $p_1$.
+			$p_1$ et $p_2$ s'activent au même round que lors des deux précédentes exécutions.
 			Pour $p_1$, ce scénario est indistinguable du scénario 1, donc $p_1$ décidera au round $r_1$.
 			Pour $p_2$, ce scénario est indistinguable du scénario 1, au moins jusqu'au round $r_2$. Donc $p_2$ décidera au round $r_2$.
 			Dans ces conditions, l'accord est impossible à assurer.
@@ -123,18 +140,18 @@ On suppose que $States_p^A$ contient un sous-ensemble $F \subseteq States_p^A$ d
 		\item $S_p^{AB}$ définit par, pour tout $s = (s_A, s_B)$, 
 			$$S_p^{AB}(s) = \left \{ \begin{array}{l ll}
 				\langle S_p^A(s_A), nil        \rangle & \mbox{si}~s_A \notin F & \{A~\mbox{en cours d'exécution}\} \\
-				\langle S_p^A(s_A), S_p^B(s_B) \rangle & \mbox{si}~s_A \in F    & \{B~\mbox{en cours d'exécution} \end{array}\} \right$$
+				\langle S_p^A(s_A), S_p^B(s_B) \rangle & \mbox{si}~s_A \in F    & \{B~\mbox{en cours d'exécution}\} \end{array} \right$$
 			\item $T_p^{AB}$ définit par, pour tout $s = (s_A, s_B) \in States_p^{AB}$, pour tout $M = (M_A, M_B)$, 
 			$$T_p^{AB}(s, M) = \left \{ \begin{array}{l ll}
-				\langle T_p^A(s_A, M_A), s_B             \rangle & \mbox{si}~s_A \notin F & \{A~\mbox{en cours d'exécution} \\
-				\langle T_p^A(s_A, M_A), T_p^B(s_B, M_B) \rangle & \mbox{si}~s_A \in F    & \{B~\mbox{en cours d'exécution} \end{array} \right$$
+				\langle T_p^A(s_A, M_A), s_B             \rangle & \mbox{si}~s_A \notin F & \{A~\mbox{en cours d'exécution}\} \\
+				\langle T_p^A(s_A, M_A), T_p^B(s_B, M_B) \rangle & \mbox{si}~s_A \in F    & \{B~\mbox{en cours d'exécution}\} \end{array} \right$$
 
 	\end{itemize}
 \end{definition}
 
 \section{Algorithme "Uniforme Voting"}
 
-Il reste maintenant à traiter le cas le plus favorable, à savoir le cas où les prédicats $\mathcal{P}_{nek-fixed}$ et $\mathcal{P}_{non-inf}$ sont vérifiés.
+Il reste maintenant à traiter le cas le plus favorable, à savoir le cas où les prédicats $\mathcal{P}_{\xi-nek}$ et $\mathcal{P}_{non-inf}$ sont vérifiés.
 
 \begin{algorithm}[htb]
 \scriptsize{
@@ -150,30 +167,7 @@ Il reste maintenant à traiter le cas le plus favorable, à savoir le cas où le
 \ENDINDENT
 \BLANK
 
-\INDENT{\textbf{Round $r=0$:}}
- \INDENT{$S_p^r:$}
-    \STATE send $nil$ to all processes
-  \ENDINDENT
-  \BLANK
-  \INDENT{$T_p^r:$}
-	\STATE $ x_p := min M(\Pi) \setminus \{nil\}$ ~~~~~~~~\{plus petites valeur reçue\}
-  \ENDINDENT
-\ENDINDENT
-
-\INDENT{\textbf{Round $r=2\phi+2$:}}
- \INDENT{$S_p^r:$}
-    \STATE send $\langle x_p \rangle$ to all processes
-  \ENDINDENT
-  \BLANK
-  \INDENT{$T_p^r:$}
-	\STATE $ x_p := min M(\Pi) \setminus \{nil\}$ ~~~~~~~~\{plus petites valeur reçue\}
-	\IF{$M(\Pi) = \{v\}$}
-      \STATE $vote_p := v$ ~~~~~~~~\{toute les valeurs reçues identiques, aucun nil\}
-    \ENDIF
-  \ENDINDENT
-\ENDINDENT
-
-\INDENT{\textbf{Round $r=2\phi+1$:}}
+\INDENT{\textbf{Round $r=2\phi$:}}
   \INDENT{$S_p^r:$}
     \STATE send $\langle x_p , vote_p \rangle$ to all processes
   \ENDINDENT
@@ -192,133 +186,17 @@ Il reste maintenant à traiter le cas le plus favorable, à savoir le cas où le
   \ENDINDENT
 \ENDINDENT
 
-\end{minipage}
-\end{tabular}
-
-\caption{The {\em UniformVoting} algorithm}
-\label{unifvotfig}
-\end{distribalgo}
-}
-\end{algorithm}
-
-\begin{theorem}
-	L'algorithme "Uniforme Voting" exécuté en série à la suite de l'algorithme "SyncMod" avec $k = 4$
-	résout le consensus lorsque les prédicats $\mathcal{P}_{nek-fixed}$ et $\mathcal{P}_{non-inf}$ sont vérifiés.
-\end{theorem}
-\begin{proof}
-	Tout d'abord, grâce à la synchronisation, les phases d'échange de vote et d'échange de valeurs de l'algorithme "Uniforme Voting" seront synchronisées.
-	Montrons maintenant que l'algorithme "Uniforme Voting" résout le consensus lorsque les processus démarrent de manière synchronisés modulo 2.
-	L'ébauche de preuve présentée ci-dessous est fortement inspirée de celle détaillée dans l'article sur le modèle Heard-Of.
-
-	\begin{description}
-		\item[Intégrité :] Il suffit de montrer par récurrence qu'à chaque round, les valeurs stockées dans les processus actifs appartiennent nécessairement à l'ensemble des valeurs initiales.
-		\item[Accord :] Si un processus $p$ décide une valeur $v$ au round $r$, nécessairement, le processus $\xi$ au centre de l'étoile a voté $v$ au round $r$.
-			Donc, à partir du round $r$, la seule valeur présente dans le système est $v$. Donc toute valeur décidée ultérieurement sera nécessairement $v$.
-		\item[Terminaison :]
-	\end{description}
-\end{proof}
-
-Dans cette section, on propose une adaptation de l'algorithme  "Uniforme Voting", prévue pour fonctionner avec des départs asynchrones.
-Soit $V$ un ensemble totalement ordonné.
-
-\begin{itemize}
-
-	\item Pour tout processus $p$, on pose
-		$State_p = V \times Bool \times Bool \times V \times Bool \times Bool \times Bool$.
-	\item Pour tout processus $p$, on pose
-		$Init_p = \{\langle v, False, False, v, False, False, False \rangle, v \in V\}$
-	\item Les messages sont de type $V \times (V \times Bool \uplus \{nil\})$.
-
-
-	\item On définit $fst : V \times (V \times Bool \uplus \{nil\}) \uplus \{nil\} \rightarrow V \uplus \{nil\}$ par
-	\begin{itemize}
-		\item $fst(nil) = nil$
-		\item $fst(\langle v, w \rangle) = v$
-	\end{itemize}
-
-	\item On définit $snd : V \times (Bool \times Bool \uplus \{nil\}) \uplus \{nil\} \rightarrow (V \times Bool) \uplus \{nil\}$ par
-	\begin{itemize}
-		\item $fst(nil) = nil$
-		\item $fst(\langle v, w \rangle) = w$
-	\end{itemize}
-\end{itemize}
-
-On définit l'algorithme "Uniforme Voting" à l'aide du pseudo-code suivant :
-\begin{algorithm}[htb]
-\scriptsize{
-\begin{distribalgo}[1]
-\begin{tabular}{ll}
-\begin{minipage}{41em}
-
-
-\INDENT{\textbf{Initialization:}}
-	\STATE $x^1_p := v_p$ ~~~~\{\emph{$v_p$ is the initial value of $p$}\}
-	\STATE $vote^1_p \in Bool$, initiallement $False$
-\ENDINDENT
-\BLANK
-
-\INDENT{\textbf{Fonctions sur une instance}}
-	\INDENT{$T^1_p(M, ref ~ x, ref ~ vote, ref ~ dec):$}
-		\STATE $ x := min M(\Pi) \setminus \{nil\}$ 
-		\IF{$M(\Pi) = \{v\}$} 
-			\STATE $vote := True$ ~~~~\{tous les messages valent $v$, aucun $nil$\}
-		\ENDIF
-	\ENDINDENT
-	\BLANK
-
-	\INDENT{$T^2_p(M, ref ~ x, ref ~ vote, ref ~ dec):$}
-
-		\IF{$\exists v \in V, q \in \Pi, M(q) = \langle v, True \rangle$}
-			\STATE $x := v$ ~~~~\{au moins un vote reçu\}
-		\ELSE
-			\STATE $x := fst (min (M(\Pi) \setminus {nil}))$ ~~~~\{plus petite valeur reçue\}
-		\ENDIF
-		\IF{$M(\Pi) = \{\langle v, True \rangle\}$}
-			\STATE $dec := True$ ~~~~\{tous les messages sont des votes pour $v$\}
-		\ENDIF
-		\STATE $vote_p := False$
-	\ENDINDENT
-\ENDINDENT
-
-\end{minipage}
-&
-\begin{minipage}{31em}
-
-\INDENT{\textbf{Round $r=0$:}}
-	\INDENT{$S_p:$}
-		\STATE send $\langle nil, \langle  x^1_p , False \rangle \rangle$ to all processes
-	\ENDINDENT
-	\INDENT{$T_p(M):$}
-		\STATE $T^2(snd \circ M, x^1_p, vote^1_p, dec^1_p)$
-	\ENDINDENT
-\ENDINDENT
-
 \INDENT{\textbf{Round $r=2\phi+1$:}}
-	\INDENT{$S_p:$}
-		\STATE send $\langle x^1_p , \langle  x^2_p  , vote^2_p  \rangle  \rangle$ to all processes
-	\ENDINDENT
-	\BLANK
-	\INDENT{$T_p(M):$}
-		\STATE $T^1(fst \circ M, x^1_p, vote^1_p, dec^1_p)$
-		\STATE $T^2(snd \circ M, x^2_p, vote^2_p, dec^2_p)$
-		\IF{$dec^1_p \wedge dec^2_p $}
-			\STATE $DECIDE(min ~ x^1_p ~ x^2_p)$
-		\ENDIF
-	\ENDINDENT
-\ENDINDENT
-
-\INDENT{\textbf{Round $r=2\phi+2$:}}
-	\INDENT{$S_p:$}
-		\STATE send $\langle x^2_p , \langle x^1_p, vote^1_p \rangle \rangle$ to all processes
-	\ENDINDENT
-	\BLANK
-	\INDENT{$T_p(M)$}
-		\STATE $T^1_p(fst \circ M, x_p^2, vote^2_p, dec^2_p)$
-		\STATE $T^2_p(snd \circ M, x_p^1, vote^1_p, dec^1_p)$
-		\IF{$dec^1_p \wedge dec^2_p $}
-			\STATE $DECIDE(min ~ x^1_p ~ x^2_p)$
-		\ENDIF
-	\ENDINDENT
+ \INDENT{$S_p^r:$}
+    \STATE send $\langle x_p \rangle$ to all processes
+  \ENDINDENT
+  \BLANK
+  \INDENT{$T_p^r:$}
+	\STATE $ x_p := min M(\Pi) \setminus \{nil\}$ ~~~~~~~~\{plus petites valeur reçue\}
+	\IF{$M(\Pi) = \{v\}$}
+      \STATE $vote_p := v$ ~~~~~~~~\{toute les valeurs reçues identiques, aucun nil\}
+    \ENDIF
+  \ENDINDENT
 \ENDINDENT
 
 \end{minipage}
@@ -330,172 +208,82 @@ On définit l'algorithme "Uniforme Voting" à l'aide du pseudo-code suivant :
 }
 \end{algorithm}
 
-\textbf{Observations :} Cet algorithme consiste en fait à exécuter deux instances de "Uniforme Voting" en parallèle.
-L'état est donc la concaténation de deux sous-états.
-Les deux fonctions $T^1$ et $T^2$ définissent le comportement de chaque instance induviduellement.
-Au round $0$, seule la première instance démarre.
-Aux rounds impairs, la première instance effectue sa phase d'échange de vote, tandis que la seconde, sa phase d'échange de valeurs.
-Aux rounds pairs, c'est l'inverse.
-À chaque round, les processus reçoivent des messages de la forme $\langle x_1 , \langle x_2, vote_2 \rangle \rangle$.
-Si $M$ est la fonction de réception, pour un round donné, et un processus fixé, $fst \circ M$ est la fonction de réception restreinte à l'échange de valeurs.
-De même $snd \circ M$ est celle restreinte à l'échange de vote.
-On constate que, à chaque round, les instances qui en sont à la phase d'échange de valeur communiquent exclusivement entre elles, et de même pour celles qui en sont à l'échange de vote.
-On note donc $\mathcal{U}_{vote}^n$, qui à chaque processus $p$ associe l'objet $\langle x^i_p, vote^i_p, dec^i_p \rangle$
-correspondant à l'instance qui en est à l'échange de vote au round $n$, ou $nil$ si inactif. On note de même $\mathcal{U}_{val}^n$.
+On pose le prédicat $\mathcal{P}_{sync-mod-2} \equiv \exists c \in \{0, 1\}, \forall k \in \mathds{N}, \mathcal{A}_{2k+c} = \mathcal{A}_{2k+c+1}$.
 
 \subsection{Intégrité}
 \begin{lemma}
-	$\forall n \in \mathds{N}, \forall p \in \mathcal{A}_{n+1}, \forall x \in V, \mathcal{U}_{val}^n(p) = \langle x, *, * \rangle \Rightarrow x \in \{\sigma^0_q, q \in \Pi\}$
-	(resp. $\mathcal{U}_{vote}^n(p)$).
+	Toute exécution de l'algorithme "Uniforme Voting" vérifie l'intégrité lorsque le prédicat $\mathcal{P}_{sync-mod-2}$ est vérifié.
 \end{lemma}
 \begin{proof}
-
-	On montre ce lemma par récurrence sur $n$.
-
-	\textbf{Initialization :} Triviale, car $p \in \mathcal{A}_1 \Rightarrow x^1_p(0) = x^2_p(0) = \sigma^0(p)$.
-
-	\textbf{Hérédité :} On suppose, pour un $n$ fixé, que, pour tout $p \in \mathcal{A}_{n+1}$, pour tout $x \in V$ :
-	\begin{itemize}
-
-		\item $\mathcal{U}_{val}^n(p)  = \langle x, *, * \rangle \Rightarrow x \in \{\sigma^0_q, q \in \Pi\}$
-		\item $\mathcal{U}_{vote}^n(p) = \langle x, *, * \rangle \Rightarrow x \in \{\sigma^0_q, q \in \Pi\}$.
-
-	\end{itemize}
-	Soit $p \in \mathcal{A}_{n+2}$. On montre maintenant les deux parties de l'invariant.
-	\begin{itemize}
-
-		\item On suppose que $\mathcal{U}^{n+1}_{val}(p) = \langle x, *, * \rangle$.
-			En vertu de la ligne 10 du pseudo-code, on a $x = min (M(\Pi) \setminus \{nil\})$ avec $M = fst \circ M^{n+1}_p$.
-			On applique la seconde hypothèse au procesus qui a émis ce vote.
-			Ainsi, il existe un procesus $q$ tel que, si $\mathcal{U}_{vote}^n(q) = \langle x', *, *\rangle$, on obtient $x = x' \in \{\sigma^0_q, q \in \Pi\}$.
-			Cela prouve la première partie de l'invariant.
-		\item On suppose que $\mathcal{U}^{n+1}_{vote}(p) = \langle x, *, * \rangle$.
-			\begin{itemize}
-				\item Si il existe un $q$ tel que $M(q) = \langle x', True, * \rangle$, on applique la première hypothèse au processus $q$.
-					On obtient $x = x' \in \{\sigma^0_q, q \in \Pi\}$ avec $M = snd \circ M^{n+1}_p$.
-				\item Sinon, $x = min (M(\Pi) \setminus \{nil\})$ (cf. ligne 17 dans le pseudo-code).
-					On considère le procesus $q$ tel que $min (M(\Pi) \setminus \{nil\}) = M(q)$,
-					et on applique à $q$ la première hypothèse. Ainsi, si $\mathcal{U}_{val}^n(q) = \langle x', *, * \rangle$, on a $x = x' \in \{\sigma^0_q, q \in \Pi\}$.
-			\end{itemize}
-			Dans tout les cas, cela prouve la deuxième partie de l'invariant.
-	\end{itemize}
-\end{proof}
-
-\begin{lemma}
-	Toute exécution de l'algorithme "Uniforme Voting" vérifie l'intégrité.
-\end{lemma}
-\begin{proof}
-	En utilisant les deux versions de ce lemme, on montre que $\forall n \in \mathds{N}, \forall p \in \mathcal{A}_n, min (x^1_p(n), x^2_p(n)) \in \{\sigma^0_q, q \in \Pi\}$.
-	Cela prouve l'intégrité.
+	Il suffit de montrer par récurrence qu'à chaque round, les valeurs stockées dans les processus actifs appartiennent nécessairement à l'ensemble des valeurs initiales.
 \end{proof}
 
 \subsection{Accord}
 
 \begin{lemma}
-	Toute exécution de l'algorithme "Uniforme Voting" vérifie l'accord lorsque le graphe dynamique vérifie le prédicat $\exists \xi \in \Pi, \forall n \in \mathds{N}, \xi \in K(n)$.
+	Toute exécution de l'algorithme "Uniforme Voting" vérifie l'accord lorsque le graphe dynamique vérifie le prédicat $\mathcal{P}_{\xi-nek}$
+	et le calendrier d'activation vérifie $\mathcal{P}_{sync-mod-2}$.
 \end{lemma}
 \begin{proof}
-	Supposons que la première instance de $p$ décide au round $n$ une valeur $v$, et que cette instance soit la première à décider parmi les instances dans $\mathcal{U}^n_{vote}$.
-	On sait que $\xi \in \mathcal{A}_n$, sinon tous les processus recevrait au moins un message $nil$ à chaque rounds, cela empêcherait tout vote, donc toute décision.
-	On montre par récurrence sur $k$ que
-	$\forall k \in \mathds{N}, \forall q \in \mathcal{A}_{n+2k},
-	\mathcal{U}_{vote}^{n+2k }(q) = \langle v, *, * \rangle \wedge
-	\mathcal{U}_{val}^{n+2k+1}(q) = \langle v, True, * \rangle$.
+	Si un processus $p$ décide une valeur $v$ au round $r$, nécessairement, le processus $\xi$ au centre de l'étoile a voté $v$ au round $r$.
+	Donc, au round $r$, tous les processus actifs adoptent $v$.
+	Donc toute valeur décidée ultérieurement sera nécessairement $v$. Pour s'en convaincre, on montre aisément par récurrence sur $k$ la proposition suivante :
+	$$\forall k \in \mathds{N}, \forall q \in \mathcal{A}_{r+2k}, vote_p(2k) = v \wedge x_q(r+2k) = v \wedge x_q(r+2k+1) = v$$.
 
-	\textbf{Initialization :} La ligne 18 du pseudo-code montre que, puisque $p$ a décidé, $snd \circ M^n_p(\Pi) = \{\langle v, True \rangle\}$, Donc $snd \circ M^n_p(\xi) = \langle v, True \rangle$.
-		Ainsi, au round $n$, $\xi$ a envoyé à tous les processus un message de la forme $\langle *, \langle v, True \rangle \rangle$.
-		La ligne 15 du pseudo-code montre que, pour tout $q \in \mathcal{A}_n$, $\mathcal{U}_{vote}^n(q)$ est de la forme $\langle v, *, * \rangle$.
-
-		On montre maintenant que pour tout $q \in \mathcal{A}_{n+1}, \mathcal{U}^{n+1}_{val}(q)$ est de la forme $\langle v, True, * \rangle$.
-		La ligne 10 du pseudo-code montre que si $\mathcal{U}^{n+1}_{val} = \langle v', *, * \rangle$, on a $v' = min(M(\Pi) \setminus \{nil\})$ avec $M = fst \circ M_q^{n+1}$.
-		De plus les instances s'activent exclusivement lors des phrases d'échanges de votes. Donc $M^{-1}(V) = \mathcal{A}_{n}$.
-		D'après le paragraphe précédent, on obtient $M(\Pi) \setminus \{nil\} = \{v\}$. Donc $\mathcal{U}^{n+1}(q)$ est de la forme $\langle v, True, * \rangle$.
-		Cela clos l'initialisation.
-
-	\textbf{Hérédité :} Pour $k$ fixé, on suppose que $\forall q \in \mathcal{A}_{n+2k},
-		\mathcal{U}_{vote}^{n+2k }(q) = \langle v, *, * \rangle \wedge
-		\mathcal{U}_{val}^{n+2k+1}(q) = \langle v, True, * \rangle$.
-		Soit $q \in \mathcal{A}_{n+2k+2}$.
-		Lors du round $n+2k+2$, tous les processus reçoivent de la part de $\xi$, un message de la forme $\langle *, \langle v, True \rangle \rangle$
-		Donc pour tout $q \in \mathcal{A}_{n+2k+2}$, $\mathcal{U}_{vote}^{n+2k+2}(q)$ est de la forme $\langle v, *, * \rangle$.
-		De la même manière que pour l'initialisation, on en déduit que $\mathcal{U}^{n+2k+3}(q)$ est de la forme $\langle v, True, * \rangle$.
-		Cela clos l'hérédité.
-
-	À partir de cette proposition, on montre que toute décision ultérieure au round $n$ décidra nécessairement $v$. Cela prouve l'accord de chacune des instances de l'algorithme,
-	donc cela prouve l'accord de l'algorithme dans son ensemble.
+	Cela achève l'accord.
 \end{proof}
 
 \subsection{Terminaison}
 
 	\begin{lemma}
-		Soit $r$ le round auquel $\xi$ s'active.
-		Pour toute exécution vérifiant $\forall n \in \mathds{N}, \xi \in K(n)$,
-		la suite $(x^1_\xi(n+r))_{n \in \mathds{N}}$ (resp. $(x^2_\xi(n+r))_{n \in \mathds{N}}$) est décroissante.
+		Étant donné une exécution vérifiant $\mathcal{P}_{\xi-nek}$ et $\mathcal{P}_{sync-mod-2}$.
+		Soit $r$ le round auquel $\xi$, le centre de l'étoile, s'active.
+		La suite $(x_\xi(r+k))_{k \in \mathds{N}}$, représentant la succession des valeurs de $\xi$, est décroissante.
 	\end{lemma}
 	\begin{proof}
-		Soit $n \in \mathds{N}$.
+		Soit $k \in \mathds{N}$. Soit $M$ la fonction de réception de $\xi$ au round $r+k+1$.
 		\begin{itemize}
 
-			\item Si $n+1$ est pair, la ligne 10 du pseudo-code assure que $x^1_\xi(n+r+1) = min(M(\Pi) \setminus \{nil\})$ avec $M = fst \circ M_\xi^{n+r+1}$.
-				Or $M_\xi^{n+1}(\xi) = \langle x^1_\xi(n), * \rangle$.
-				Donc $x^1_\xi(n+1) \leq x^1_\xi(n)$.
-			\item Si $n+1$ est impair et si $\exists v \in V, \exists q \in \mathcal{A}_{n+r+1}, M(q) = \langle v, True \rangle$ avec $M = snd \circ M_\xi^{n+r+1}$,
-				on a nécessairement $v = x^1_\xi(n+r)$, puisque $\xi$ a envoyé $x^1_\xi(n+r)$ au round $n+r$ (cf. lignes 11-12).
-				Donc $x^1_\xi(n+r+1) = x^1_\xi(n+r)$.
-			\item Sinon la ligne 17 du pseudo-code assure que $x^1_\xi(n+r+1) = min(fst \circ M(\Pi) \setminus \{nil\})$ avec $M = snd \circ M_\xi^{n+r+1}$.
-				Or $M_\xi^{n+r+1}(\xi) = \langle x^1_\xi(n+r), * \rangle$.
-				Donc $x^1_\xi(n+r+1) \leq x^1_\xi(n+r)$.
+			\item Si $k+1$ est impair, la ligne 19 du pseudo-code assure que $x_\xi(r+k+1) = min(M(\Pi) \setminus \{nil\})$.
+				Or $M(\xi) = x_\xi(r+k)$.  Donc $x_\xi(r+k+1) \leq x_\xi(r+k)$.
+			\item Si $k+1$ est pair et si $\exists q \in \mathcal{A}_{r+k+1}, M(q) = \langle v, v \rangle$,
+				on a nécessairement $v = x_\xi(r+k)$, puisque $\xi$ a envoyé $x_\xi(r+k)$ au round $r+k$ (cf. lignes 20-21).
+				Donc $x_\xi(r+k+1) = x_\xi(r+k)$.
+			\item Sinon la ligne 11 du pseudo-code assure que $x_\xi(r+k+1) = min(M(\Pi) \setminus \{nil\})$.
+				Or $M(\xi) = \langle x_\xi(r+k), * \rangle$.
+				Donc $x_\xi(r+k+1) \leq x_\xi(r+k)$.
 
 		\end{itemize}
-		Dans tous les cas, $x^1_\xi(n+r+1) \leq x^1_\xi(n+r)$.
+		Dans tous les cas, $x_\xi(r+k+1) \leq x_\xi(r+k)$.
 	\end{proof}
 		
 
 	\begin{lemma}
-		Toute exécution de "Uniforme Voting" vérifie la terminaison lorsque le graphe de communication vérifie $\forall n \in \mathds{N}, \xi \in K(n)$
-		et lorsque le calendrier d'activation vérifie $\exists r_0 \in \mathds{N}, \mathcal{A}_{r_0} = \Pi$.
+		Toute exécution de "Uniforme Voting" vérifie la terminaison lorsque le graphe de communication vérifie $\mathcal{P}_{\xi-nek}$
+		et lorsque le calendrier d'activation vérifie $\mathcal{P}_{non-inf}$ et $\mathcal{P}_{sync-mod-2}$.
 	\end{lemma}
 	\begin{proof}
-		On montre l'accord pour chacune des deux instances de l'algorithme.
-		En combinant le lemme 1 et le lemme précédent, on montre que la suite $(x^1_\xi(n+r_0))_{n \in \mathds{N}}$ se stabilise sur une valeur $v$ à partir d'un certain round $n+r_0$.
-		Au round $2n+r_0+1$, l'instance $\mathcal{U}^{2n+r_0+1}_{val}(\xi)$ envoie donc un message de la forme $\langle v, * \rangle$ à tous les processus.
-		La ligne 10 du pseudo-code assure que $\forall q \in \mathcal{A}_{2n+r_0+1}$,
-		on a $\mathcal{U}^{2n+r_0+1}_{val}(q)$ de la forme $\langle v', *, * \rangle$ avec $v' \leq v$.
-		Au round suivant, on obtient de même $\mathcal{U}^{2n+r_0+2}_{vote}(q)$ de la forme $\langle v', *, * \rangle$ avec $v' \leq v$.
+		Soit $r_0$ le round auquel tous les processus sont actifs.
 
-		La fonction de réception $M_\xi^{2n+r_0+3}$ vérifie donc
-		$\forall q \in \mathcal{A}_{2n+r_0+3}, fst \circ M_\xi^{2n+r_0+3}(q) \leq v$.
-		Comme, au delà du round $n+r_0$, la suite $(x^1_\xi(n+r_0))_{n \in \mathds{N}}$ s'est stabilisée, on a $x^1_\xi(2n+r_0+3) = v$.
-		La ligne 10 du pseudo-code assure que $\forall q \in \mathcal{A}_{2n+r_0+3}, fst \circ M_\xi^{2n+r_0+3}(q) = v$.
-		Donc $\mathcal{U}_{val}^{2n+r_0+3}(\xi) = \langle v, True, * \rangle$.
-		Donc, d'après la ligne 15 du pseudo-code, pour tout $q \in \mathcal{A}_{2n+r_0+4}$, on a $\mathcal{U}_{vote}^{2n+r_0+4}(q)$ de la forme $\langle v, *, * \rangle$
-		Au round suivant, d'après les lignes 10-12 du pseudo-code, on obtient $\mathcal{U}^{2n+r_0+5}_{val}(q)$ de la forme $\langle v, True, * \rangle$.
-		Au round suivant, d'après les lignes 17-19 du pseudo-code, on obtient $\mathcal{U}^{2n+r_0+6}_{vote}(q)$ de la forme $\langle v, *, True \rangle$.
-		Ainsi, toutes les instances de $\mathcal{U}_{vote}^{2n+r_0+6}$ décident.
-		Cela prouve la terminaison.
+		La suite $(x_\xi(r_0+k))_{k \in \mathds{N}}$ est décroissante et ne contient que des valeurs initiales. Donc elle se stabilise sur une valeur $v$ à partir d'un certain round $r_0+k_0$.
+		On considère maintenant le round $r_0+2k_0$, qui est un round d'échange de vote.
+		$\xi$ envoie $\langle v, * \rangle$ à tous les processus. Les lignes 8 à 11 du pseudo-code assurent que $\forall q \in \mathcal{A}_{r_0+2k_0}, x_q(r_0+2k_0) \leq v$.
 
+		Soit $M$ la fonction de réception de $\xi$ lors du round $r_0+2k_0+1$.
+		Comme $x_\xi(r_0+2k_0+1) = v$, la ligne 19 assure que $\xi$ n'a pas reçu de message inférieur à $v$.
+		Donc $M(\Pi) = \{v\}$. Donc $vote_\xi(r_0+2k_0+1) = v$. Donc au round $r_0+2k_0+2$, la ligne 9 assure que tous les processus adoptent $v$.
+
+		Au rounds $r_0+2k_0+3$, les processus ne reçoivent que des messages contenant $v$, donc au rounds $r_0+2k_0+4$, tous les processus votent $v$, donc tous les processus décident.
 	\end{proof}
-
-
+\section{Conclusion}
 
 \begin{theorem}
-
-	L'algorithme "Uniform Voting" résoud le consensus lorsque :
-	\begin{itemize}
-
-		\item le graphe de communication vérifie $P_k(\Phi)$, avec $k$ connu par les processus,
-		\item les processus connaissent $\mathcal{N}$ une borne supérieure sur la taille du système,
-		\item le calendrier d'activation vérifie $\exists r_0 \in \mathds{N}, \mathcal{A}_{r_0} = \Pi$.
-
-	\end{itemize}
+	L'algorithme "Uniforme Voting" exécuté en série à la suite de l'algorithme "SyncMod" avec $k = 4$
+	résout le consensus lorsque les prédicats $\mathcal{P}_{\xi-nek}$ et $\mathcal{P}_{non-inf}$ sont vérifiés.
 \end{theorem}
-
 \begin{proof}
+	Tout d'abord, grâce à la synchronisation, les phases d'échange de vote et d'échange de valeurs de l'algorithme "Uniforme Voting" seront synchronisées.
+	Les trois sections précédentes montrent que l'algorithme "Uniforme Voting" permet ensuite de résoudre le consensus.
 
-	Comme les processus connaissent $k$, il existe un algorithme $A_k$, qui traduit $P_k(\Phi)$ en $\Phi$.
-
-	Comme les processus connaissent $\mathcal{N}$, il existe un algorithme $B_\mathcal{N}$ qui traduit $\Phi$ en $\exists \xi \in \Pi, \forall r \in \mathds{N}, \xi \in K(r)$.
-
-	À l'aide de ce dernier prédicat, et de la troisième hypothèse, on montre que l'algorithme "Uniforme Voting" résoud le consensus.
 \end{proof}
 \end{document}
