@@ -42,7 +42,7 @@ Le but de ce document est de proposer un algorithme permettant de synchroniser l
 
 \begin{definition}
 
-	Une exécution de l'algorithme $A$ vérifie la terminaison vis à vis du problème de synchronisation modulo $k$ si,
+	Une exécution de l'algorithme $A$ vérifie la vivacité vis à vis du problème de synchronisation modulo $k$ si,
 	$$\forall p \in \bigcup\limits_{i \in \mathds{N}} \mathcal{A}_i, t_p \neq \infty$$
 
 \end{definition}
@@ -57,7 +57,7 @@ Pour la suite, on considère une valeur $k > 2$ quelquonque.
 L'objectif est de résoudre ce problème dans les conditions suivantes :
 \begin{itemize}
 
-	\item Le graphe dynamique contient une étoile fixe : $\mathcal{P}_{nek-fixed} \equiv \exists \xi \in \Pi, \forall p \in \Pi, \forall r \in \mathds{N}, \xi \in HO(p, r)$
+	\item Le graphe dynamique contient une étoile fixe : $\mathcal{P}_{\xi-nek} \equiv \exists \xi \in \Pi, \forall p \in \Pi, \forall r \in \mathds{N}, \xi \in HO(p, r)$
 	\item Tous les processus s'activent en temps fini : $\mathcal{P}_{non-inf} \equiv \exists r \in \mathds{N}, \mathcal{A}_r = \Pi$
 
 \end{itemize}
@@ -70,19 +70,22 @@ Sinon, il fait une tentative de "synchronisation forcée", c'est-à-dire il essa
 il adopte la valeur $k-1$ (troisième branche). Au prochain round, il envoie 0.  Les processus qui reçoivent ce 0 sont obligés de l'adopter (quatrième branche).
 Chaque processus ne fait qu'une seule fois cette tentative de synchronisation forcée (la variable $try_p$ sert justement à limiter $p$ à une seule tentative).
 
+Lorsqu'un processes s'active, il essaye de s'aligner sur les valeurs qu'il entend, avant d'envoyer sa propre valeur.
+On introduit donc une valeur $\bot$, qui sera envoyé lors du round d'activation, qui sera traité comme un $nil$ par les processus récepteurs.
+
 \pagebreak[1]
 
 \begin{algorithm}[htb]
 \begin{distribalgo}[1]
 \BLANK \INDENT{\textbf{Initialization:}}
-  \STATE $x_p :=\, 0$ 
-  \STATE $try_p = true$
+	\STATE $x_p \in \mathds{Z}/k\mathds{Z}$
+	\STATE $try_p = true$
 
 \ENDINDENT \BLANK
 
 \INDENT{\textbf{Round 0:}}
  \INDENT{$S_p:$}
-    \STATE send $nil$ to all processes
+    \STATE send $\bot$ to all processes
   \ENDINDENT
 \ENDINDENT
   \BLANK
@@ -95,8 +98,9 @@ Chaque processus ne fait qu'une seule fois cette tentative de synchronisation fo
 \INDENT{\textbf{Round $r$:}}
 	\INDENT{$T_p(M):$}
 	\IF{$M(\Pi) = \{0\}$}
-	\STATE $EXIT()$ ~~~~\COMMENT{si tous les messages reçus valent 0, aucun $nil$, l'algorithme termine}
-	\ELSIF{$M(\Pi) \setminus \{nil\} = \{v\}$}
+	\STATE $FIRE()$ ~~~~\COMMENT{si tous les messages reçus valent 0, aucun $nil$, l'algorithme fait feu}
+	\STATE $x_p = 0$
+	\ELSIF{$M(\Pi) \setminus \{nil, \bot\} = \{v\}$}
 	\STATE $x_p = v$ ~~~~\COMMENT{si tous les messages ont la même valeur, s'aligner}
 	\ELSIF{$try_p \wedge 0 \notin M(\Pi)$}
 	\STATE $try_p = false$ ~~~~\COMMENT{si plusieurs messages sont discordants, faire une tentative de synchronisation forcée}
@@ -112,84 +116,87 @@ Chaque processus ne fait qu'une seule fois cette tentative de synchronisation fo
 \end{algorithm}
 
 \begin{lemma}
-	Toute exécution de cet algorithme est sûr vis-à-vis du problème de synchronisation modulo k lorsque les prédicats $\mathcal{P}_{nek-fixed}$ et $\mathcal{P}_{non-inf}$ sont vérifiés.
+	Toute exécution de cet algorithme est sûr vis-à-vis du problème de synchronisation modulo k lorsque les prédicats $\mathcal{P}_{\xi-nek}$ et $\mathcal{P}_{non-inf}$ sont vérifiés.
 \end{lemma}
 \begin{proof}
 
-	Soit $\xi$ le processes au centre de l'étoile.
-	On suppose que $p$ termine au round $r$, et est le premier. Nécessairement, $\xi \in HO(p,r)$.
+	On suppose que $p$ fait feu au round $r$, et est le premier. Nécessairement, $\xi \in HO(p,r)$.
 	La ligne 12 du code montre que la valeur envoyé par $\xi$ est 0.
 	Donc tous les processes ont reçus un 0. Soit $p$ un processus actif quelquonque. Au round $r$, il execute, dans sa fonction de transition, l'une des quatre branches possibles.
 	\begin{itemize}
 
-		\item Si un processes $p$ est dans la première branche, il termine en même temps que $\xi$.
 		\item Il ne peut pas exécuter la troisième branche car $M(\xi) = 0$.
-		\item S'il exécute la deuxième ou la quatrième branche, il adopte 0.
+		\item S'il exécute la première, deuxième ou la quatrième branche, il adopte 0.
 
 	\end{itemize}
 
 	On montre maintenant par récurrence sur $i$ la proposition suivante :
 
-	"Pour tout $i \in \mathds{N}$, la valeur de $p$ au round $r+i$ est $i~mod~k$ si $p$ est actif et n'a pas déjà terminé à ce round."
+	$$\forall i \in \mathds{N}, \forall p \in \mathcal{A}_{r+i}, x_p(r+i) = i~mod~k$$
 
 	\textbf{Initialisation : } voir ci-dessus
 
 	\textbf{Hérédité :}
+	On suppose que $\forall p \in \mathcal{A}_{r+i}, x_p(r+i) = i~mod~k$.
 
-	On suppose que $\forall p \in \mathcal{A}_{r+i}, x_p(r+i) = i~mod~k$, on veut montrer que $\forall p \in \mathcal{A}_{r+i+1}, x_p(r+i+1) = i+1~mod~k$.
-	L'hypothèse de récurrence montre qu'au round $r+i+1$, la seule valeur envoyée sera $i~mod~k$.
-	Si un processus termine au round $r+i+1$, on a, d'après la ligne 12, $i~mod~k = 0$, donc la sûreté est vérifiée.
-	Sinon, la ligne $14$ s'exécute, cela achève la récurrence.
+	On veut montrer que $\forall p \in \mathcal{A}_{r+i+1}, x_p(r+i+1) = i+1~mod~k$.
+
+	Soit $M$ la fonction de réception de $p$ au round $r+i+1$.
+	L'hypothèse de récurrence montre que $M(\Pi) \subseteq \{nil, \bot, i+1~mod~k\}$.
+	De plus, $M(\xi) = i+1~mod~k$. Donc $p$ exécute la première ou la deuxième branche de la fonction de transition, et adopte $i+1~mod~k$.
+	Cela achève la récurrence.
 
 	La sûreté découle de cette proposition.
 
 \end{proof}
 
 Pour les trois lemmes ci-dessous, on se fixe une exécution de l'algorithme.
-On dit que le système est synchonisé au round $i$ si tous les processus actifs ont la même valeur de compteur.
+On dit que le système est synchonisé au round $i$ si tous les processus actifs ont la même valeur de compteur dans $\mathds{Z}/k\mathds{Z}$.
 
 \begin{lemma}
-	Sous le prédicat $\mathcal{P}_{nek-fixed}$,
+	Sous le prédicat $\mathcal{P}_{\xi-nek}$,
 	si au round $i$, $\xi$ est actif et le système est synchonisé, il l'est également au round $i+1$.
 \end{lemma}
 \begin{proof}
 	Si le système est synchronisé au round $i$, au round $i+1$, tous les processus enverront une même valeur $v$.
-	Donc, pour tout $p \in \mathcal{A}_{i+1}$, on aura $M_p^{i+1}(\Pi) \subseteq \{v+1~mod~k, nil\}$.
+	Donc, pour tout $p \in \mathcal{A}_{i+1}$, on aura $M_p^{i+1}(\Pi) \subseteq \{v+1~mod~k, nil, \bot\}$.
 	Le fait que $\xi$ est actif induit $v+1~mod~k \in M_p^{i+1}(\Pi)$.
 	Donc la deuxième branche de la fonction de transition sera exécutée.
 	La synchronisation est donc maintenue.
 \end{proof}
 \begin{lemma}
-	Sous les prédicats $\mathcal{P}_{nek-fixed}$ et $\mathcal{P}_{non-inf}$,
-	si au round $i$, $\xi$ est actif et le système est synchonisé, tous les processus terminent.
+	Sous les prédicats $\mathcal{P}_{\xi-nek}$ et $\mathcal{P}_{non-inf}$,
+	si au round $i$, $\xi$ est actif et le système est synchonisé, tous les processus font feu.
 \end{lemma}
 \begin{proof}
 	Le lemme précédent montre qu'à partir du round $i$, le système reste synchonisé. De plus, à chaque round, la valeur des compteurs est incrémentée.
 	Soit $r$ le round à partir duquel tous les processus sont actifs.
 	Ainsi, lors d'un round $i' \geq max(i, r)$, le système atteindra un état dans lequel tous les compteurs valent $k-1$.
 	On aura alors, au round suivant, $\forall p \in \Pi, M_p^{i'}(\Pi) = \{0\}$.
-	Donc tous les processus terminent.
+	Donc tous les processus font feu.
 \end{proof}
 
-On montre maintenant la terminaison dans un cas simple.
+On montre maintenant la vivacité dans un cas simple.
 Soit $\mathcal{P}_{star} \equiv \exists \xi \in \Pi, \forall p \in \Pi, \forall r \in \mathds{N}, HO(p, r) = \{\xi\}$
 
 \begin{theorem}
 	L'algorithme résout la synchronisation modulo $k$ lorsque les prédicats $\mathcal{P}_{star}$ et $\mathcal{P}_{non-inf}$ sont vérifiés.
 \end{theorem}
 \begin{proof}
+	$\xi$ s'active en temps fini d'après le prédicat $\mathcal{P}_{non-inf}$.
 	Soit $r$ le round auquel $\xi$ s'active.
-	On montre trivialement par récurrence sur $i$ que la valeur du compteur de $\xi$ au round $r+i$ est $i~mod~k$.
-	Ainsi, au round $r+k$, $\xi$ enverra 0 à tous, donc le système se synchronisera sur 0.
-	Le lemme précédent montre la terminaison, et le lemme 1 la sûreté.
+	Au round $r$, $\xi$ exécute nécessairement la troisième branche de la fonction de transition, donc $x_\xi(r) = k-1$.
+	Ainsi, au round $r+1$, $\xi$ enverra 0 à tous, donc le système se synchronisera sur 0.
+	Le lemme précédent montre la vivacité, et le lemme 1 la sûreté.
 \end{proof}
 
-On montre maintenant la terminaison dans le cas qui nous intéresse.
+On montre maintenant la vivacité dans le cas qui nous intéresse.
 
 \begin{theorem}
-	L'algorithme résout la synchronisation modulo $k$ lorsque les prédicats $\mathcal{P}_{nek-fixed}$ et $\mathcal{P}_{non-inf}$ sont vérifiés.
+	L'algorithme résout la synchronisation modulo $k$ lorsque les prédicats $\mathcal{P}_{\xi-nek}$ et $\mathcal{P}_{non-inf}$ sont vérifiés.
 \end{theorem}
 \begin{proof}
+	$\xi$ s'active en temps fini d'après le prédicat $\mathcal{P}_{non-inf}$.
 	Soit $r$ le round auquel $\xi$ s'active.
 	L'algorithme est conçu de telle manière que chaque processus n'exécute la troisième branche de la fonction de transition qu'une seule fois.
 	Donc il existe un round $r' \geq r$ à partir duquel plus aucun processus n'exécute cette troisième branche.
@@ -198,11 +205,11 @@ On montre maintenant la terminaison dans le cas qui nous intéresse.
 
 		\item[Cas 1 : ] $\xi$ a exécuté la troisième branche de la fonction de transition au cours d'un round $t \geq r$.
 
-			Dans ce cas, au round $t+1$, $\xi$ envoie 0 à tous, donc tous les processus s'alignent sur ce 0. Le système est maintenant synchonisé. Le lemme précédent montre la terminaison.
+			Dans ce cas, au round $t+1$, $\xi$ envoie 0 à tous, donc tous les processus s'alignent sur ce 0. Le système est maintenant synchonisé. Le lemme précédent montre la vivacité.
 
 		\item[Cas 2 : ] $\xi$ n'a jamais exécuté la troisième branche, et n'a pas exécuté la quatrième branche au delà du round $r'$.
 
-			Dans ce cas, au delà du round $r'$, $\xi$ n'exécute que les deux premières branches. Un raisonnement similaire à la preuve du théorème 1 montre la terminaison.
+			Dans ce cas, au delà du round $r'$, $\xi$ n'exécute que les deux premières branches. Un raisonnement similaire à la preuve du théorème 1 montre la vivacité.
 
 		\item[Cas 3 : ] $\xi$ n'a jamais exécuté la troisième branche, mais a exécuté la quatrième branche au round $t \geq r'$.
 
@@ -227,7 +234,7 @@ On montre maintenant la terminaison dans le cas qui nous intéresse.
 
 					Les autres processus reçoivent au round $t+i+1$ des valeurs comprises entre 1 et $i+1~mod~k$, cela prouve $\forall p \in \mathcal{A}_{t+i}, x_p(t+i) \leq x_\xi(t+i)$.
 
-					Cette récurrence montre qu'au round $t+k$, $\xi$ envoie 0 à tous, ce qui synchrones le système. Le lemme précédent assure la terminaison.
+					Cette récurrence montre qu'au round $t+k$, $\xi$ envoie 0 à tous, ce qui synchrones le système. Le lemme précédent assure la vivacité.
 
 				\item[Sous-cas 3.2] $x_\xi(t+1) = 0$
 
@@ -237,7 +244,7 @@ On montre maintenant la terminaison dans le cas qui nous intéresse.
 			\end{description}
 	\end{description}
 
-	Cette disjonction de cas achève donc la terminaison. La sûreté étant garantie par le lemme 1.
+	Cette disjonction de cas achève donc la vivacité. La sûreté étant garantie par le lemme 1.
 \end{proof}
 
 \end{document}
