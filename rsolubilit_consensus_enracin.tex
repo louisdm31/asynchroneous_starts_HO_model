@@ -46,7 +46,7 @@ $\Phi$ est toujours équivalent à $P_k(\Phi)$, puisqu'on peut trivialement cons
 \end{definition}
 
 Le prédicat $\mathcal{P}_{borné}(\Phi)$ est une version affaiblie de $\Phi$, où $\Phi$ est vérifié avec délai borné, mais inconnu des processus.
-Le prédicat $\mathcal{P}_{fini}(\Phi)$ est une version d'avantage affaiblie de $\Phi$, où $\Phi$ est vérifié avec délai inconnu des processus, et pouvant varier au cours du temps.
+Le prédicat $\mathcal{P}_{fini}(\Phi)$ est une version davantage affaiblie de $\Phi$, où $\Phi$ est vérifié avec délai inconnu des processus, et pouvant varier au cours du temps.
 
 On définit les prédicats suivants :
 \begin{itemize}
@@ -163,40 +163,40 @@ Il reste maintenant à traiter le cas le plus favorable, à savoir le cas où le
 \INDENT{\textbf{Initialization:}}
   \STATE $x_p := v_p$ ~~~~~~~~\{\emph{$v_p$ is the initial value of $p$}\}
   \STATE $vote_p \in V\cup\{ ? \}$, initially $?$
+  \STATE $phase_p = true$
 
 \ENDINDENT
 \BLANK
 
-\INDENT{\textbf{Round $r=2\phi$:}}
-  \INDENT{$S_p^r:$}
-    \STATE send $\langle x_p , vote_p \rangle$ to all processes
-  \ENDINDENT
-  \BLANK
- \INDENT{$T_p^r:$}
+\INDENT{\textbf{Round $r$:}}
+	\INDENT{$S_p^r:$}
+		\IF{$phase_p$}
+			\STATE send $\langle x_p , vote_p \rangle$ to all processes
+		\ELSE
+			\STATE send $\langle x_p \rangle$ to all processes
+		\ENDIF
+	\ENDINDENT
+	\BLANK
+	\INDENT{$T_p^r:$}
 
-	  \IF{$M(q) = \langle v, v \rangle$}
-		  \STATE $x_p:= v$ ~~~~~~~~\{un vote reçu\}
-     \ELSE
-       \STATE $x_p :=$ smallest  $w$ from  $\langle w , ? \rangle$ received
-       \ENDIF
-	   \IF{$M(\Pi) = \langle v, v \rangle$}
-		  \STATE $DECIDE(v)$ ~~~~~~~~\{décider si $p$ ne reçoit que des votes identiques\}
-	  \ENDIF
-         \STATE $vote_p :=\ ?$
-  \ENDINDENT
-\ENDINDENT
-
-\INDENT{\textbf{Round $r=2\phi+1$:}}
- \INDENT{$S_p^r:$}
-    \STATE send $\langle x_p \rangle$ to all processes
-  \ENDINDENT
-  \BLANK
-  \INDENT{$T_p^r:$}
-	\STATE $ x_p := min M(\Pi) \setminus \{nil\}$ ~~~~~~~~\{plus petites valeur reçue\}
-	\IF{$M(\Pi) = \{v\}$}
-      \STATE $vote_p := v$ ~~~~~~~~\{toute les valeurs reçues identiques, aucun nil\}
-    \ENDIF
-  \ENDINDENT
+		\IF{$phase_p$}
+			\IF{$M(q) = \langle v, v \rangle$}
+				\STATE $x_p:= v$ ~~~~~~~~\{un vote reçu\}
+			\ELSE
+				\STATE $x_p :=$ smallest  $w$ from  $\langle w , ? \rangle$ received
+			\ENDIF
+			\IF{$M(\Pi) = \langle v, v \rangle$}
+				\STATE $DECIDE(v)$ ~~~~~~~~\{décider si $p$ ne reçoit que des votes identiques\}
+			\ENDIF
+			\STATE $vote_p :=\ ?$
+		\ELSE
+			\STATE $ x_p := min M(\Pi) \setminus \{nil\}$ ~~~~~~~~\{plus petites valeur reçue\}
+			\IF{$M(\Pi) = \{v\}$}
+				\STATE $vote_p := v$ ~~~~~~~~\{toute les valeurs reçues identiques, aucun nil\}
+			\ENDIF
+		\ENDIF
+		\STATE $phase_p := \neg phase_p$
+	\ENDINDENT
 \ENDINDENT
 
 \end{minipage}
