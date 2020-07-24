@@ -67,10 +67,11 @@ Il reçoit alors les valeurs de compteur de tous ses voisins entrants. Il essaye
 (deuxième branche dans la fonction de transition).
 
 Sinon, il fait une tentative de "synchronisation forcée", c'est-à-dire il essaye de convaincre tous les processus de se synchroniser sur son propre compteur :
-il adopte la valeur $k-1$ (troisième branche). Au prochain round, il envoie 0.  Les processus qui reçoivent ce 0 sont obligés de l'adopter (quatrième branche).
+il adopte la valeur $k$ (troisième branche). Au prochain round, il envoie $k$.  Les processus qui reçoivent ce $k$ sont obligés d'adopter 1 (quatrième branche).
 Chaque processus ne fait qu'une seule fois cette tentative de synchronisation forcée (la variable $try_p$ sert justement à limiter $p$ à une seule tentative).
+On note $t_p$ le round auquel le processus $p$ exécute cette branche, si cela se produit. $t_p = 0$ sinon.
 
-Lorsqu'un processes s'active, il essaye de s'aligner sur les valeurs qu'il entend, avant d'envoyer sa propre valeur.
+Lorsqu'un processus s'active, il essaye de s'aligner sur les valeurs qu'il entend, avant d'envoyer sa propre valeur.
 On introduit donc une valeur $\bot$, qui sera envoyé lors du round d'activation, qui sera traité comme un $nil$ par les processus récepteurs.
 
 \pagebreak[1]
@@ -80,6 +81,7 @@ On introduit donc une valeur $\bot$, qui sera envoyé lors du round d'activation
 \BLANK \INDENT{\textbf{Initialization:}}
 	\STATE $x_p \in \mathds{Z}/k\mathds{Z}$
 	\STATE $try_p = true$
+	\STATE $fire_p = false$
 
 \ENDINDENT \BLANK
 
@@ -91,22 +93,21 @@ On introduit donc une valeur $\bot$, qui sera envoyé lors du round d'activation
   \BLANK
 \INDENT{\textbf{Round $r+1$:}}
  \INDENT{$S_p:$}
-    \STATE send $x_p+1~mod~n$ to all processes
+    \STATE send $\langle x_p \rangle$ to all processes
   \ENDINDENT
 \ENDINDENT
   \BLANK
 \INDENT{\textbf{Round $r$:}}
 	\INDENT{$T_p(M):$}
-	\IF{$M(\Pi) = \{0\}$}
-	\STATE $FIRE()$ ~~~~\COMMENT{si tous les messages reçus valent 0, aucun $nil$, l'algorithme fait feu}
-	\STATE $x_p = 0$
-	\ELSIF{$M(\Pi) \setminus \{nil, \bot\} = \{v\}$}
-	\STATE $x_p = v$ ~~~~\COMMENT{si tous les messages ont la même valeur, s'aligner}
-	\ELSIF{$try_p \wedge 0 \notin M(\Pi)$}
+	\IF{$M(\Pi) = \{k\}$}
+	\STATE $fire_p = true$ ~~~~\COMMENT{si tous les messages reçus valent 0, aucun $nil$, l'algorithme fait feu}
+	\IF{$M(\Pi) \setminus \{nil, \bot\} = \{v\}$}
+	\STATE $x_p = v+1~mod~k$ ~~~~\COMMENT{si tous les messages ont la même valeur, s'aligner}
+	\ELSIF{$try_p \wedge k \notin M(\Pi)$}
 	\STATE $try_p = false$ ~~~~\COMMENT{si plusieurs messages sont discordants, faire une tentative de synchronisation forcée}
-	\STATE $x_p = k - 1$
+	\STATE $x_p = k$
 	\ELSE
-	\STATE $x_p = 0$ ~~~~\COMMENT{si un 0 a été reçu, toujours s'aligner}
+	\STATE $x_p = 1$ ~~~~\COMMENT{si un k a été reçu, toujours s'aligner}
 	\ENDIF
   \ENDINDENT
 \ENDINDENT 
@@ -115,6 +116,66 @@ On introduit donc une valeur $\bot$, qui sera envoyé lors du round d'activation
 
 \end{algorithm}
 
+\subsection{Notations}
+
+Soit $V \subseteq \mathds{Z}/k\mathds{Z}$. On dit que le système est V-valent au round $t$ si $V = \{v \in \mathds{Z}/k\mathds{Z}, \exists p \in \Pi, x_p(t) = v\}$.
+On dit que le système est v-monovalent si le système est $\{v\}$-valent.
+
+On dit que $p$ "fait feu" au round $t$ si $p$ exécute la première branche au round $t$.
+
+\subsection{Preuve}
+
+\begin{lemma}
+	Si $x_\xi(t) = k$, le système est 1-monovalent au round $t+1$.
+\end{lemma}
+\begin{proof}
+	$\xi$ est le centre de l'étoile.
+	Si $x_\xi(t) = k$, au round $t+1$, $\xi$ envoie $k$ à tous les processus. Donc tous les processus, recevant un $k$, exécutent nécessairement la deuxième ou quatrième branche,
+	et adoptent donc $1$. Le système devient donc 1-monovalent.
+\end{proof}
+
+\begin{lemma}
+	Si, au round $s$, $\xi$ est actif, et le système est v-monovalent, pour tout $i \in \mathds{N}$, le système est $v+i~mod~k$-monovalent.
+\end{lemma}
+\begin{proof}
+	On montre cela par récurrence sur $i$.
+	\begin{description}
+		\item[Initialisation :] Vrai par hypothèse.
+		\item[Hérédité :] On suppose que $\forall p \in \mathcal{A}_{s+i}, x_p(s+i) = v+i~mod~k$.
+			On veut montrer que $\forall p \in \mathcal{A}_{s+i+1}, x_p(s+i+1) = v+i+1~mod~k$.
+			Au round $s+i+1$, les processus dans $\mathcal{A}_{s+i}$ envoyent $v+i~mod~k$, d'après l'hypothèse de récurrence.
+			Les processus de $\mathcal{A}_{s+i+1} \setminus \mathcal{A}_{s+i}$ envoyent $\bot$. Les autres envoyent $nil$.
+			Comme $\xi$ est actif, les processus reçoivent tous au moins une fois $v+i~mod~k$. Donc tous les processus actifs exécutent la deuxième branche, et adoptent $v+i+1~mod~k$.
+	\end{description}
+\end{proof}
+
+\begin{lemma}
+	Si $x_\xi(t) = k$, tout processus $p$ fait feu au plus tard au round $t+k i$ où $i$ est le plus petit entier vérifiant $t+k i \geq s_{max} = max \{s_p, p \in \Pi\}$.
+\end{lemma}
+\begin{proof}
+	D'après les lemmes 1 et 2, le système devient 1-monovalent au round $t+1$ et $i~mod~k$-monovalent à tous les rounds $t+i$ suivants.
+	À partir du round $s_{max}$, tous les processus sont actifs.
+	Ainsi, au premier round $t+k i$ vérifiant $t+k i \geq s_{max}$, le système est $k$-monovalent, donc au round $t+k i +1$, tous les processus envoyent $k$ à leurs voisons sortants.
+	Ainsi, les processus ne reçoivent que des $k$, donc tous les processus font feu.
+\end{proof}
+
+\begin{lemma}
+	Si le système est monovalent au round $t$, tous les processus auront fait feu au plus tard au round $max(t, s_{max})+k$.
+\end{lemma}
+\begin{proof}
+	D'après le lemme 2, le système est toujours monovalent au round $max(t, s_{max})$ et tous les processus sont actifs.
+	Donc, au plus après $k$ rounds, le système entrera dans un état $k$-monovalent, et au round suivant, tous les processus enverront $k$.
+	Ainsi, tous les processus qui n'auront pas encore fait feu, feront feu.
+	Donc, au plus tard au round $max(t, s_{max})+k$, tous les processus auront fait feu.
+\end{proof}
+
+On introduit la fonction $C(t) = (x_\xi(t), \{v \in \mathds{Z}/k\mathds{Z}, \exists p \in \Pi, x_p(t) = v\})$.
+Ainsi, si $C(t) = (v_0, V)$, le système est V-valent au round $t$.
+
+On introduit un ensemble $\mathcal{F}$ de configurations dites "favorables".
+Ainsi, $C(t) = (v, V) \in \mathcal{F} \equiv v = k \vee |V| = 1$.
+Les deux lemmes précédents montrent que si une exécution atteint une configuration favorable, la vivacité est garantie.
+
 \begin{lemma}
 	Toute exécution de cet algorithme est sûr vis-à-vis du problème de synchronisation modulo k lorsque les prédicats $\mathcal{P}_{\xi-nek}$ et $\mathcal{P}_{non-inf}$ sont vérifiés.
 \end{lemma}
@@ -122,7 +183,7 @@ On introduit donc une valeur $\bot$, qui sera envoyé lors du round d'activation
 
 	On suppose que $p$ fait feu au round $r$, et est le premier. Nécessairement, $\xi \in HO(p,r)$.
 	La ligne 12 du code montre que la valeur envoyé par $\xi$ est 0.
-	Donc tous les processes ont reçus un 0. Soit $p$ un processus actif quelquonque. Au round $r$, il execute, dans sa fonction de transition, l'une des quatre branches possibles.
+	Donc tous les processus ont reçus un 0. Soit $p$ un processus actif quelquonque. Au round $r$, il execute, dans sa fonction de transition, l'une des quatre branches possibles.
 	\begin{itemize}
 
 		\item Il ne peut pas exécuter la troisième branche car $M(\xi) = 0$.
