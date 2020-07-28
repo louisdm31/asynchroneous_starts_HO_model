@@ -27,12 +27,19 @@ definition concordant where
 definition ready_fire where
 "ready_fire msgs \<equiv> \<forall>p. msgs p = Void \<or> msgs p = Content (Val (k-1))"
 
-definition SyncMod_nextState where
+definition ready_force where
+"ready_force msgs ss \<equiv> (\<not> forc ss) \<and> (\<forall>p. msgs p \<noteq> Content (Val (k-1))) \<and> 
+(\<exists>p q v1 v2. msgs p = Content (Val v1) \<and> msgs q = Content (Val v2))"
+
+definition SyncMod_nextState :: "Proc \<Rightarrow> pstate \<Rightarrow> (Proc \<Rightarrow> SendVal message) \<Rightarrow> pstate \<Rightarrow> bool" where
 "SyncMod_nextState p ss msgs st \<equiv>
-    fire st \<longrightarrow> (\<not> fire ss) \<longrightarrow> (x st = 0 \<and> ready_fire msgs) \<and>
-    forc st \<longrightarrow> (\<not> forc ss) \<longrightarrow> (x st = k-1 \<and> (\<forall>p. msgs p \<noteq> Content (Val (k-1))) \<and>
-        (\<exists>p q v1 v2. msgs p = Content (Val v1) \<and> msgs q = Content (Val v2))) \<and>
-    x st \<noteq> 0 \<longrightarrow> concordant msgs (x st)"
+    (fire ss \<or> (fire st \<longleftrightarrow> ready_fire msgs)) \<and>
+    (if ready_force msgs ss then
+        x st = k-1 \<and> forc st
+        else 
+        if x st = 0 then
+            \<forall>v. concordant msgs v \<longrightarrow> v = k - 1 else
+            concordant msgs ((x st - 1) mod k))"
 
 definition SyncMod_sendMsg where
 "SyncMod_sendMsg p q st \<equiv> if x st = k then Nope else Val (x st)"
@@ -53,11 +60,15 @@ definition SyncMod_HOMachine where
 "SyncMod_HOMachine \<equiv> \<lparr>
     CinitState = (\<lambda> p st crd. SyncMod_initState p st),
     sendMsg = SyncMod_sendMsg,
-    CnextState = (\<lambda> p st msgs crd st'. SyncMod_nextState p st msgs st'),
+    CnextState = (\<lambda> p st msgs crd. SyncMod_nextState p st msgs),
     HOcommPerRd = SyncMod_commPerRd,
     HOcommGlobal = SyncMod_commGlobal,
     HOcommSchedule = SyncMod_commSchedule
 \<rparr>"
+
+lemma simp_nextState : "CnextState SyncMod_HOMachine = (\<lambda>p ss ms cr. SyncMod_nextState p ss ms)"
+using SyncMod_HOMachine_def
+by (simp add: SyncMod_HOMachine_def)
 
 end
 end

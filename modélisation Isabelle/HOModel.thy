@@ -293,7 +293,7 @@ definition CHOinitConfig where
 
 definition CHORun where
   "CHORun A rho HOs coords \<equiv> CHOinitConfig A rho coords
-   \<and> (\<forall>r. CHOnextConfig A (rho r) (HOs r) (coords (Suc r))
+   \<and> (\<forall>r. CHOnextConfig A (rho r) (HOs (Suc r)) (coords (Suc r))
                              (rho (Suc r)))"
 
 lemma nonAsleepAgain : assumes "rho n p \<noteq> Aslept" and "CHORun A rho HO coord"
@@ -335,7 +335,7 @@ definition HORun :: "('proc, 'pst, 'msg) CHOAlgorithm \<Rightarrow>
 lemma HORun_eq:
   "HORun A rho HOs =
      (HOinitConfig A rho
-   \<and> (\<forall>r. HOnextConfig A (rho r) (HOs r) (rho (Suc r))))"
+   \<and> (\<forall>r. HOnextConfig A (rho r) (HOs (Suc r)) (rho (Suc r))))"
   by (auto simp: HORun_def CHORun_def HOinitConfig_def HOnextConfig_def)
 
 (*
