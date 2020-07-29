@@ -29,7 +29,7 @@ definition ready_fire where
 
 definition ready_force where
 "ready_force msgs ss \<equiv> (\<not> forc ss) \<and> (\<forall>p. msgs p \<noteq> Content (Val (k-1))) \<and> 
-(\<exists>p q v1 v2. msgs p = Content (Val v1) \<and> msgs q = Content (Val v2))"
+(\<exists>p q v1 v2. msgs p = Content (Val v1) \<and> msgs q = Content (Val v2) \<and> v1 \<noteq> v2)"
 
 definition SyncMod_nextState :: "Proc \<Rightarrow> pstate \<Rightarrow> (Proc \<Rightarrow> SendVal message) \<Rightarrow> pstate \<Rightarrow> bool" where
 "SyncMod_nextState p ss msgs st \<equiv>
@@ -39,7 +39,7 @@ definition SyncMod_nextState :: "Proc \<Rightarrow> pstate \<Rightarrow> (Proc \
         else 
         if x st = 0 then
             \<forall>v. concordant msgs v \<longrightarrow> v = k - 1 else
-            concordant msgs ((x st - 1) mod k))"
+            concordant msgs ((x st - 1) mod k)) \<and> (x st) mod k = x st"
 
 definition SyncMod_sendMsg where
 "SyncMod_sendMsg p q st \<equiv> if x st = k then Nope else Val (x st)"
