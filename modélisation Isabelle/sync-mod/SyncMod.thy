@@ -33,7 +33,7 @@ definition ready_force where
 
 definition SyncMod_nextState :: "Proc \<Rightarrow> pstate \<Rightarrow> (Proc \<Rightarrow> SendVal message) \<Rightarrow> pstate \<Rightarrow> bool" where
 "SyncMod_nextState p ss msgs st \<equiv>
-    (fire ss \<or> (fire st \<longleftrightarrow> ready_fire msgs)) \<and>
+    ((fire ss \<and> fire st) \<or> (fire st \<longleftrightarrow> ready_fire msgs)) \<and>
     (if ready_force msgs ss then
         x st = k-1 \<and> forc st
         else 
@@ -69,6 +69,12 @@ definition SyncMod_HOMachine where
 lemma simp_nextState : "CnextState SyncMod_HOMachine = (\<lambda>p ss ms cr. SyncMod_nextState p ss ms)"
 using SyncMod_HOMachine_def
 by (simp add: SyncMod_HOMachine_def)
+
+definition liveness where
+"liveness rho \<equiv> \<forall>p r. rho r p \<noteq> Aslept \<longrightarrow> (\<exists>rf sf. rho rf p = Active sf \<and> fire sf)"
+
+definition safety where
+"safety rho \<equiv> \<exists>c. \<forall>p rf ss sf. rho rf p = Active ss \<longrightarrow> (\<not> fire ss) \<longrightarrow> rho (Suc rf) p = Active sf \<longrightarrow> fire sf \<longrightarrow> (rf + c) mod k = 0"
 
 end
 end
