@@ -171,7 +171,7 @@ and "k > 2"
 and "monovalent rho (v mod k) r"
 shows "monovalent rho ((v+i) mod k) (r+i)"
 proof (induction i)
-    from assms(6) show `monovalent rho ((v+0) mod k) (r+0)` by auto
+    from assms(6) show "monovalent rho ((v+0) mod k) (r+0)" by auto
 next
     case (Suc i)
     let "?msgs p" = "(HOrcvdMsgs ?A p (HO (Suc (r+Suc i)) p) (rho (r+Suc i)))"
@@ -278,10 +278,10 @@ proof -
         moreover from this have "rho (Suc (Suc ?rd)) p ~= Aslept"
             using nonAsleepAgain[of rho "Suc ?rd" p _ _ _ 1] run HORun_def Suc_diff_1 assms(5) by fastforce
         then obtain st where "rho (Suc (Suc ?rd)) p = Active st" by (cases "rho (Suc (Suc ?rd)) p") auto
-        ultimately have "k_mod.SyncMod_nextState k p ss (HOrcvdMsgs ?A p (HO (Suc (Suc ?rd)) p) (rho (Suc ?rd))) st"
+        ultimately have nxt:"k_mod.SyncMod_nextState k p ss (HOrcvdMsgs ?A p (HO (Suc (Suc ?rd)) p) (rho (Suc ?rd))) st"
             (is "k_mod.SyncMod_nextState  _ _ _ ?msgs _")
             using transition[of rho "Suc ?rd" p ss st] run assms(5) by auto
-        have "!q. ?msgs p = Void \<or> ?msgs p = Content (Val (k-1))"
+        have "!q. ?msgs q = Void \<or> ?msgs q = Content (Val (k-1))"
         proof
             fix q
             have "?rd-n = r+n*k+1*k-1-n" using `k > 2` by simp
@@ -303,19 +303,56 @@ proof -
     
 
 
-                ultimately have "x sqq = k-1"
-                    using assms monovalent_def[of rho "k-1" ?rd] by auto
+            ultimately have "x sqq = k-1"
+                using assms monovalent_def[of rho "k-1" ?rd] by auto
 
-                hence "k_mod.SyncMod_sendMsg k q p sqq = Val (k-1)"
-                    using k_mod.SyncMod_sendMsg_def[of k q p sqq] `k > 2` by auto 
-                hence "sendMsg ?A q p sqq = Val (k-1)"
-                    using k_mod.SyncMod_HOMachine_def HOMachine_to_Algorithm_def
-                    by (simp add: `\<And>k. k_mod.SyncMod_HOMachine k \<equiv> (| CinitState = %p st crd. k_mod.SyncMod_initState k p st,
-                    sendMsg = k_mod.SyncMod_sendMsg k, CnextState = %p st msgs crd. k_mod.SyncMod_nextState k p st msgs,
-                    HOcommPerRd = k_mod.SyncMod_commPerRd, HOcommGlobal = k_mod.SyncMod_commGlobal, HOcommSchedule = k_mod.SyncMod_commSchedule |)`)
-                hence "?msgs q = (if q : HO (Suc (Suc ?rd)) p then Content (Val (k-1)) else Void)"
-                    using HOrcvdMsgs_def[of ?A p "HO (Suc (Suc ?rd)) p" "rho (Suc ?rd)"] `rho (Suc ?rd) q = Active sqq` by auto
-                thus "?msgs q = Void \<or> ?msgs q = Content (Val (k-1))" by auto
-            qed
+            hence "k_mod.SyncMod_sendMsg k q p sqq = Val (k-1)"
+                using k_mod.SyncMod_sendMsg_def[of k q p sqq] `k > 2` by auto 
+            hence "sendMsg ?A q p sqq = Val (k-1)"
+                using k_mod.SyncMod_HOMachine_def HOMachine_to_Algorithm_def
+                by (simp add: `\<And>k. k_mod.SyncMod_HOMachine k \<equiv> (| CinitState = %p st crd. k_mod.SyncMod_initState k p st,
+                sendMsg = k_mod.SyncMod_sendMsg k, CnextState = %p st msgs crd. k_mod.SyncMod_nextState k p st msgs,
+                HOcommPerRd = k_mod.SyncMod_commPerRd, HOcommGlobal = k_mod.SyncMod_commGlobal, HOcommSchedule = k_mod.SyncMod_commSchedule |)`)
+            hence "?msgs q = (if q : HO (Suc (Suc ?rd)) p then Content (Val (k-1)) else Void)"
+                using HOrcvdMsgs_def[of ?A p "HO (Suc (Suc ?rd)) p" "rho (Suc ?rd)"] `rho (Suc ?rd) q = Active sqq` by auto
+            thus "?msgs q = Void | ?msgs q = Content (Val (k-1))" by auto
+        qed
+        hence "k_mod.ready_fire k ?msgs" using k_mod.ready_fire_def[of k ?msgs] by auto
+        hence "fire st" using nxt k_mod.SyncMod_nextState_def by auto
+        hence "rho (Suc (Suc ?rd)) p = Active st & fire st" using `rho (Suc (Suc ?rd)) p = Active st` by auto
+        thus "? rf sf. rho rf p = Active sf & fire sf" by auto
+    qed
+    thus "k_mod.liveness rho" using k_mod.liveness_def by auto
+qed
 
-        show "? rf sf. rho rf p = Active sf \<and> fire sf"
+definition round_force where
+"round_force rho p == Eps (%r. ? s. rho r p = Active s & forc s)"
+
+lemma nonForceAgain : assumes "round_force rho p < n"
+and run:"HORun (HOMachine_to_Algorithm (k_mod.SyncMod_HOMachine k)) rho HO" (is "HORun ?A _ _")
+and "rho n p = Active s"
+shows "~ k_mod.ready_force k (HOrcvdMsgs ?A p (HO (Suc r) p) (rho n)) s" (is "~ k_mod.ready_force k ?msgs s")
+proof 
+    assume "k_mod.ready_force k ?msgs s"
+    hence "~ forc s" using k_mod.ready_force_def by auto
+    show "False"
+    proof (cases "? r s. rho r p = Active s & forc s")
+        case True
+        then obtain r where "? s. rho r p = Active s & forc s" by auto
+        then obtain s where rd_forc:"rho (round_force rho p) p = Active s & forc s"
+            using round_force_def[of rho p]  someI[of "%r. ? s. rho r p = Active s & forc s" r] by auto 
+        have "!rr ss. rho rr p = Active ss --> forc ss"
+        proof (rule allI)+
+            fix rr ss
+            show "rho rr p = Active ss --> forc ss"
+            proof (induction "rr - (round_force rho p)")
+                case 0
+                hence "rr = round_force rho p" by auto
+                thus "rho rr p = Active ss --> forc ss"
+
+lemma SuncMod_liveness : assumes "k_mod.xi_nek HO xi"
+and run:"HORun (HOMachine_to_Algorithm (k_mod.SyncMod_HOMachine k)) rho HO" (is "HORun ?A _ _")
+and "k > 2"
+assumes commS:"HOcommSchedule (k_mod.SyncMod_HOMachine k) (Schedule rho)"
+shows "k_mod.liveness rho"
+proof -
