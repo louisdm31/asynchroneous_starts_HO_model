@@ -1,0 +1,555 @@
+\documentclass{article}
+\usepackage{amsmath}
+\usepackage[noend]{sources-Heard-Of/distribalgo}
+\usepackage{algorithm}
+\usepackage{amssymb}
+\usepackage{amsthm}
+\usepackage{dsfont}
+\usepackage{stmaryrd}
+\usepackage[left=2cm, right=2cm, top=2cm]{geometry}
+\usepackage[utf8]{inputenc}
+\newtheorem{lemma}{Lemme}
+\newtheorem{theorem}{Theoreme}
+\newtheorem{definition}{Definition}
+\setlength{\parskip}{0.22cm}
+
+\usepackage{biblatex}
+\addbibresource{rapport.bib}
+
+\title{Vérification et preuve formelle dans le modèle Heard-Of}
+\date{2020}
+\author{Louis Penet de Monterno - Bernadette Charron-Bost}
+
+\begin{document}
+
+\maketitle
+
+\section{Introduction}
+
+\subsection{Contexte}
+
+On se place dans le contexte d'un réseau de machines, et on souhaite que ce réseau exécute une certaine tâche, margré les pannes pouvant survenir.
+Une abondante litérature propose différentes approches permettant de modéliser les systèmes distribués, ainsi que les différents types de pannes possibles.
+L'un des principaux problèmes étudié dans la litérature est le problème du consensus, où les processus doivent s'accorder sur une même valeur parmi un ensemble de valeurs possibles.
+Un modèle particulièrement intéressant, connue sous de nom de "modèle Heard-Of" \cite{model_ho},
+consiste à envisager les processus comme des machines à états, qui progressent par une succession de rounds "clos par communication".
+C'est-à-dire qu'au sein d'un même round, les processus peuvent communiquer.
+On localise les pannes au niveau des laisons entre processus. Ainsi, pour un round donné, un processus peut, ou non, envoyer un message à un autre processus.
+
+\subsection{Problème à traiter}
+
+Des travaux antérieurs étudient en profondeur les possibilité offertes par un système modélisé de cette manière, en fonction des hypothèses faites sur la connectivité du réseau.
+Mais les travaux existants font une hypothèse qui limite considérablement leur portée, en supposant les départs synchrones : les processus démarrent tous au même moment, au sein d'un même premier round.
+Un article a été publié afin de contourner cette limitation \cite{firing_squad}. Cet article propose un algorithme distribué, qui peut être démarré de manière asynchrones par les noeuds du réseau,
+mais qui termine au même round pour tous les processus (tous les processus "font feu" en même temps, d'où le nom de l'article).
+À la suite d'un tel algorithme, on peut exécuter un algorithme de consensus par exemple, sans se soucier des problèmes de départs asynchrones.
+Mais les hypothèses très fortes, faites sur la connectivité du réseau, affectent fortement la tolérance au panne.
+
+\subsection{Contribution proposée}
+
+Le but de ce travail est d'explorer les possibilités offertes par un systèmes avec départs asynchrones.
+En particulier, on s'intéressera à la résolubilité du consensus avec départs asynchrones, en fonction des hypothèses faites sur la connectivité du réseau.
+En cherchant à adapter les principaux algorithmes de consensus connus,
+pour les rendre compatibles avec départs asynchrones, un problème intermédiaire, appelé "problème de synchronisation modulo $k$", a été identifié.
+En effet, de nombreux algorithmes de consensus, tels que "Uniforme Voting" \cite{model_ho}, reposent sur une succession de phases, que les processus sont supposés exécuter de façon synchronisée.
+Si un algorithme contient $k$ phases, il est nécessaire que les processus démarrent au cours de rounds qui soient congrus modulo $k$.
+Cet article propose donc un algorithme qui, en s'inspirant de \cite{firing_squad},
+résout le problème de synchronisation modulo $k$, et ouvre donc la voie à la résolubtion du consensus avec départs asynchrones.
+
+\subsection{Preuves proposées}
+
+L'un des avantages du modèle Heard-Of, par rapport aux approches concurrentes, est d'être facilement exprimable formellement, ce qui le rend particulièrement propice à l'écriture de preuves formelles.
+Afin de renforcer la solidité des preuves d'algorithmes, cet article est accompagnés des preuves, qui ont été vérifiés par l'assistant de preuve Isabelle.
+
+\section{Description du modèle}
+
+\subsection{Définition d'un algorithme HO}
+
+On se donne un ensemble non vide $\Pi$ de cardinalit\'e $n$ et  un ensemble non vide ${\cal M}$ dont les \'el\'ements seront appel\'es des
+	messages et un \'el\'ement particulier {\em nil} qui n'est pas dans $\mathcal{M}$.
+A chaque  $p \in \Pi$,  on associe  un {\em processus} consistant en la donn\'ee des \'el\'ements 
+	suivants :
+	\begin{itemize}
+	\item un ensemble non vide $States_p$ et un  \'el\'ement $sleep_p \notin States_p$ ;
+	\item un sous-ensemble   $Init_p \subseteq States_p$ ;
+	\item une fonction $S_p : States_p \times \Pi \rightarrow \mathcal{M}$ ;
+	\item une fonction 
+		$T_p : States_p \times X_\Pi^\mathcal{M}
+	  \rightarrow States_p$,
+	  où  $X_\Pi^\mathcal{M}$ est le type d'une fonction partielle
+			de type $\Pi \rightarrow \mathcal{M}$, pouvant prendre la valeur supplémentaire notée $nil \notin \mathcal{M}$.
+	\end{itemize}
+Les \'el\'ements de 	$States_p$  sont appel\'es \emph{\'etats} de $p$, ceux de $Init_p$ \emph{\'etats initiaux} de $p$,
+	la fonction $S_p$ est appel\'ee \emph{fonction d'émission de} $p$ et la fonction $T_p$ \emph{fonction de transition de} $p$.
+
+\begin{definition}\label{def:algo}
+Un algorithme  sur $\Pi$ est la donn\'ee d'un processus $(States_p, Init_p, S_p,T_p)$ pour chaque  \'el\'ement $p \in \Pi$.
+\end{definition}
+\noindent Dans toute la suite, on confondra et notera de la m\^eme mani\`ere $p$ et le processus qui lui est associ\'e.
+
+\subsection{Définition générique d'une exécution}
+
+Dans le mod\`ele Heard-Of, le calcul \'evolue en \emph{round} : dans chaque round $r$, 
+	le processus $p$, s'il est actif,  
+	\begin{enumerate}
+	\item \'emet, \`a destination de chaque processus, un message qui est d\'etermin\'e par sa fonction d'\'emission~$S_p$  
+		appliqu\'ee \`a son \'etat courant ;
+	\item re\c{c}oit un message, \'emis au round $r$, d'un sous-ensemble de processus $HO(p,r)$ de $\Pi$ ;
+        \item  applique la fonction  $T_p$ \`a son \'etat courant  et au vecteur (partiel) form\'e par les messages re\c{c}us (dont le support est 
+         $HO(p,r)$).
+	\end{enumerate}
+Si le processus $p$ est passif au round~$r$ alors il \'emet le message $nil$ et reste dans l'\'etat $sleep_p$.
+Un processus ne peut devenir actif qu'au d\'ebut d'un round, auquel cas son \'etat passe de $sleep_p$ \`a 
+	un \'etat de $Init_p$.
+La donn\'ee de l'ensemble $HO(p,r)$ pour chaque processus $p \in \Pi$ est \'equivalente \`a celle du graphe dirig\'e
+	$\mathds{G}_r = (\Pi, E_r)$ dont l'ensemble des n\oe uds est $\Pi$ et dont l'ensemble $E_r$ des arcs dirig\'es 
+	est d\'efini par
+	$$ (q,p) \in E_r \Leftrightarrow q \in HO(p,r) .$$	
+Le graphe $\mathds{G}_r $ correspond exactement aux communications entre processus au round~$r$.
+Nous ne discutons pas ici des raisons de l'absence de communication de $q$ vers $p$ \`a un round et reportons pour cela  le lecteur 
+	\`a~\cite{CB09} dans le cas d'un syst\`eme avec des pannes b\'enignes.
+
+Formellement, une \emph{ex\'ecution} de l'algorithme  $(States_p, Init_p, S_p,T_p)_{p\in \Pi}$ est 
+	un triplet $\big( \mathds{G} ,  \mathcal{A} , (\sigma^0_p)_{p \in \Pi} \big)$ où :
+	\begin{itemize}
+	\item $\mathds{G}$ est un \emph{graphe dynamique} sur $\Pi$, i.e., une suite infinie de graphes dirig\'es 
+	$\mathds{G}_r = (\Pi, E_r)$ dont l'ensemble des n\oe uds est $\Pi$ ; 
+	\item le \emph{calendrier des activations} $\mathcal{A} = (\mathcal{A}_r)_{r \in \mathds{N}}$ est une suite 
+	croissante de sous-ensembles de $\Pi$ 
+	avec $\mathcal{A}_0 = \emptyset$ ;
+	\item pour chaque processus $p\in \Pi$, $\sigma^0_p \in Init_p$.
+	\end{itemize}
+Ici,  $\mathcal{A}_r \subseteq \Pi$ modélise le sous-ensemble des processus actifs au round~$r$.
+La suite est croissante car, l'\'etat actif est stable : une fois r\'eveill\'e, un processus reste actif pour toujours.
+
+\textbf{Remarques :}
+\begin{itemize}
+	\item Les départs sont synchones lorsque tous les processus deviennent actifs au même round, i.e.,
+	$$ \forall r \in \mathds{N}, \mathcal{A}_r \in \{\emptyset, \Pi\}  . $$
+	\item La donn\'ee de la suite $(\mathcal{A}_r)_{r \in \mathds{N}}$ est  équivalente \`a celle de la fonction 
+	$s : \Pi \rightarrow \mathds{N} \cup \{\infty\}$ où 
+	$$ s(p) = \left \{ \begin{array}{l ll}
+	                          \infty & \mbox{ si  } p \notin \bigcup\limits_{r \in \mathds{N}}  \mathcal{A}_r &  \mbox { ($p$ reste passif) } \\
+	                          r  & \mbox{ si  } p \notin \mathcal{A}_{r-1} \mbox{ et } p \in \mathcal{A}_{r}  & \mbox{ ($p$ devient actif au round $r$)}.
+	                          \end{array} \right.$$ 
+	\item On note $HO(p,r)$ l'ensemble des processus actifs entendus par le processus p au round n : $HO(p,r) = \{q, (q,p) \in E_r\}$
+	\item On note $HO_{actif}(p,r)$ l'ensemble des processus actifs entendus par le processus p au round n : $HO_{actif}(p,r) = HO(p,r) \cap \mathcal{A}_r$.
+
+\end{itemize}
+
+Pour toute  exécution de l'algorithme  $(States_p, Init_p, S_p,T_p)_{p\in \Pi}$, on définit inductivement la collection 
+	d'\'etats $ \big( \Gamma_p(r) \big )_{p\in\Pi, r\in \mathds{N}}$ de la fa\c{c}on suivante : 
+	\begin{itemize}
+		\item $\forall r \in \mathds{N},\forall p \in \Pi \setminus \mathcal{A}_{r+1}, \  \Gamma_p(r) = sleep_p$ ;
+		\item $\forall r  \in \mathds{N},\forall p \in \mathcal{A}_{r+1} \setminus \mathcal{A}_r, \ \Gamma_p(r) = \sigma^0_p$ ;
+		\item $\forall r  \in \mathds{N},\forall p \in \mathcal{A}_{r} , \  \Gamma_p(r) = T_p (\Gamma_p(r - 1) ,M_p^{r})$
+			où $M_p^r$ est la fonction partielle de type $X_\Pi^\mathcal{M}$ définie par 
+			$$ M_p^r(q) = \left \{ \begin{array}{l l}
+	                         nil  & \mbox{ si  } q \in (\Pi \setminus \mathcal{A}_r  ) \cap  HO(p,r)  \\
+	                         S_q (\Gamma_q(r), p)  & \mbox{ si  }   q \in \mathcal{A}_r  \cap  HO(p,r) \\
+	                         \mbox{ non d\'efini  } & \mbox{ si  }   q \notin  HO(p,r) .
+	                          \end{array} \right.$$ 
+	\end{itemize}
+Dorénavant, $M_p^r$ est appelée \emph{fonction de réception de $p$ au round $r$}.
+
+\subsection{Probl\`eme du Consensus}
+
+	Soit un ensemble de valeurs $\mathcal{V}$ non vide.
+	On considère un algorithme $A$ dans lequel les processus reçoivent, lors de leur activation, une valeur initiale $v_p \in \mathcal{V}$,
+	et qui prennent, à un round donné, une valeur de décision, également dans $\mathcal{V}$.
+	On décrit la valeur initiale des processus à l'aide de la fonction $Val : \bigcup\limits_{p \in \Pi} Init_p  \rightarrow \mathcal{V}$.
+	Ainsi, pour une exécution donnée, $v_p = Val(\sigma_p^0)$
+	On décrit la valeur de décision des processus à l'aide d'une fonction
+	$Dec : \bigcup\limits_{p \in \Pi} States_p  \rightarrow (\mathcal{V} \uplus \{\bot\})$.
+	Ainsi, si $p$ a décidé $v$ au round $r$, on a $Dec(\Gamma_p(r)) = v$. Si $p$ n'a pas encore décidé au round $r$, on a $Dec(\Gamma_p(r)) = \bot$.
+
+\begin{definition}
+	Une exécution de A \emph{vérifie  l'intégrité} si 
+	$$ \forall r \in \mathds{N},\forall p \in \mathcal{A}_{r}, \ Dec(\Gamma_p(r)) \in \{ \bot \} \cup  \{ Val(\sigma^0_q) :  q \in \Pi \}  .$$
+\end{definition}
+
+\begin{definition}
+	Une exécution de A  \emph{vérifie l'accord} si
+	$$\forall r, r'  \in \mathds{N}, \forall p \in \mathcal{A}_{r}, \forall q \in \mathcal{A}_{r'}, 
+		\ Dec(\Gamma_p(r)) = \bot \vee Dec(\Gamma_q(r')) = \bot \vee Dec(\Gamma_p(r)) = Dec(\Gamma_q(r')) .$$
+\end{definition}
+
+\begin{definition}
+	Une exécution de A \emph{vérifie la terminaison} si
+	$$ \forall p \in \bigcup\limits_{s \in \mathds{N}} \mathcal{A}_s, \exists r \in \mathds{N}, \ 
+		p \in \mathcal{A}_r \wedge Dec(\Gamma_p(r)) \neq \bot .  $$
+\end{definition}
+
+On considère deux prédicats $\mathcal{P}_{\mathds{G}}$ et $\mathcal{P}_{cal}$.
+Ce premier prédicat définit une famille de graphe dynamique, et le second une famille de calendrier d'activation.
+	
+\begin{definition}\label{def:resforte}
+	Un algorithme \emph{résout le consensus sous $\mathcal{P}_{\mathds{G}}$ et $\mathcal{P}_{cal}$} si toute exécution 
+	$( \mathds{G} ,  \mathcal{A} , (\sigma^0_p)_{p \in \Pi})$    de cet algorithme
+	avec $ \mathds{G} \models \mathcal{P}_{\mathds{G}}$ et $\mathcal{A}	\models \mathcal{P}_{cal}$  vérifie l'intégrité, l'accord et la terminaison.
+\end{definition}
+
+\section{Modélisation de la tolérance aux pannes}
+
+Dans la litérature, on rencontre plusieurs façons de modéliser les pannes, par exemple l'article \cite{dds} envisage entre autre :
+\begin{itemize}
+
+	\item Les "crash-failure", c'est-à-dire les cas où des processus peuvent inopinément cesser de fonctionner.
+	\item Les échanges de messages, c'est-à-dire la réception des messages dans un ordre chronologiquement différent de l'envoi.
+
+\end{itemize}
+
+Dans le modèle Heard-Of, ces hypothèses de tolérance aux pannes sont encapsulées dans le prédicat $\mathcal{P}_{\mathds{G}}$.
+Par exemple, pour modéliser un système sans aucune panne, il suffit de considérer le prédicat $\mathcal{P}_{complet}$, dans lequels tous les messages sont toujours livrés :
+
+$$\mathcal{P}_{complet} \equiv \forall r \in \mathds{N}, \forall p \in \Pi, HO(p, r) = \Pi$$.
+
+Ce prédicat exprime le fait que, à chaque round, le graphe dynamique est complet.
+Pour modéliser un système avec $k$ crash-failures, il suffit d'exprimer le fait qu'il existe à chaque round $r$ un quorum $S_r$ d'au moins $|\Pi| - k$ processus dont les messages sont toujours livrés,
+Les processus ayant échoué ne sont plus jamais entendus.
+
+$$\mathcal{P}_{k-crash} \equiv \exists (S_i)_{i \in \mathds{N}}, \forall r \in \mathds{N}, S_{r+1} \subseteq S_r \wedge (\forall p \in \Pi, HO(p, r) = S_r)$$.
+
+L'objectif de cet article est d'établir des algorithmes de consensus ayant une très bonne résistance aux pannes. Pour cela, on s'intéressera particulièrement au prédicat suivant :
+
+$$\mathcal{P}_{\xi-nek} \equiv \exists \xi \in \Pi, \forall r \in \mathds{N}, \forall p \in \Pi, \xi \in HO(p,r)$$.
+
+Ce prédicat est au moins aussi fort que l'hypothèse $|\Pi| - 1$ crash-failures :
+il exprime le fait qu'il existe au moins un processus fiable dans le réseau, qui parvient toujours à faire parvenir ses propres messages.
+Ce processus, noté $\xi$ n'a pas besoin d'être connus par les autres processus du réseau.
+Les autres processus peuvent fonctionner de manière totalement arbitraire.
+
+Cette hypothèse sur le réseau est en fait très faible : un réseau avec aucun processus fiable serait un réseau de très mauvaise qualité. Cependant, on envisagera quand même des versions
+davantage affaiblies de ce prédicat.
+
+$$\mathcal{P}_{nek} \equiv \forall r \in \mathds{N}, \exists \xi \in \Pi, \forall p \in \Pi, \xi \in HO(p,r)$$.
+
+Celle-ci tolère le fait qu'à chaque round, le processus supposé fiable peut être différent.
+
+Pour augmenter la résistances aux échecs de communication, on introduit également les prédicats $\mathcal{P}_{T-rooted}$ et $\mathcal{P}_{rooted}$.
+Ces prédicats expriment le fait qu'à chaque round, le graphe de communication contient un arbre couvrant tout le système.
+Cet arbre est supposé fixe dans le cas de $\mathcal{P}_{T-rooted}$ (on le note $T$), mais peut varier au fil des rounds dans le cas de $\mathcal{P}_{rooted}$.
+Ainsi, $\mathcal{P}_{\xi-rooted}$ (respectivement $\mathcal{P}_{rooted}$) est un cas particulier de $\mathcal{P}_{T-rooted}$ (respectivement $\mathcal{P}_{rooted}$) où $T$ est de profondeur 1.
+
+\subsection{Hypothèses de connaissance}
+
+\begin{definition}
+	On dit qu'un processus $p$ \textit{connaît} une variable $h$ si la fonction d'émission $S_p$, ou la fonction de transition $T_p$ dépend de $h$. 
+\end{definition}
+
+La connaissance qu'ont les processus sur les caractéristiques du système peuvent fortement influer sur la résolubilité de problèmes comme le consensus.
+Il est parfois nécessaire que les processus connissent la taille du réseau $n$ pour que le consensus soit résoluble.
+À défaut de connaitre $n$, il est parfois utile que les processus connissent une borne supérieure $\mathcal{N}$ sur la taille du réseau.
+
+\begin{definition}
+	On dit qu'un réseau est \textit{identifié} si les processus connaissent un identifiant $x_p$, unique à chaque processus.
+	Un réseau non identifié est dit \textit{anonyme}.
+\end{definition}
+
+\subsection{Hypothèses sur les départs asynchones}
+
+L'objectif de cet article n'est pas d'étudier les systèmes ouverts, où des processus peuvent se joindre au réseau à tout moment.
+On suppose donc qu'au round 0, tous les processus sont matériellement actifs. En revanche, il se pourrait qu'au round 0, tous les processus ne soient pas prêt à commencer l'algorithme.
+Par exemple, dans le cas d'un algorithme de consensus, les processus commencent chacun avec une valeur initiale. Admettons que cette valeur initiale soit le résultat d'un calcul antérieur.
+Dans ce cas, chaque processus ne connaîtra sa propre valeur initiale qu'à partir du round $s^0_p$ auquel ce calcul antérieur a terminé.
+Tant que le processus n'est pas prêt à exécuter un certain algorithme, il se contente de rester passif vis à vis de cet algorithme,
+et signale son attente envoyant un message noté $nil$ à tous les processus.
+On appelle calendrier d'activation la famille $(s^0_p)_{p \in \Pi}$ avec $s^0_p \in \mathds{N} \cup \infty$, qui fournit le round d'activation de chaque processus.
+
+En fonction de la nature des calculs antérieurss à exécuter, différentes hypothèses peuvent être faites sur le calendrier d'activation.
+Dans le cadre de ce document, on considèrera en particulier le prédicat suivant :
+
+$$\mathcal{P}_{non-inf} \equiv \exists r \in \mathds{N}, \mathcal{A}_r = \Pi$$
+
+Ce prédicat signifie qu'à partir d'un certain rang $r$, tous les processus sont actifs.
+
+
+\section{Problème de synchonisation modulo $k$}
+
+Il est courant de rencontrer des algorithmes de consensus, structurés par phases : 
+à chaque rounds pairs, les processus exécutent une certaine fonction de transition. Et au round impairs, une autre fonction de transition est exécutée.
+Lorsque les départs sont synchrones, tous les processus exécutent la même fonction de transition à chaque round.
+Lorsqu'il y a des départs asynchrones, les phases paires des différents processus ne sont plus simultanées, et cela peut compromettre la sûreté de l'algorithme.
+Le but de ce document est de proposer un algorithme permettant de synchroniser les différentes phases malgré les départs asynchrones.
+
+\begin{definition}
+
+	Soit un paramètre $k > 1$. Soit $s_{exit} \in States_p$ un état final.
+	Étant donnée une exécution d'un algorithme $A$, pour tout $p \in \Pi$, on note $t_p$ le round auquel $p$ atteint $s_{exit}$ ($t_p = \infty$ sinon).
+	Cette exécution de l'algorithme $A$ est sûr vis à vis du problème de synchronisation modulo $k$ si,
+	$$\exists c \in \mathds{N}, \forall p \in \bigcup\limits_{i \in \mathds{N}} \mathcal{A}_i, t_p \neq \infty \Rightarrow t_p~mod~k = c$$
+
+\end{definition}
+
+\begin{definition}
+
+	Une exécution de l'algorithme $A$ vérifie la vivacité vis à vis du problème de synchronisation modulo $k$ si,
+	$$\forall p \in \bigcup\limits_{i \in \mathds{N}} \mathcal{A}_i, t_p \neq \infty$$
+
+\end{definition}
+\begin{definition}
+	L'algorithme $A$ résoud le problème de synchronisation modulo $k$, si toute exécution de $A$ est sûre et termine.
+\end{definition}
+
+Pour la suite, on considère une valeur $k > 2$ quelquonque.
+
+\subsection{Algorithme}
+
+L'objectif est de résoudre ce problème dans les conditions suivantes :
+\begin{itemize}
+
+	\item Le graphe dynamique contient une étoile fixe : $\mathcal{P}_{\xi-nek} \equiv \exists \xi \in \Pi, \forall p \in \Pi, \forall r \in \mathds{N}, \xi \in HO(p, r)$
+	\item Tous les processus s'activent en temps fini : $\mathcal{P}_{non-inf} \equiv \exists r \in \mathds{N}, \mathcal{A}_r = \Pi$
+
+\end{itemize}
+
+L'idée de l'algorithme ci-dessous est que chaque processus possède un compteur modulo $k$. À chaque round, il incrémente son compteur, et l'envoie à tous.
+Il reçoit alors les valeurs de compteur de tous ses voisins entrants. Il essaye de se synchroniser avec les autres processus s'ils s'accordent tous sur une même valeur de compteur
+(deuxième branche dans la fonction de transition).
+
+Sinon, il fait une tentative de "synchronisation forcée", c'est-à-dire il essaye de convaincre tous les processus de se synchroniser sur son propre compteur :
+il adopte la valeur $k$ (troisième branche). Au prochain round, il envoie $k$.  Les processus qui reçoivent ce $k$ sont obligés d'adopter 1 (quatrième branche).
+Chaque processus ne fait qu'une seule fois cette tentative de synchronisation forcée (la variable $try_p$ sert justement à limiter $p$ à une seule tentative).
+On note $t_p$ le round auquel le processus $p$ exécute cette branche, si cela se produit. $t_p = 0$ sinon.
+
+Lorsqu'un processus s'active, il essaye de s'aligner sur les valeurs qu'il entend, avant d'envoyer sa propre valeur.
+On introduit donc une valeur $\bot$, qui sera envoyé lors du round d'activation, qui sera traité comme un $nil$ par les processus récepteurs.
+
+\pagebreak[1]
+
+\begin{algorithm}[htb]
+\begin{distribalgo}[1]
+\BLANK \INDENT{\textbf{Initialization:}}
+	\STATE $x_p \in \mathds{Z}/k\mathds{Z}$
+	\STATE $try_p = true$
+	\STATE $fire_p = false$
+
+\ENDINDENT \BLANK
+
+\INDENT{\textbf{Round 0:}}
+ \INDENT{$S_p:$}
+    \STATE send $\bot$ to all processes
+  \ENDINDENT
+\ENDINDENT
+  \BLANK
+\INDENT{\textbf{Round $r+1$:}}
+ \INDENT{$S_p:$}
+    \STATE send $\langle x_p \rangle$ to all processes
+  \ENDINDENT
+\ENDINDENT
+  \BLANK
+\INDENT{\textbf{Round $r$:}}
+	\INDENT{$T_p(M):$}
+	\IF{$M(\Pi) = \{k\}$}
+	\STATE $fire_p = true$ ~~~~\COMMENT{si tous les messages reçus valent 0, aucun $nil$, l'algorithme fait feu}
+	\IF{$M(\Pi) \setminus \{nil, \bot\} = \{v\}$}
+	\STATE $x_p = v+1~mod~k$ ~~~~\COMMENT{si tous les messages ont la même valeur, s'aligner}
+	\ELSIF{$try_p \wedge k \notin M(\Pi)$}
+	\STATE $try_p = false$ ~~~~\COMMENT{si plusieurs messages sont discordants, faire une tentative de synchronisation forcée}
+	\STATE $x_p = k$
+	\ELSE
+	\STATE $x_p = 1$ ~~~~\COMMENT{si un k a été reçu, toujours s'aligner}
+	\ENDIF
+  \ENDINDENT
+\ENDINDENT 
+\caption{The {\em SyncMod} algorithm} \label{algo:R}
+\end{distribalgo}
+
+\end{algorithm}
+
+\subsection{Notations}
+
+Soit $V \subseteq \mathds{Z}/k\mathds{Z}$. On dit que le système est V-valent au round $t$ si $V = \{v \in \mathds{Z}/k\mathds{Z}, \exists p \in \Pi, x_p(t) = v\}$.
+On dit que le système est v-monovalent si le système est $\{v\}$-valent.
+
+On dit que $p$ "fait feu" au round $t$ si $p$ exécute la première branche au round $t$.
+
+\subsection{Preuve}
+
+\begin{lemma}
+	Si $x_\xi(t) = k$, le système est 1-monovalent au round $t+1$.
+\end{lemma}
+\begin{proof}
+	$\xi$ est le centre de l'étoile.
+	Si $x_\xi(t) = k$, au round $t+1$, $\xi$ envoie $k$ à tous les processus. Donc tous les processus, recevant un $k$, exécutent nécessairement la deuxième ou quatrième branche,
+	et adoptent donc $1$. Le système devient donc 1-monovalent.
+\end{proof}
+
+\begin{lemma}
+	Si, au round $s$, $\xi$ est actif, et le système est v-monovalent, pour tout $i \in \mathds{N}$, le système est $v+i~mod~k$-monovalent.
+\end{lemma}
+\begin{proof}
+	On montre cela par récurrence sur $i$.
+	\begin{description}
+		\item[Initialisation :] Vrai par hypothèse.
+		\item[Hérédité :] On suppose que $\forall p \in \mathcal{A}_{s+i}, x_p(s+i) = v+i~mod~k$.
+			On veut montrer que $\forall p \in \mathcal{A}_{s+i+1}, x_p(s+i+1) = v+i+1~mod~k$.
+			Au round $s+i+1$, les processus dans $\mathcal{A}_{s+i}$ envoyent $v+i~mod~k$, d'après l'hypothèse de récurrence.
+			Les processus de $\mathcal{A}_{s+i+1} \setminus \mathcal{A}_{s+i}$ envoyent $\bot$. Les autres envoyent $nil$.
+			Comme $\xi$ est actif, les processus reçoivent tous au moins une fois $v+i~mod~k$. Donc tous les processus actifs exécutent la deuxième branche, et adoptent $v+i+1~mod~k$.
+	\end{description}
+\end{proof}
+
+\begin{lemma}
+	Si $x_\xi(t) = k$, tout processus $p$ fait feu au plus tard au round $t+k i$ où $i$ est le plus petit entier vérifiant $t+k i \geq s_{max} = max \{s_p, p \in \Pi\}$.
+\end{lemma}
+\begin{proof}
+	D'après les lemmes 1 et 2, le système devient 1-monovalent au round $t+1$ et $i~mod~k$-monovalent à tous les rounds $t+i$ suivants.
+	À partir du round $s_{max}$, tous les processus sont actifs.
+	Ainsi, au premier round $t+k i$ vérifiant $t+k i \geq s_{max}$, le système est $k$-monovalent, donc au round $t+k i +1$, tous les processus envoyent $k$ à leurs voisons sortants.
+	Ainsi, les processus ne reçoivent que des $k$, donc tous les processus font feu.
+\end{proof}
+
+\begin{lemma}
+	Si le système est monovalent au round $t$, tous les processus auront fait feu au plus tard au round $max(t, s_{max})+k$.
+\end{lemma}
+\begin{proof}
+	D'après le lemme 2, le système est toujours monovalent au round $max(t, s_{max})$ et tous les processus sont actifs.
+	Donc, au plus après $k$ rounds, le système entrera dans un état $k$-monovalent, et au round suivant, tous les processus enverront $k$.
+	Ainsi, tous les processus qui n'auront pas encore fait feu, feront feu.
+	Donc, au plus tard au round $max(t, s_{max})+k$, tous les processus auront fait feu.
+\end{proof}
+
+On introduit la fonction $C(t) = (x_\xi(t), \{v \in \mathds{Z}/k\mathds{Z}, \exists p \in \Pi, x_p(t) = v\})$.
+Ainsi, si $C(t) = (v_0, V)$, le système est V-valent au round $t$.
+
+On introduit un ensemble $\mathcal{F}$ de configurations dites "favorables".
+Ainsi, $C(t) = (v, V) \in \mathcal{F} \equiv v = k \vee |V| = 1$.
+Les deux lemmes précédents montrent que si une exécution atteint une configuration favorable, la vivacité est garantie.
+
+\begin{lemma}
+	Toute exécution de cet algorithme est sûr vis-à-vis du problème de synchronisation modulo k lorsque les prédicats $\mathcal{P}_{\xi-nek}$ et $\mathcal{P}_{non-inf}$ sont vérifiés.
+\end{lemma}
+\begin{proof}
+
+	On suppose que $p$ fait feu au round $r$, et est le premier. Nécessairement, $\xi \in HO(p,r)$.
+	La ligne 12 du code montre que la valeur envoyé par $\xi$ est 0.
+	Donc tous les processus ont reçus un 0. Soit $p$ un processus actif quelquonque. Au round $r$, il execute, dans sa fonction de transition, l'une des quatre branches possibles.
+	\begin{itemize}
+
+		\item Il ne peut pas exécuter la troisième branche car $M(\xi) = 0$.
+		\item S'il exécute la première, deuxième ou la quatrième branche, il adopte 0.
+
+	\end{itemize}
+
+	On montre maintenant par récurrence sur $i$ la proposition suivante :
+
+	$$\forall i \in \mathds{N}, \forall p \in \mathcal{A}_{r+i}, x_p(r+i) = i~mod~k$$
+
+	\textbf{Initialisation : } voir ci-dessus
+
+	\textbf{Hérédité :}
+	On suppose que $\forall p \in \mathcal{A}_{r+i}, x_p(r+i) = i~mod~k$.
+
+	On veut montrer que $\forall p \in \mathcal{A}_{r+i+1}, x_p(r+i+1) = i+1~mod~k$.
+
+	Soit $M$ la fonction de réception de $p$ au round $r+i+1$.
+	L'hypothèse de récurrence montre que $M(\Pi) \subseteq \{nil, \bot, i+1~mod~k\}$.
+	De plus, $M(\xi) = i+1~mod~k$. Donc $p$ exécute la première ou la deuxième branche de la fonction de transition, et adopte $i+1~mod~k$.
+	Cela achève la récurrence.
+
+	La sûreté découle de cette proposition.
+
+\end{proof}
+
+Pour les trois lemmes ci-dessous, on se fixe une exécution de l'algorithme.
+On dit que le système est synchonisé au round $i$ si tous les processus actifs ont la même valeur de compteur dans $\mathds{Z}/k\mathds{Z}$.
+
+\begin{lemma}
+	Sous le prédicat $\mathcal{P}_{\xi-nek}$,
+	si au round $i$, $\xi$ est actif et le système est synchonisé, il l'est également au round $i+1$.
+\end{lemma}
+\begin{proof}
+	Si le système est synchronisé au round $i$, au round $i+1$, tous les processus enverront une même valeur $v$.
+	Donc, pour tout $p \in \mathcal{A}_{i+1}$, on aura $M_p^{i+1}(\Pi) \subseteq \{v+1~mod~k, nil, \bot\}$.
+	Le fait que $\xi$ est actif induit $v+1~mod~k \in M_p^{i+1}(\Pi)$.
+	Donc la deuxième branche de la fonction de transition sera exécutée.
+	La synchronisation est donc maintenue.
+\end{proof}
+\begin{lemma}
+	Sous les prédicats $\mathcal{P}_{\xi-nek}$ et $\mathcal{P}_{non-inf}$,
+	si au round $i$, $\xi$ est actif et le système est synchonisé, tous les processus font feu.
+\end{lemma}
+\begin{proof}
+	Le lemme précédent montre qu'à partir du round $i$, le système reste synchonisé. De plus, à chaque round, la valeur des compteurs est incrémentée.
+	Soit $r$ le round à partir duquel tous les processus sont actifs.
+	Ainsi, lors d'un round $i' \geq max(i, r)$, le système atteindra un état dans lequel tous les compteurs valent $k-1$.
+	On aura alors, au round suivant, $\forall p \in \Pi, M_p^{i'}(\Pi) = \{0\}$.
+	Donc tous les processus font feu.
+\end{proof}
+
+On montre maintenant la vivacité dans un cas simple.
+Soit $\mathcal{P}_{star} \equiv \exists \xi \in \Pi, \forall p \in \Pi, \forall r \in \mathds{N}, HO(p, r) = \{\xi\}$
+
+\begin{theorem}
+	L'algorithme résout la synchronisation modulo $k$ lorsque les prédicats $\mathcal{P}_{star}$ et $\mathcal{P}_{non-inf}$ sont vérifiés.
+\end{theorem}
+\begin{proof}
+	$\xi$ s'active en temps fini d'après le prédicat $\mathcal{P}_{non-inf}$.
+	Soit $r$ le round auquel $\xi$ s'active.
+	Au round $r$, $\xi$ exécute nécessairement la troisième branche de la fonction de transition, donc $x_\xi(r) = k-1$.
+	Ainsi, au round $r+1$, $\xi$ enverra 0 à tous, donc le système se synchronisera sur 0.
+	Le lemme précédent montre la vivacité, et le lemme 1 la sûreté.
+\end{proof}
+
+On montre maintenant la vivacité dans le cas qui nous intéresse.
+
+\begin{theorem}
+	L'algorithme résout la synchronisation modulo $k$ lorsque les prédicats $\mathcal{P}_{\xi-nek}$ et $\mathcal{P}_{non-inf}$ sont vérifiés.
+\end{theorem}
+\begin{proof}
+	$\xi$ s'active en temps fini d'après le prédicat $\mathcal{P}_{non-inf}$.
+	Soit $r$ le round auquel $\xi$ s'active.
+	L'algorithme est conçu de telle manière que chaque processus n'exécute la troisième branche de la fonction de transition qu'une seule fois.
+	Donc il existe un round $r' \geq r$ à partir duquel plus aucun processus n'exécute cette troisième branche.
+
+	\begin{description}
+
+		\item[Cas 1 : ] $\xi$ a exécuté la troisième branche de la fonction de transition au cours d'un round $t \geq r$.
+
+			Dans ce cas, au round $t+1$, $\xi$ envoie 0 à tous, donc tous les processus s'alignent sur ce 0. Le système est maintenant synchonisé. Le lemme précédent montre la vivacité.
+
+		\item[Cas 2 : ] $\xi$ n'a jamais exécuté la troisième branche, et n'a pas exécuté la quatrième branche au delà du round $r'$.
+
+			Dans ce cas, au delà du round $r'$, $\xi$ n'exécute que les deux premières branches. Un raisonnement similaire à la preuve du théorème 1 montre la vivacité.
+
+		\item[Cas 3 : ] $\xi$ n'a jamais exécuté la troisième branche, mais a exécuté la quatrième branche au round $t \geq r'$.
+
+			Ainsi, au round $t+1$, $\xi$ envoie 1 à tous. Comme $t \geq r'$, les processus ne peuvent exécuter que la deuxième et la quatrième branche.
+			Les seules valeurs présentes dans le système à la fin du round $t+1$ sont donc 0 et 1.
+			On distingue deux sous-cas possibles :
+
+			\begin{description}
+
+				\item[Sous-cas 3.1] $x_\xi(t+1) = 1$
+
+					Dans ce cas, on montre par récurrence sur $i$ que
+					$$\forall i \in \mathds{N}, x_\xi(t+i) = i~mod~k \wedge \forall p \in \mathcal{A}_{t+i}, x_p(t+i) \leq x_\xi(t+i)$$
+
+					\textbf{Initialisation : } voir ci-dessus.
+
+					\textbf{Hérédité : } Pour $i$ donné, on suppose que 
+					$$x_\xi(t+i) = i~mod~k \wedge \forall p \in \mathcal{A}_{t+i}, x_p(t+i) \leq x_\xi(t+i)$$
+					L'hypothèse de récurrence montre que les messages envoyés au round $t+i+1$ sont compris entre 1 et $i+1~mod~k$.
+					Le processus $\xi$ reçoit toujours sa propre valeur, à savoir $i+1~mod~k$, mais n'en reçoit jamais d'autre, celà provoquerait l'exécution de la troisième branche.
+					On a pourtant supposé que $\xi$ n'exécutait jamais cette branche. Cela prouve $x_\xi(t+i+1) = i+1~mod~k$.
+
+					Les autres processus reçoivent au round $t+i+1$ des valeurs comprises entre 1 et $i+1~mod~k$, cela prouve $\forall p \in \mathcal{A}_{t+i}, x_p(t+i) \leq x_\xi(t+i)$.
+
+					Cette récurrence montre qu'au round $t+k$, $\xi$ envoie 0 à tous, ce qui synchrones le système. Le lemme précédent assure la vivacité.
+
+				\item[Sous-cas 3.2] $x_\xi(t+1) = 0$
+
+					Dans ce cas, $\xi$ envoie 1 à tous les processus au round $t+i+1$. Les valeurs envoyées par les autres processus sont nécessairement 1 et 2.
+					$\xi$ ne peut pas avoir reçu un 2, car on a supposé que $\xi$ n'a jamais exécuté la troisième branche. Donc la valeur de $\xi$ à la fin du round est nécessairement 1.
+					Pour les autres processus, les seules valeurs possibles sont 0 et 1. On est donc ramené au cas précédent.
+			\end{description}
+	\end{description}
+
+	Cette disjonction de cas achève donc la vivacité. La sûreté étant garantie par le lemme 1.
+\end{proof}
+
+
+\printbibliography
+
+\end{document}
