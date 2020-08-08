@@ -9,8 +9,8 @@
 \usepackage[left=2cm, right=2cm, top=2cm]{geometry}
 \usepackage[utf8]{inputenc}
 \newtheorem{lemma}{Lemme}
-\newtheorem{theorem}{Theoreme}
-\newtheorem{definition}{Definition}
+\newtheorem{theorem}{Théorème}
+\newtheorem{definition}{Définition}
 \setlength{\parskip}{0.22cm}
 
 \usepackage{biblatex}
@@ -30,7 +30,7 @@
 
 On se place dans le contexte d'un réseau de machines, et on souhaite que ce réseau exécute une certaine tâche, margré les pannes pouvant survenir.
 Une abondante litérature propose différentes approches permettant de modéliser les systèmes distribués, ainsi que les différents types de pannes possibles.
-L'un des principaux problèmes étudié dans la litérature est le problème du consensus, où les processus doivent s'accorder sur une même valeur parmi un ensemble de valeurs possibles.
+%L'un des principaux problèmes étudié dans la litérature est le problème du consensus, où les processus doivent s'accorder sur une même valeur parmi un ensemble de valeurs possibles.
 Un modèle particulièrement intéressant, connue sous de nom de "modèle Heard-Of" \cite{model_ho},
 consiste à envisager les processus comme des machines à états, qui progressent par une succession de rounds "clos par communication".
 C'est-à-dire qu'au sein d'un même round, les processus peuvent communiquer.
@@ -38,20 +38,24 @@ On localise les pannes au niveau des laisons entre processus. Ainsi, pour un rou
 
 \subsection{Problème à traiter}
 
+Cet article s'intéresse tout particulièrement au problème du consensus : les processus ont chacun une valeur initiale, et doivent s'accorder sur une valeur parmi l'ensemble des valeurs initiales.
 Des travaux antérieurs étudient en profondeur les possibilité offertes par un système modélisé de cette manière, en fonction des hypothèses faites sur la connectivité du réseau.
 Mais les travaux existants font une hypothèse qui limite considérablement leur portée, en supposant les départs synchrones : les processus démarrent tous au même moment, au sein d'un même premier round.
-Un article a été publié afin de contourner cette limitation \cite{firing_squad}. Cet article propose un algorithme distribué, qui peut être démarré de manière asynchrones par les noeuds du réseau,
-mais qui termine au même round pour tous les processus (tous les processus "font feu" en même temps, d'où le nom de l'article).
-À la suite d'un tel algorithme, on peut exécuter un algorithme de consensus par exemple, sans se soucier des problèmes de départs asynchrones.
-Mais les hypothèses très fortes, faites sur la connectivité du réseau, affectent fortement la tolérance au panne.
+L'un des principaux objectifs de cet article est d'étudier la résolubilité du consensus dans un système sans faire l'hypothèses des départs synchrones.
+Cet article s'inscrit dans la continuité de \cite{firing_squad}, dont l'objectif était de ramener les systèmes avec départs asynchrones à des systèmes avec départs synchrones, plus simple à traiter.
+%Un article a été publié afin de contourner cette limitation  Cet article propose un algorithme distribué, qui peut être démarré de manière asynchrones par les noeuds du réseau,
+%mais qui termine au même round pour tous les processus (tous les processus "font feu" en même temps, d'où le nom de l'article).
+%À la suite d'un tel algorithme, on peut exécuter un algorithme de consensus par exemple, sans se soucier des problèmes de départs asynchrones.
+Mais, avec la méthode proposée, les hypothèses très fortes, faites sur la connectivité du réseau, affectent fortement la tolérance au panne.
+Il s'agit donc d'étendre ce résultat avec des hypothèses plus faibles.
 
 \subsection{Contribution proposée}
 
-Le but de ce travail est d'explorer les possibilités offertes par un systèmes avec départs asynchrones.
-En particulier, on s'intéressera à la résolubilité du consensus avec départs asynchrones, en fonction des hypothèses faites sur la connectivité du réseau.
+%Le but de ce travail est d'explorer les possibilités offertes par un systèmes avec départs asynchrones.
+%En particulier, on s'intéressera à la résolubilité du consensus avec départs asynchrones, en fonction des hypothèses faites sur la connectivité du réseau.
 En cherchant à adapter les principaux algorithmes de consensus connus,
 pour les rendre compatibles avec départs asynchrones, un problème intermédiaire, appelé "problème de synchronisation modulo $k$", a été identifié.
-En effet, de nombreux algorithmes de consensus, tels que "Uniforme Voting" \cite{model_ho}, reposent sur une succession de phases, que les processus sont supposés exécuter de façon synchronisée.
+En effet, de nombreux algorithmes de consensus, tels que "Uniforme Voting" \cite{model_ho}, reposent sur une alternance de phases, que les processus sont supposés exécuter de façon synchronisée.
 Si un algorithme contient $k$ phases, il est nécessaire que les processus démarrent au cours de rounds qui soient congrus modulo $k$.
 Cet article propose donc un algorithme qui, en s'inspirant de \cite{firing_squad},
 résout le problème de synchronisation modulo $k$, et ouvre donc la voie à la résolubtion du consensus avec départs asynchrones.
@@ -63,7 +67,82 @@ Afin de renforcer la solidité des preuves d'algorithmes, cet article est accomp
 
 \section{Description du modèle}
 
-\subsection{Définition d'un algorithme HO}
+\subsection{Présentation générale}
+
+Dans le modèle Heard-Of, les processus sont décrits par des machines à états (voir définition formelle ci-dessous).
+Le système est synchrone, c'est-à-dire que la progression du système est subdivisée en rounds. À chaque round, chaque processus :
+\begin{itemize}
+	\item envoie aux autres un messages, en fonction de l'état dans lequel il se trouve,
+	\item reçoit un sous-ensemble des messages envoyés par ses pairs \emph{au cours de ce même round},
+	\item modifie son état, en fonction des mesaages reçus, et de son état antérieur.
+\end{itemize}
+
+Pour une exécution donnée (voir définition formelle ci-dessous), la connectivité du réseau peut être décrite par une suite de graphes $(\mathds{G}_r)_{r \in \mathds{N}}$, appelée \textit{graphe dynamique} :
+au round $r$, le processus $p$ est capable d'envoyer au processus $q$ si et seulement si le graphe $\mathds{G}_r$ contient l'arête $(p,q)$.
+
+On ne peut résoudre aucun problème intéressant dans un tel système si on suppose que la connectivité est arbitrairement mauvaise. Dans le cas extrême, le graphe dynamique est une suite de graphes vides, 
+donc aucune connexion ne fonctionne jamais.
+On est donc amené à restreindre l'ensemble des graphes dynamiques possibles. Ces restrictions prennent généralement la forme de \emph{prédicats de communications}.
+
+%Dans la litérature, on rencontre plusieurs façons de modéliser les pannes, par exemple l'article \cite{dds} envisage entre autre :
+%\begin{itemize}
+
+	%\item Les "crash-failure", c'est-à-dire les cas où des processus peuvent inopinément cesser de fonctionner.
+	%\item Les échanges de messages, c'est-à-dire la réception des messages dans un ordre chronologiquement différent de l'envoi.
+
+%\end{itemize}
+
+Par exemple, pour modéliser un système sans aucune panne, il suffit de considérer le prédicat $\mathcal{P}_{complet}$, dans lequels tous les messages sont toujours livrés :
+
+$$\mathcal{P}_{complet} \equiv \forall r \in \mathds{N}, \forall p \in \Pi, HO(p, r) = \Pi$$
+
+Ici, $HO(p, r)$ désigne l'ensemble des voisins entrants de $p$ dans le graphe $\mathds{G}_r$.
+Ce prédicat exprime le fait que, à chaque round, le graphe dynamique est complet.
+Pour modéliser un système avec $k$ crash-failures, il suffit d'exprimer le fait qu'il existe à chaque round $r$ un quorum $S_r$ d'au moins $|\Pi| - k$ processus dont les messages sont toujours livrés,
+Les processus ayant échoué ne sont plus jamais entendus.
+
+$$\mathcal{P}_{k-crash} \equiv \exists (S_i)_{i \in \mathds{N}}, \forall r \in \mathds{N}, S_{r+1} \subseteq S_r \wedge |S_r| \geq |\Pi| - k \wedge (\forall p \in \Pi, HO(p, r) = S_r)$$.
+
+L'objectif de cet article est d'établir des algorithmes de consensus ayant une très bonne résistance aux pannes. Pour cela, on s'intéressera particulièrement au prédicat suivant :
+
+$$\mathcal{P}_{\xi-nek} \equiv \exists \xi \in \Pi, \forall r \in \mathds{N}, \forall p \in \Pi, \xi \in HO(p,r)$$.
+
+Ce prédicat est au moins aussi fort que l'hypothèse $|\Pi| - 1$ crash-failures :
+il exprime le fait qu'il existe au moins un processus fiable dans le réseau, qui parvient toujours à faire parvenir ses propres messages.
+Ce processus, noté $\xi$ n'a pas besoin d'être connus par les autres processus du réseau.
+Les autres processus peuvent fonctionner de manière totalement arbitraire.
+
+Cette hypothèse sur le réseau est en fait très faible : un réseau avec aucun processus fiable serait un réseau de très mauvaise qualité. Cependant, on envisagera quand même des versions
+davantage affaiblies de ce prédicat.
+
+$$\mathcal{P}_{nek} \equiv \forall r \in \mathds{N}, \exists \xi \in \Pi, \forall p \in \Pi, \xi \in HO(p,r)$$.
+
+Celle-ci tolère le fait qu'à chaque round, le processus supposé fiable peut être différent.
+
+Pour augmenter la résistances aux échecs de communication, on introduit également les prédicats $\mathcal{P}_{T-rooted}$ et $\mathcal{P}_{rooted}$.
+Ces prédicats expriment le fait qu'à chaque round, le graphe de communication contient un arbre couvrant tout le système.
+Cet arbre est supposé fixe dans le cas de $\mathcal{P}_{T-rooted}$ (on le note $T$), mais peut varier au fil des rounds dans le cas de $\mathcal{P}_{rooted}$.
+Ainsi, $\mathcal{P}_{\xi-rooted}$ (respectivement $\mathcal{P}_{rooted}$) est un cas particulier de $\mathcal{P}_{T-rooted}$ (respectivement $\mathcal{P}_{rooted}$) où $T$ est de profondeur 1.
+
+\subsection{départs synchrones - départs asynchones}
+
+L'objectif de cet article n'est pas d'étudier les systèmes ouverts, où des processus peuvent se joindre au réseau à tout moment.
+On suppose donc qu'au round 0, tous les processus sont matériellement actifs. En revanche, il se pourrait qu'au round 0, tous les processus ne soient pas prêt à commencer l'algorithme.
+Par exemple, dans le cas d'un algorithme de consensus, les processus commencent chacun avec une valeur initiale. Admettons que cette valeur initiale soit le résultat d'un calcul antérieur.
+Dans ce cas, chaque processus ne connaîtra sa propre valeur initiale qu'à partir du round $s^0_p$ auquel ce calcul antérieur a terminé.
+Tant que le processus n'est pas prêt à exécuter un certain algorithme, il se contente de rester passif vis à vis de cet algorithme,
+et signale son attente envoyant un message noté $nil$ à tous les processus.
+On appelle calendrier d'activation la suite croissante $(\mathcal{A}_r)_{r \in \mathds{N}}$. Au round $r$, $\mathcal{A}_r \subseteq \Pi$ est le sous-ensemble des processus actifs au round $r$.
+
+En fonction de la nature des calculs antérieurss à exécuter, différentes hypothèses peuvent être faites sur le calendrier d'activation.
+Ces hypothèses sont également exprimable sous forme de prédicats de communications.
+Dans le cadre de ce document, on considèrera en particulier le prédicat suivant :
+
+$$\mathcal{P}_{non-inf} \equiv \exists r \in \mathds{N}, \mathcal{A}_r = \Pi$$
+
+Ce prédicat signifie qu'à partir d'un certain rang $r$, tous les processus sont actifs.
+
+\subsection{Définition d'un algorithme}
 
 On se donne un ensemble non vide $\Pi$ de cardinalit\'e $n$ et  un ensemble non vide ${\cal M}$ dont les \'el\'ements seront appel\'es des
 	messages et un \'el\'ement particulier {\em nil} qui n'est pas dans $\mathcal{M}$.
@@ -189,47 +268,6 @@ Ce premier prédicat définit une famille de graphe dynamique, et le second une 
 	avec $ \mathds{G} \models \mathcal{P}_{\mathds{G}}$ et $\mathcal{A}	\models \mathcal{P}_{cal}$  vérifie l'intégrité, l'accord et la terminaison.
 \end{definition}
 
-\section{Modélisation de la tolérance aux pannes}
-
-Dans la litérature, on rencontre plusieurs façons de modéliser les pannes, par exemple l'article \cite{dds} envisage entre autre :
-\begin{itemize}
-
-	\item Les "crash-failure", c'est-à-dire les cas où des processus peuvent inopinément cesser de fonctionner.
-	\item Les échanges de messages, c'est-à-dire la réception des messages dans un ordre chronologiquement différent de l'envoi.
-
-\end{itemize}
-
-Dans le modèle Heard-Of, ces hypothèses de tolérance aux pannes sont encapsulées dans le prédicat $\mathcal{P}_{\mathds{G}}$.
-Par exemple, pour modéliser un système sans aucune panne, il suffit de considérer le prédicat $\mathcal{P}_{complet}$, dans lequels tous les messages sont toujours livrés :
-
-$$\mathcal{P}_{complet} \equiv \forall r \in \mathds{N}, \forall p \in \Pi, HO(p, r) = \Pi$$.
-
-Ce prédicat exprime le fait que, à chaque round, le graphe dynamique est complet.
-Pour modéliser un système avec $k$ crash-failures, il suffit d'exprimer le fait qu'il existe à chaque round $r$ un quorum $S_r$ d'au moins $|\Pi| - k$ processus dont les messages sont toujours livrés,
-Les processus ayant échoué ne sont plus jamais entendus.
-
-$$\mathcal{P}_{k-crash} \equiv \exists (S_i)_{i \in \mathds{N}}, \forall r \in \mathds{N}, S_{r+1} \subseteq S_r \wedge (\forall p \in \Pi, HO(p, r) = S_r)$$.
-
-L'objectif de cet article est d'établir des algorithmes de consensus ayant une très bonne résistance aux pannes. Pour cela, on s'intéressera particulièrement au prédicat suivant :
-
-$$\mathcal{P}_{\xi-nek} \equiv \exists \xi \in \Pi, \forall r \in \mathds{N}, \forall p \in \Pi, \xi \in HO(p,r)$$.
-
-Ce prédicat est au moins aussi fort que l'hypothèse $|\Pi| - 1$ crash-failures :
-il exprime le fait qu'il existe au moins un processus fiable dans le réseau, qui parvient toujours à faire parvenir ses propres messages.
-Ce processus, noté $\xi$ n'a pas besoin d'être connus par les autres processus du réseau.
-Les autres processus peuvent fonctionner de manière totalement arbitraire.
-
-Cette hypothèse sur le réseau est en fait très faible : un réseau avec aucun processus fiable serait un réseau de très mauvaise qualité. Cependant, on envisagera quand même des versions
-davantage affaiblies de ce prédicat.
-
-$$\mathcal{P}_{nek} \equiv \forall r \in \mathds{N}, \exists \xi \in \Pi, \forall p \in \Pi, \xi \in HO(p,r)$$.
-
-Celle-ci tolère le fait qu'à chaque round, le processus supposé fiable peut être différent.
-
-Pour augmenter la résistances aux échecs de communication, on introduit également les prédicats $\mathcal{P}_{T-rooted}$ et $\mathcal{P}_{rooted}$.
-Ces prédicats expriment le fait qu'à chaque round, le graphe de communication contient un arbre couvrant tout le système.
-Cet arbre est supposé fixe dans le cas de $\mathcal{P}_{T-rooted}$ (on le note $T$), mais peut varier au fil des rounds dans le cas de $\mathcal{P}_{rooted}$.
-Ainsi, $\mathcal{P}_{\xi-rooted}$ (respectivement $\mathcal{P}_{rooted}$) est un cas particulier de $\mathcal{P}_{T-rooted}$ (respectivement $\mathcal{P}_{rooted}$) où $T$ est de profondeur 1.
 
 \subsection{Hypothèses de connaissance}
 
@@ -246,31 +284,298 @@ Il est parfois nécessaire que les processus connissent la taille du réseau $n$
 	Un réseau non identifié est dit \textit{anonyme}.
 \end{definition}
 
-\subsection{Hypothèses sur les départs asynchones}
+\section{Théorèmes de résolubilité}
 
-L'objectif de cet article n'est pas d'étudier les systèmes ouverts, où des processus peuvent se joindre au réseau à tout moment.
-On suppose donc qu'au round 0, tous les processus sont matériellement actifs. En revanche, il se pourrait qu'au round 0, tous les processus ne soient pas prêt à commencer l'algorithme.
-Par exemple, dans le cas d'un algorithme de consensus, les processus commencent chacun avec une valeur initiale. Admettons que cette valeur initiale soit le résultat d'un calcul antérieur.
-Dans ce cas, chaque processus ne connaîtra sa propre valeur initiale qu'à partir du round $s^0_p$ auquel ce calcul antérieur a terminé.
-Tant que le processus n'est pas prêt à exécuter un certain algorithme, il se contente de rester passif vis à vis de cet algorithme,
-et signale son attente envoyant un message noté $nil$ à tous les processus.
-On appelle calendrier d'activation la famille $(s^0_p)_{p \in \Pi}$ avec $s^0_p \in \mathds{N} \cup \infty$, qui fournit le round d'activation de chaque processus.
+On considère un prédicat $\Phi$ sur un graphe. On définit les transformateurs de prédicats de la manière suivante.
 
-En fonction de la nature des calculs antérieurss à exécuter, différentes hypothèses peuvent être faites sur le calendrier d'activation.
-Dans le cadre de ce document, on considèrera en particulier le prédicat suivant :
+\begin{definition}
+	On définit le prédicat $P_k(\Phi)$ sur un graphe dynamique
+	$\mathds{G}$ par $$P_k(\Phi) \equiv \forall t \in \mathds{N}, \mathds{G}(t:t+k) \models \Phi$$
+\end{definition}
 
-$$\mathcal{P}_{non-inf} \equiv \exists r \in \mathds{N}, \mathcal{A}_r = \Pi$$
+$\Phi$ est toujours équivalent à $P_k(\Phi)$, puisqu'on peut trivialement construire un algorithme $A_k$ qui traduise $P_k(\Phi)$ en $\Phi$.
 
-Ce prédicat signifie qu'à partir d'un certain rang $r$, tous les processus sont actifs.
+\begin{definition}
+	On définit le prédicat $P_{borné}(\Phi)$ sur un graphe dynamique
+	$\mathds{G}$ par $$P_{borné}(\Phi) \equiv \exists b \in \mathds{N}, \forall t \in \mathds{N}, \mathds{G}(t:t+b) \models \Phi$$
+\end{definition}
+\begin{definition}
+	On définit le prédicat $P_{fini}(\Phi)$ sur un graphe dynamique
+	$\mathds{G}$ par $$P_{fini}(\Phi) \equiv  \forall t \in \mathds{N}, \exists b \in \mathds{N}, \mathds{G}(t:t+b) \models \Phi$$
+\end{definition}
 
+Le prédicat $\mathcal{P}_{borné}(\Phi)$ est une version affaiblie de $\Phi$, où $\Phi$ est vérifié avec délai borné, mais inconnu des processus.
+Le prédicat $\mathcal{P}_{fini}(\Phi)$ est une version davantage affaiblie de $\Phi$, où $\Phi$ est vérifié avec délai inconnu des processus, et pouvant varier au cours du temps.
+
+On définit les prédicats suivants :
+\begin{itemize}
+	\item Le graphe $G = (V, E)$ vérifie le prédicat $\Phi_{nek}$ si et seulement si $\exists p \in \Pi, \forall q \in \Pi, (p, q) \in E$.
+	\item Le graphe dynamique $\mathds{G}$ vérifie le prédicat $\mathcal{P}_{nek}$ si pour tout $\forall n \in \mathds{N}, \mathds{G}_n \models \Phi_{nek}$. 
+	\item Étant donné $\xi \in \Pi$. Le graphe $G = (V, E)$ vérifie le prédicat $\Phi_{\xi-nek}$ si et seulement si $\forall q \in \Pi, (\xi, q) \in E$.
+	\item Le graphe dynamique $\mathds{G}$ vérifie le prédicat $\mathcal{P}_{\xi-nek}$ si pour tout $\forall n \in \mathds{N}, \mathds{G}_n \models \Phi_{\xi-nek}$. 
+	\item Le calendrier d'activation $\mathcal{A}$ vérifie le prédicat $\mathcal{P}_{non-inf}$ si et seulement si $\exists k \in \mathds{N}, \mathcal{A}_k = \Pi$.
+\end{itemize}
+
+\subsection{Théorèmes d'impossibilité}
+
+Ce premier théorème montre que le prédicat $\mathcal{P}_{non-inf}$ est indispensable pour la résolution du consensus dans un graphe avec étoile recouvrante.
+
+\begin{theorem}
+	Il n'existe pas d'algorithme qui résolve le consensus sous le prédicat $\mathcal{P}_{\xi-nek}$, même si les processus connaissent la taille du réseau.
+\end{theorem}
+\begin{proof}
+	On suppose qu'un tel algorithme existe, et on construit une exécution qui viole l'accord.
+
+	\begin{description}
+		\item[Exécution 0 : ] Le graphe dynamique est une étoile constante, centrée sur $\xi$. $\xi$ est passif pour toujours. Les autres processus ont 0 comme valeur initiale.
+			Et ils s'activent en temps fini. La terminaison assure qu'il décident tous 0 en temps fini.
+
+		\item[Exécution 1 : ] Le graphe dynamique est une étoile constante, centrée sur $\xi$. $\xi$ est passif pour toujours. Les autres processus ont 1 comme valeur initiale.
+			Et ils s'activent en temps fini. La terminaison assure qu'il décident tous 1 en temps fini.
+
+		\item[Exécution 2 : ] Le graphe dynamique est une étoile constante, centrée sur $\xi$. $\xi$ est passif pour toujours. Les autres processus ont différentes valeurs initiales.
+			En particulier, un processus $p_0$ a 0 comme valeur initiale, et $p_1$ a 1.
+			Et ils s'activent en temps fini. Pour $p_0$, ce scénario est indistinguable du scénario 0, donc $p_0$ décide 0.
+			Pour $p_1$, ce scénario est indistinguable du scénario 1, donc $p_1$ décide 1.  Cela viole l'accord.
+	\end{description}
+\end{proof}
+
+Ce deuxième théorème montre que la racine de l'étoile recouvrante doit être fixe pour que le consensus soit résoluble.
+
+\begin{theorem}
+	Il n'existe pas d'algorithme qui résolve le consensus sous les prédicats $\mathcal{P}_{nek}$ et $\mathcal{P}_{non-inf}$, même si les processus connaissent la taille du réseau.
+\end{theorem}
+\begin{proof}
+	On suppose qu'un tel algorithme existe, et on construit une exécution qui viole l'accord.
+	Soient $p_1, p_2 \in \Pi$.
+	\begin{description}
+
+		\item[Exécution 1 :] $\mathds{G}_r$ est pour tout $r$ égal à l'étoile centrée en $p_1$. $p_1$ s'active en temps fini, donc la terminaison assure que $p_1$ décidera en un round $t$.
+		\item[Exécution 2 :] Pour tout $r \leq t$, $\mathds{G}_r$ est l'étoile centrée en $p_1$. $p_1$ s'active au même round que dans l'exécution précédente.
+			Pour tout $r > t$, $\mathds{G}_r$ est l'étoile centrée en $p_2$. On suppose que $p_2$ s'active au round $t+1$.
+			Dans ces conditions, $p_2$ ne reçoit jamais de message. La terminaison et l'intégrité assurent que $p_2$ décide finalement sa valeur initiale,
+			tandis que $p_1$ a déjà décidé. Dans ces conditions, l'accord est impossible à assurer.
+
+	\end{description}
+\end{proof}
+
+Enfin, ce dernier théorème montre que le prédicat $\mathcal{P}_{\xi-nek}$ doit être vérifié à chaque round, et non après un certain délai inconnu des processus.
+
+\begin{theorem}
+	Il n'existe pas d'algorithme qui résolve le consensus sous les prédicats $P_{borné}(\Phi_{\xi-nek})$ et $\mathcal{P}_{non-inf}$, même si les processus connaissent la taille du réseau.
+\end{theorem}
+\begin{proof}
+	On suppose qu'un tel algorithme existe, et on construit une exécution qui viole l'accord.
+	Soient $p_1, p_2 \in \Pi$.
+	\begin{description}
+
+		\item[Exécution 1 :] $\mathds{G}_n$ est pour tout $n$ égal à l'étoile centrée en $p_1$. On exécute l'algorithme $A$.
+			$p_1$ s'active en temps fini, donc la terminaison assure que $p_1$ décidera en un round $r_1$.
+		\item[Exécution 2 :] $\mathds{G}_n$ est pour tout $n$ égal à l'étoile centrée en $p_2$. On exécute l'algorithme $A$.
+			$p_2$ s'active en temps fini, donc la terminaison assure que $p_2$ décidera en un round $r_2$.
+		\item[Exécution 3 :] Pour tout $n \leq r_0 + r_1$, $\mathds{G}_n$ est le graphe sans aucune arête. Pour tout $n > r_0 + r_1$, $\mathds{G}_n$ est l'étoile centrée en $p_1$.
+			$p_1$ et $p_2$ s'activent au même round que lors des deux précédentes exécutions.
+			Pour $p_1$, ce scénario est indistinguable du scénario 1, donc $p_1$ décidera au round $r_1$.
+			Pour $p_2$, ce scénario est indistinguable du scénario 1, au moins jusqu'au round $r_2$. Donc $p_2$ décidera au round $r_2$.
+			Dans ces conditions, l'accord est impossible à assurer.
+
+	\end{description}
+\end{proof}
+
+\subsection{Exécution en série}
+
+Pour la section suivant, on aura besoin de la notion d'exécution en série d'algorithme.
+Intuitivement, étant donné deux algorithmes $A$ et $B$, l'algorithme $A;B$ consiste à exécuter $A$, et dès que $A$ atteint un état final, commencer à exécuter $B$.
+
+On suppose donné un algorithme $A = (States_p^A, Init_p^A, S_p^A, T_p^A)$ et un algorithme $B = (States_p^B, Init_p^B, S_p^B, T_p^B)$ (voir document sur la preuve de "one-third rule").
+On suppose que $States_p^A$ contient un sous-ensemble $F \subseteq States_p^A$ d'états finaux. On suppose que $T_p^A$ est stable sur $F$.
+
+\begin{definition}
+	On définit l'algorithme $A;B$ comme le tuple $(States_p^{AB}, Init_p^{AB}, S_p^{AB}, T_p^{AB})$ où :
+	\begin{itemize}
+
+		\item $States_p^{AB} = (States_p^A \times Init_p^B) \cup (F \times States_p^B)$
+		\item $Init_p^{AB} = Init_p^A \times Init_p^B$
+		\item $S_p^{AB}$ définit par, pour tout $s = (s_A, s_B)$, 
+			$$S_p^{AB}(s) = \left \{ \begin{array}{l ll}
+				\langle S_p^A(s_A), nil        \rangle & \mbox{si}~s_A \notin F & \{A~\mbox{en cours d'exécution}\} \\
+				\langle S_p^A(s_A), S_p^B(s_B) \rangle & \mbox{si}~s_A \in F    & \{B~\mbox{en cours d'exécution}\} \end{array} \right$$
+			\item $T_p^{AB}$ définit par, pour tout $s = (s_A, s_B) \in States_p^{AB}$, pour tout $M = (M_A, M_B)$, 
+			$$T_p^{AB}(s, M) = \left \{ \begin{array}{l ll}
+				\langle T_p^A(s_A, M_A), s_B             \rangle & \mbox{si}~s_A \notin F & \{A~\mbox{en cours d'exécution}\} \\
+				\langle T_p^A(s_A, M_A), T_p^B(s_B, M_B) \rangle & \mbox{si}~s_A \in F    & \{B~\mbox{en cours d'exécution}\} \end{array} \right$$
+
+	\end{itemize}
+\end{definition}
+
+\subsection{Algorithme "Uniforme Voting"}
+
+Il reste maintenant à traiter le cas le plus favorable, à savoir le cas où les prédicats $\mathcal{P}_{\xi-nek}$ et $\mathcal{P}_{non-inf}$ sont vérifiés.
+Ci-dessous se trouve l'algorithme "Uniforme Voting", tiré de \cite{model_ho}.
+Cet algorithme est consitué de deux phases qui alternent en fonction de la parité du round :
+\begin{itemize}
+	\item Une phase durant laquelle les processus échangent leurs valeurs (lignes 21-23).
+	\item Une phase durant laquelle les processus votent pour leur valeur, et décident en cas d'unanimité (lignes 13-19).
+\end{itemize}
+
+Bien qu'initialement conçu pour fonctionner lorsque les départs sont synchrones, on peut aisément adapter cet algorithme pour tolérer les départs asynchrones.
+Il s'agit simplement de préciser comment prendre en charge les $nil$ envoyés par les processus passifs.
+
+Cependant, cette simple transposition ne suffit pas à rendre l'algorithme tolérant au départs asynchrones. Le problème est le suivant :
+Si un processus s'active à un round pair, sa phase d'échange de valeur aura lieu à chaque round impair, et sa phase d'échange de vote à chaque round pair.
+À l'inverse,
+si un processus s'active à un round impair, sa phase d'échange de valeur aura lieu à chaque round pair, et sa phase d'échange de vote à chaque round impair.
+Donc si les processus du réseau démarrent à des rounds ayant différentes parité, on aura, au sein d'un même round,
+des processus qui feront leur phase d'échange de valeur, et d'autre leur phase d'échange de vote.
+Dans ces conditions, la sûreté de l'algorithme ne tient plus.
+
+Il s'agit donc de faire en sorte que tous les processus s'activent à des rounds ayant tous la même parité. 
+On appelle cela le \emph{problème de synchronisation modulo 2}.
+Comme ce problème fera l'objet d'une prochaine section, on va provisoirement supposer ce problème résolu en supposant vrai le prédicat 
+
+$$\mathcal{P}_{sync-mod-2} \equiv \exists c \in \{0, 1\}, \forall k \in \mathds{N}, \mathcal{A}_{2k+c} = \mathcal{A}_{2k+c+1}$$
+
+Voici maintenant l'algorithme "Uniforme Voting	Voting" et sa preuve de correction.
+
+\begin{algorithm}[htb]
+\scriptsize{
+\begin{distribalgo}[1]
+\begin{tabular}{ll}
+\begin{minipage}{33em}
+
+
+\INDENT{\textbf{Initialization:}}
+  \STATE $x_p := v_p$ ~~~~~~~~\{\emph{$v_p$ is the initial value of $p$}\}
+  \STATE $vote_p \in V\cup\{ ? \}$, initially $?$
+  \STATE $phase_p = true$
+
+\ENDINDENT
+\BLANK
+
+\INDENT{\textbf{Round $r$:}}
+	\INDENT{$S_p^r:$}
+		\IF{$phase_p$}
+			\STATE send $\langle x_p , vote_p \rangle$ to all processes
+		\ELSE
+			\STATE send $\langle x_p \rangle$ to all processes
+		\ENDIF
+	\ENDINDENT
+	\BLANK
+	\INDENT{$T_p^r:$}
+
+		\IF{$phase_p$}
+			\IF{$M(q) = \langle v, v \rangle$}
+				\STATE $x_p:= v$ ~~~~~~~~\{un vote reçu\}
+			\ELSE
+				\STATE $x_p :=$ smallest  $w$ from  $\langle w , ? \rangle$ received
+			\ENDIF
+			\IF{$M(\Pi) = \langle v, v \rangle$}
+				\STATE $DECIDE(v)$ ~~~~~~~~\{décider si $p$ ne reçoit que des votes identiques\}
+			\ENDIF
+			\STATE $vote_p :=\ ?$
+		\ELSE
+			\STATE $ x_p := min M(\Pi) \setminus \{nil\}$ ~~~~~~~~\{plus petites valeur reçue\}
+			\IF{$M(\Pi) = \{v\}$}
+				\STATE $vote_p := v$ ~~~~~~~~\{toute les valeurs reçues identiques, aucun nil\}
+			\ENDIF
+		\ENDIF
+		\STATE $phase_p := \neg phase_p$
+	\ENDINDENT
+\ENDINDENT
+
+\end{minipage}
+\end{tabular}
+
+\caption{The {\em UniformVoting} algorithm}
+\label{unifvotfig}
+\end{distribalgo}
+}
+\end{algorithm}
+
+\subsubsection{Intégrité}
+\begin{lemma}
+	Toute exécution de l'algorithme "Uniforme Voting" vérifie l'intégrité lorsque le prédicat $\mathcal{P}_{sync-mod-2}$ est vérifié.
+\end{lemma}
+\begin{proof}
+	Il suffit de montrer par récurrence qu'à chaque round, les valeurs stockées dans les processus actifs appartiennent nécessairement à l'ensemble des valeurs initiales.
+\end{proof}
+
+\subsubsection{Accord}
+
+\begin{lemma}
+	Toute exécution de l'algorithme "Uniforme Voting" vérifie l'accord lorsque le graphe dynamique vérifie le prédicat $\mathcal{P}_{\xi-nek}$
+	et le calendrier d'activation vérifie $\mathcal{P}_{sync-mod-2}$.
+\end{lemma}
+\begin{proof}
+	Si un processus $p$ décide une valeur $v$ au round $r$, nécessairement, le processus $\xi$ au centre de l'étoile a voté $v$ au round $r$.
+	Donc, au round $r$, tous les processus actifs adoptent $v$.
+	Donc toute valeur décidée ultérieurement sera nécessairement $v$. Pour s'en convaincre, on montre aisément par récurrence sur $k$ la proposition suivante :
+	$$\forall k \in \mathds{N}, \forall q \in \mathcal{A}_{r+2k}, vote_p(2k) = v \wedge x_q(r+2k) = v \wedge x_q(r+2k+1) = v$$.
+
+	Cela achève l'accord.
+\end{proof}
+
+\subsubsection{Terminaison}
+
+	\begin{lemma}
+		Étant donné une exécution vérifiant $\mathcal{P}_{\xi-nek}$ et $\mathcal{P}_{sync-mod-2}$.
+		Soit $r$ le round auquel $\xi$, le centre de l'étoile, s'active.
+		La suite $(x_\xi(r+k))_{k \in \mathds{N}}$, représentant la succession des valeurs de $\xi$, est décroissante.
+	\end{lemma}
+	\begin{proof}
+		Soit $k \in \mathds{N}$. Soit $M$ la fonction de réception de $\xi$ au round $r+k+1$.
+		\begin{itemize}
+
+			\item Si $k+1$ est impair, la ligne 19 du pseudo-code assure que $x_\xi(r+k+1) = min(M(\Pi) \setminus \{nil\})$.
+				Or $M(\xi) = x_\xi(r+k)$.  Donc $x_\xi(r+k+1) \leq x_\xi(r+k)$.
+			\item Si $k+1$ est pair et si $\exists q \in \mathcal{A}_{r+k+1}, M(q) = \langle v, v \rangle$,
+				on a nécessairement $v = x_\xi(r+k)$, puisque $\xi$ a envoyé $x_\xi(r+k)$ au round $r+k$ (cf. lignes 20-21).
+				Donc $x_\xi(r+k+1) = x_\xi(r+k)$.
+			\item Sinon la ligne 11 du pseudo-code assure que $x_\xi(r+k+1) = min(M(\Pi) \setminus \{nil\})$.
+				Or $M(\xi) = \langle x_\xi(r+k), * \rangle$.
+				Donc $x_\xi(r+k+1) \leq x_\xi(r+k)$.
+
+		\end{itemize}
+		Dans tous les cas, $x_\xi(r+k+1) \leq x_\xi(r+k)$.
+	\end{proof}
+		
+
+	\begin{lemma}
+		Toute exécution de "Uniforme Voting" vérifie la terminaison lorsque le graphe de communication vérifie $\mathcal{P}_{\xi-nek}$
+		et lorsque le calendrier d'activation vérifie $\mathcal{P}_{non-inf}$ et $\mathcal{P}_{sync-mod-2}$.
+	\end{lemma}
+	\begin{proof}
+		Soit $r_0$ le round auquel tous les processus sont actifs.
+
+		La suite $(x_\xi(r_0+k))_{k \in \mathds{N}}$ est décroissante et ne contient que des valeurs initiales. Donc elle se stabilise sur une valeur $v$ à partir d'un certain round $r_0+k_0$.
+		On considère maintenant le round $r_0+2k_0$, qui est un round d'échange de vote.
+		$\xi$ envoie $\langle v, * \rangle$ à tous les processus. Les lignes 8 à 11 du pseudo-code assurent que $\forall q \in \mathcal{A}_{r_0+2k_0}, x_q(r_0+2k_0) \leq v$.
+
+		Soit $M$ la fonction de réception de $\xi$ lors du round $r_0+2k_0+1$.
+		Comme $x_\xi(r_0+2k_0+1) = v$, la ligne 19 assure que $\xi$ n'a pas reçu de message inférieur à $v$.
+		Donc $M(\Pi) = \{v\}$. Donc $vote_\xi(r_0+2k_0+1) = v$. Donc au round $r_0+2k_0+2$, la ligne 9 assure que tous les processus adoptent $v$.
+
+		Au rounds $r_0+2k_0+3$, les processus ne reçoivent que des messages contenant $v$, donc au rounds $r_0+2k_0+4$, tous les processus votent $v$, donc tous les processus décident.
+	\end{proof}
+\subsection{Résultat}
+
+Les trois sections précédentes permettent d'affirmer le théorème suivant :
+
+\begin{theorem}
+	L'algorithme "Uniforme Voting" résout le consensus lorsque les prédicats$\mathcal{P}_{sync-mod-2}$, $\mathcal{P}_{\xi-nek}$ et $\mathcal{P}_{non-inf}$ sont vérifiés.
+\end{theorem}
 
 \section{Problème de synchonisation modulo $k$}
 
-Il est courant de rencontrer des algorithmes de consensus, structurés par phases : 
-à chaque rounds pairs, les processus exécutent une certaine fonction de transition. Et au round impairs, une autre fonction de transition est exécutée.
-Lorsque les départs sont synchrones, tous les processus exécutent la même fonction de transition à chaque round.
-Lorsqu'il y a des départs asynchrones, les phases paires des différents processus ne sont plus simultanées, et cela peut compromettre la sûreté de l'algorithme.
-Le but de ce document est de proposer un algorithme permettant de synchroniser les différentes phases malgré les départs asynchrones.
+Le but de cette section est de proposer un algorithme permettant de synchroniser les différentes phases malgré les départs asynchrones.
+L'algorithme qui sera présenté s'inspire de l'algorithme du "firing squad" \cite{firing_squad}.
+Dans l'algorithme du firing-squad, les processus ont chacun un compteur, qu'ils imcrémentent à chaque round. Ils partagent la valeur de leur compteur à tous leur voisins sortant, 
+et s'ils reçoivent plusieurs valeurs en conflits, ils adoptent la valeur minimale.
+Si, pour un processus $p$, le compteur dépasse une certaine valeur, $p$ décide alors de \emph{faire feu}.
+Si le graphe dynamique est constamment fortement connexe, on peut montrer que tous les processus font feu au même round.
+
+Dans l'algorithme présenté ci-dessous, les compteurs sont dans $\mathds{Z}/k\mathds{Z}$ plutôt que dans $\mathds{N}$.
+On montrera que, dans ce cas, tous les processus font feu lors des round mutuellement congrus modulo $k$.
 
 \begin{definition}
 
@@ -342,6 +647,7 @@ On introduit donc une valeur $\bot$, qui sera envoyé lors du round d'activation
 	\INDENT{$T_p(M):$}
 	\IF{$M(\Pi) = \{k\}$}
 	\STATE $fire_p = true$ ~~~~\COMMENT{si tous les messages reçus valent 0, aucun $nil$, l'algorithme fait feu}
+	\ENDIF
 	\IF{$M(\Pi) \setminus \{nil, \bot\} = \{v\}$}
 	\STATE $x_p = v+1~mod~k$ ~~~~\COMMENT{si tous les messages ont la même valeur, s'aligner}
 	\ELSIF{$try_p \wedge k \notin M(\Pi)$}
@@ -548,6 +854,25 @@ On montre maintenant la vivacité dans le cas qui nous intéresse.
 
 	Cette disjonction de cas achève donc la vivacité. La sûreté étant garantie par le lemme 1.
 \end{proof}
+
+Maintenant que la validité de l'algorithme SyncMod est établie, on peut affirmer le théorème suivant :
+
+\begin{theorem}
+	L'algorithme "Uniforme Voting" exécuté en série à la suite de l'algorithme "SyncMod" avec $k = 4$
+	résout le consensus lorsque les prédicats $\mathcal{P}_{\xi-nek}$ et $\mathcal{P}_{non-inf}$ sont vérifiés.
+\end{theorem}
+\begin{proof}
+	Le fait d'exécuter l'algorithme "Uniforme Voting" à la suite de SyncMod assure le fait que le calendrier d'activation de "Uniforme Voting" vérifie $\mathcal{P}_{sync-mod-4}$,
+	donc à fortiori $\mathcal{P}_{sync-mod-2}$.
+	La preuve de validité de "Uniforme Voting", précédamment présentée, s'applique donc.
+\end{proof}
+
+\section{Conclusion et extensions}
+
+\subsection{Cas des graphes enracinés}
+
+Maintenant que le cas $\mathcal{P}_{xi-nek}$ a été traité, on peut s'intéresser au cas, plus général, des graphes dynamiques vérifiant $\mathcal{P}_{T-rooted}$.
+
 
 
 \printbibliography
