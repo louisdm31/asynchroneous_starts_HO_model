@@ -8,7 +8,7 @@
 \usepackage{stmaryrd}
 \usepackage[left=2cm, right=2cm, top=2cm]{geometry}
 \usepackage[utf8]{inputenc}
-\newtheorem{lemma}{Lemme}
+\newtheorem{lemma}{Lemme}[section]
 \newtheorem{theorem}{Théorème}
 \newtheorem{definition}{Définition}
 \setlength{\parskip}{0.22cm}
@@ -28,7 +28,7 @@
 
 \subsection{Contexte}
 
-On se place dans le contexte d'un réseau de machines, et on souhaite que ce réseau exécute une certaine tâche, margré les pannes pouvant survenir.
+On se place dans le contexte d'un réseau de machines, et on souhaite que ce réseau exécute une certaine tâche, malgré les pannes pouvant survenir.
 Une abondante litérature propose différentes approches permettant de modéliser les systèmes distribués, ainsi que les différents types de pannes possibles.
 %L'un des principaux problèmes étudié dans la litérature est le problème du consensus, où les processus doivent s'accorder sur une même valeur parmi un ensemble de valeurs possibles.
 Un modèle particulièrement intéressant, connue sous de nom de "modèle Heard-Of" \cite{model_ho},
@@ -73,7 +73,7 @@ Dans le modèle Heard-Of, les processus sont décrits par des machines à états
 Le système est synchrone, c'est-à-dire que la progression du système est subdivisée en rounds. À chaque round, chaque processus :
 \begin{itemize}
 	\item envoie aux autres un messages, en fonction de l'état dans lequel il se trouve,
-	\item reçoit un sous-ensemble des messages envoyés par ses pairs \emph{au cours de ce même round},
+	\item reçoit une partie des messages qui lui sont adressés par ses pairs \emph{au cours de ce même round},
 	\item modifie son état, en fonction des mesaages reçus, et de son état antérieur.
 \end{itemize}
 
@@ -96,26 +96,29 @@ Par exemple, pour modéliser un système sans aucune panne, il suffit de consid�
 
 $$\mathcal{P}_{complet} \equiv \forall r \in \mathds{N}, \forall p \in \Pi, HO(p, r) = \Pi$$
 
-Ici, $HO(p, r)$ désigne l'ensemble des voisins entrants de $p$ dans le graphe $\mathds{G}_r$.
+Ici, $HO(p, r)$ désigne l'ensemble des voisins entrants de $p$ dans le graphe $\mathds{G}_r$, et $\Pi$ désigne l'ensemble des noends du réseau.
 Ce prédicat exprime le fait que, à chaque round, le graphe dynamique est complet.
-Pour modéliser un système avec $k$ crash-failures, il suffit d'exprimer le fait qu'il existe à chaque round $r$ un quorum $S_r$ d'au moins $|\Pi| - k$ processus dont les messages sont toujours livrés,
+
+Certains articles modélisent les pannes par des \emph{crash failures} \cite{dds}.
+Pour modéliser un système avec $k$ crash failures dans le modèle Heard-Of,
+il suffit d'exprimer le fait qu'il existe à chaque round $r$ un quorum $S_r$ d'au moins $|\Pi| - k$ processus dont les messages sont toujours livrés,
 Les processus ayant échoué ne sont plus jamais entendus.
 
-$$\mathcal{P}_{k-crash} \equiv \exists (S_i)_{i \in \mathds{N}}, \forall r \in \mathds{N}, S_{r+1} \subseteq S_r \wedge |S_r| \geq |\Pi| - k \wedge (\forall p \in \Pi, HO(p, r) = S_r)$$.
+$$\mathcal{P}_{k-crash} \equiv \exists (S_i)_{i \in \mathds{N}}, \forall r \in \mathds{N}, S_{r+1} \subseteq S_r \wedge |S_r| \geq |\Pi| - k \wedge (\forall p \in \Pi, HO(p, r) = S_r)$$
 
 L'objectif de cet article est d'établir des algorithmes de consensus ayant une très bonne résistance aux pannes. Pour cela, on s'intéressera particulièrement au prédicat suivant :
 
-$$\mathcal{P}_{\xi-nek} \equiv \exists \xi \in \Pi, \forall r \in \mathds{N}, \forall p \in \Pi, \xi \in HO(p,r)$$.
+$$\mathcal{P}_{\xi-nek} \equiv \exists \xi \in \Pi, \forall r \in \mathds{N}, \forall p \in \Pi, \xi \in HO(p,r)$$
 
 Ce prédicat est au moins aussi fort que l'hypothèse $|\Pi| - 1$ crash-failures :
 il exprime le fait qu'il existe au moins un processus fiable dans le réseau, qui parvient toujours à faire parvenir ses propres messages.
 Ce processus, noté $\xi$ n'a pas besoin d'être connus par les autres processus du réseau.
-Les autres processus peuvent fonctionner de manière totalement arbitraire.
+Les processus autres que $\xi$ peuvent communiquer de manière totalement arbitraire.
 
 Cette hypothèse sur le réseau est en fait très faible : un réseau avec aucun processus fiable serait un réseau de très mauvaise qualité. Cependant, on envisagera quand même des versions
 davantage affaiblies de ce prédicat.
 
-$$\mathcal{P}_{nek} \equiv \forall r \in \mathds{N}, \exists \xi \in \Pi, \forall p \in \Pi, \xi \in HO(p,r)$$.
+$$\mathcal{P}_{nek} \equiv \forall r \in \mathds{N}, \exists \xi \in \Pi, \forall p \in \Pi, \xi \in HO(p,r)$$
 
 Celle-ci tolère le fait qu'à chaque round, le processus supposé fiable peut être différent.
 
@@ -134,7 +137,7 @@ Tant que le processus n'est pas prêt à exécuter un certain algorithme, il se 
 et signale son attente envoyant un message noté $nil$ à tous les processus.
 On appelle calendrier d'activation la suite croissante $(\mathcal{A}_r)_{r \in \mathds{N}}$. Au round $r$, $\mathcal{A}_r \subseteq \Pi$ est le sous-ensemble des processus actifs au round $r$.
 
-En fonction de la nature des calculs antérieurss à exécuter, différentes hypothèses peuvent être faites sur le calendrier d'activation.
+En fonction de la nature des calculs antérieurs à exécuter, différentes hypothèses peuvent être faites sur le calendrier d'activation.
 Ces hypothèses sont également exprimable sous forme de prédicats de communications.
 Dans le cadre de ce document, on considèrera en particulier le prédicat suivant :
 
@@ -191,12 +194,13 @@ Nous ne discutons pas ici des raisons de l'absence de communication de $q$ vers 
 Formellement, une \emph{ex\'ecution} de l'algorithme  $(States_p, Init_p, S_p,T_p)_{p\in \Pi}$ est 
 	un triplet $\big( \mathds{G} ,  \mathcal{A} , (\sigma^0_p)_{p \in \Pi} \big)$ où :
 	\begin{itemize}
-	\item $\mathds{G}$ est un \emph{graphe dynamique} sur $\Pi$, i.e., une suite infinie de graphes dirig\'es 
-	$\mathds{G}_r = (\Pi, E_r)$ dont l'ensemble des n\oe uds est $\Pi$ ; 
-	\item le \emph{calendrier des activations} $\mathcal{A} = (\mathcal{A}_r)_{r \in \mathds{N}}$ est une suite 
-	croissante de sous-ensembles de $\Pi$ 
-	avec $\mathcal{A}_0 = \emptyset$ ;
-	\item pour chaque processus $p\in \Pi$, $\sigma^0_p \in Init_p$.
+		\item $\mathds{G}$ est un \emph{graphe dynamique} sur $\Pi$, i.e., une suite infinie de graphes dirig\'es 
+			$\mathds{G}_r = (\Pi, E_r)$ dont l'ensemble des n\oe uds est $\Pi$, 
+			de plus, $\mathds{G}_r$ doit toujours contenir les auto-boucles (car un processus peut toujours communiquer avec lui-même) ; 
+		\item le \emph{calendrier des activations} $\mathcal{A} = (\mathcal{A}_r)_{r \in \mathds{N}}$ est une suite 
+			croissante de sous-ensembles de $\Pi$ 
+			avec $\mathcal{A}_0 = \emptyset$ ;
+		\item pour chaque processus $p\in \Pi$, $\sigma^0_p \in Init_p$.
 	\end{itemize}
 Ici,  $\mathcal{A}_r \subseteq \Pi$ modélise le sous-ensemble des processus actifs au round~$r$.
 La suite est croissante car, l'\'etat actif est stable : une fois r\'eveill\'e, un processus reste actif pour toujours.
@@ -212,7 +216,6 @@ La suite est croissante car, l'\'etat actif est stable : une fois r\'eveill\'e, 
 	                          r  & \mbox{ si  } p \notin \mathcal{A}_{r-1} \mbox{ et } p \in \mathcal{A}_{r}  & \mbox{ ($p$ devient actif au round $r$)}.
 	                          \end{array} \right.$$ 
 	\item On note $HO(p,r)$ l'ensemble des processus actifs entendus par le processus p au round n : $HO(p,r) = \{q, (q,p) \in E_r\}$
-	\item On note $HO_{actif}(p,r)$ l'ensemble des processus actifs entendus par le processus p au round n : $HO_{actif}(p,r) = HO(p,r) \cap \mathcal{A}_r$.
 
 \end{itemize}
 
@@ -286,35 +289,8 @@ Il est parfois nécessaire que les processus connissent la taille du réseau $n$
 
 \section{Théorèmes de résolubilité}
 
-On considère un prédicat $\Phi$ sur un graphe. On définit les transformateurs de prédicats de la manière suivante.
-
-\begin{definition}
-	On définit le prédicat $P_k(\Phi)$ sur un graphe dynamique
-	$\mathds{G}$ par $$P_k(\Phi) \equiv \forall t \in \mathds{N}, \mathds{G}(t:t+k) \models \Phi$$
-\end{definition}
-
-$\Phi$ est toujours équivalent à $P_k(\Phi)$, puisqu'on peut trivialement construire un algorithme $A_k$ qui traduise $P_k(\Phi)$ en $\Phi$.
-
-\begin{definition}
-	On définit le prédicat $P_{borné}(\Phi)$ sur un graphe dynamique
-	$\mathds{G}$ par $$P_{borné}(\Phi) \equiv \exists b \in \mathds{N}, \forall t \in \mathds{N}, \mathds{G}(t:t+b) \models \Phi$$
-\end{definition}
-\begin{definition}
-	On définit le prédicat $P_{fini}(\Phi)$ sur un graphe dynamique
-	$\mathds{G}$ par $$P_{fini}(\Phi) \equiv  \forall t \in \mathds{N}, \exists b \in \mathds{N}, \mathds{G}(t:t+b) \models \Phi$$
-\end{definition}
-
-Le prédicat $\mathcal{P}_{borné}(\Phi)$ est une version affaiblie de $\Phi$, où $\Phi$ est vérifié avec délai borné, mais inconnu des processus.
-Le prédicat $\mathcal{P}_{fini}(\Phi)$ est une version davantage affaiblie de $\Phi$, où $\Phi$ est vérifié avec délai inconnu des processus, et pouvant varier au cours du temps.
-
-On définit les prédicats suivants :
-\begin{itemize}
-	\item Le graphe $G = (V, E)$ vérifie le prédicat $\Phi_{nek}$ si et seulement si $\exists p \in \Pi, \forall q \in \Pi, (p, q) \in E$.
-	\item Le graphe dynamique $\mathds{G}$ vérifie le prédicat $\mathcal{P}_{nek}$ si pour tout $\forall n \in \mathds{N}, \mathds{G}_n \models \Phi_{nek}$. 
-	\item Étant donné $\xi \in \Pi$. Le graphe $G = (V, E)$ vérifie le prédicat $\Phi_{\xi-nek}$ si et seulement si $\forall q \in \Pi, (\xi, q) \in E$.
-	\item Le graphe dynamique $\mathds{G}$ vérifie le prédicat $\mathcal{P}_{\xi-nek}$ si pour tout $\forall n \in \mathds{N}, \mathds{G}_n \models \Phi_{\xi-nek}$. 
-	\item Le calendrier d'activation $\mathcal{A}$ vérifie le prédicat $\mathcal{P}_{non-inf}$ si et seulement si $\exists k \in \mathds{N}, \mathcal{A}_k = \Pi$.
-\end{itemize}
+La première section est consacrée au théorèmes d'impossibilité, qui montrent que les versions affaiblies des prédicats $\mathcal{P}_{\xi-nek}$ et $\mathcal{P}_{non-inf}$ ne suffisent
+pas à garantir la résolubilité du consensus.
 
 \subsection{Théorèmes d'impossibilité}
 
@@ -359,7 +335,15 @@ Ce deuxième théorème montre que la racine de l'étoile recouvrante doit être
 	\end{description}
 \end{proof}
 
-Enfin, ce dernier théorème montre que le prédicat $\mathcal{P}_{\xi-nek}$ doit être vérifié à chaque round, et non après un certain délai inconnu des processus.
+Il est possible qu'un graphe dynamique $\mathds{G}$ ne respecte pas le prédicat $\mathcal{P}_{\xi-nek}$, mais qu'en "aggrégeant" les rounds par groupe de $k$ round, 
+il soit possible de simuler un graphe dynamique $\mathds{G}_{k-merge}$ tel que $\mathds{G}_{k-merge} \models \mathcal{P}_{\xi-nek}$.
+Cependant, on montre que si les processus ne connaissent pas la valeur de $k$ telle que $\mathds{G}_{k-merge} \models \mathcal{P}_{\xi-nek}$, le consensus n'este pas résoluble.
+
+\begin{definition}
+	Étant donné un prédicat $\Phi$ s'appliquant sur un graphe.
+	On définit le prédicat $P_{borné}(\Phi)$ sur un graphe dynamique
+	$\mathds{G}$ par $$P_{borné}(\Phi) \equiv \exists b \in \mathds{N}, \forall t \in \mathds{N}, \mathds{G}(t:t+b) \models \Phi$$
+\end{definition}
 
 \begin{theorem}
 	Il n'existe pas d'algorithme qui résolve le consensus sous les prédicats $P_{borné}(\Phi_{\xi-nek})$ et $\mathcal{P}_{non-inf}$, même si les processus connaissent la taille du réseau.
@@ -510,7 +494,7 @@ Voici maintenant l'algorithme "Uniforme Voting	Voting" et sa preuve de correctio
 	Si un processus $p$ décide une valeur $v$ au round $r$, nécessairement, le processus $\xi$ au centre de l'étoile a voté $v$ au round $r$.
 	Donc, au round $r$, tous les processus actifs adoptent $v$.
 	Donc toute valeur décidée ultérieurement sera nécessairement $v$. Pour s'en convaincre, on montre aisément par récurrence sur $k$ la proposition suivante :
-	$$\forall k \in \mathds{N}, \forall q \in \mathcal{A}_{r+2k}, vote_p(2k) = v \wedge x_q(r+2k) = v \wedge x_q(r+2k+1) = v$$.
+	$$\forall k \in \mathds{N}, \forall q \in \mathcal{A}_{r+2k}, vote_p(2k) = v \wedge x_q(r+2k) = v \wedge x_q(r+2k+1) = v$$
 
 	Cela achève l'accord.
 \end{proof}
@@ -569,18 +553,19 @@ Les trois sections précédentes permettent d'affirmer le théorème suivant :
 
 Le but de cette section est de proposer un algorithme permettant de synchroniser les différentes phases malgré les départs asynchrones.
 L'algorithme qui sera présenté s'inspire de l'algorithme du "firing squad" \cite{firing_squad}.
-Dans l'algorithme du firing-squad, les processus ont chacun un compteur, qu'ils imcrémentent à chaque round. Ils partagent la valeur de leur compteur à tous leur voisins sortant, 
+Dans l'algorithme du firing-squad, les processus ont chacun un compteur, qu'ils incrémentent à chaque round. Ils partagent la valeur de leur compteur à tous leur voisins sortant, 
 et s'ils reçoivent plusieurs valeurs en conflits, ils adoptent la valeur minimale.
 Si, pour un processus $p$, le compteur dépasse une certaine valeur, $p$ décide alors de \emph{faire feu}.
 Si le graphe dynamique est constamment fortement connexe, on peut montrer que tous les processus font feu au même round.
 
 Dans l'algorithme présenté ci-dessous, les compteurs sont dans $\mathds{Z}/k\mathds{Z}$ plutôt que dans $\mathds{N}$.
-On montrera que, dans ce cas, tous les processus font feu lors des round mutuellement congrus modulo $k$.
+On montrera que, dans ce cas, les numéros de rounds auxquels les processus font feu sont mutuellement congrus modulo $k$.
+Pour des raisons historiques, on considèrera que $\mathds{Z}/k\mathds{Z} = \{1, 2, ... k\}$ plutôt que $\mathds{Z}/k\mathds{Z} = \{0, 1, ... k-1\}$.
 
 \begin{definition}
 
-	Soit un paramètre $k > 1$. Soit $s_{exit} \in States_p$ un état final.
-	Étant donnée une exécution d'un algorithme $A$, pour tout $p \in \Pi$, on note $t_p$ le round auquel $p$ atteint $s_{exit}$ ($t_p = \infty$ sinon).
+	Soit un paramètre $k > 1$. Soit $S_{exit} \subseteq States_p$ un sous-ensemble d'états finaux.
+	Étant donnée une exécution d'un algorithme $A$, pour tout $p \in \Pi$, on note $t_p$ le round auquel $p$ atteint $S_{exit}$ ($t_p = \infty$ sinon).
 	Cette exécution de l'algorithme $A$ est sûr vis à vis du problème de synchronisation modulo $k$ si,
 	$$\exists c \in \mathds{N}, \forall p \in \bigcup\limits_{i \in \mathds{N}} \mathcal{A}_i, t_p \neq \infty \Rightarrow t_p~mod~k = c$$
 
@@ -600,14 +585,7 @@ Pour la suite, on considère une valeur $k > 2$ quelquonque.
 
 \subsection{Algorithme}
 
-L'objectif est de résoudre ce problème dans les conditions suivantes :
-\begin{itemize}
-
-	\item Le graphe dynamique contient une étoile fixe : $\mathcal{P}_{\xi-nek} \equiv \exists \xi \in \Pi, \forall p \in \Pi, \forall r \in \mathds{N}, \xi \in HO(p, r)$
-	\item Tous les processus s'activent en temps fini : $\mathcal{P}_{non-inf} \equiv \exists r \in \mathds{N}, \mathcal{A}_r = \Pi$
-
-\end{itemize}
-
+L'objectif est de résoudre ce problème lorsque les prédicats $\mathcal{P}_{\xi-nek}$ et $\mathcal{P}_{non-inf}$ sont vérifiés.
 L'idée de l'algorithme ci-dessous est que chaque processus possède un compteur modulo $k$. À chaque round, il incrémente son compteur, et l'envoie à tous.
 Il reçoit alors les valeurs de compteur de tous ses voisins entrants. Il essaye de se synchroniser avec les autres processus s'ils s'accordent tous sur une même valeur de compteur
 (deuxième branche dans la fonction de transition).
@@ -673,16 +651,51 @@ On dit que $p$ "fait feu" au round $t$ si $p$ exécute la première branche au r
 \subsection{Preuve}
 
 \begin{lemma}
+	Toute exécution de cet algorithme est sûr vis-à-vis du problème de synchronisation modulo k lorsque les prédicats $\mathcal{P}_{\xi-nek}$ et $\mathcal{P}_{non-inf}$ sont vérifiés.
+\end{lemma}
+\begin{proof}
+
+	On suppose que $p$ fait feu au round $r$, et est le premier. Nécessairement, $\xi \in HO(p,r)$.
+	La ligne 12 du code montre que la valeur envoyé par $\xi$ est $k$.
+	Donc tous les processus ont reçus un $k$. Soit $p$ un processus actif quelquonque. Au round $r$, il execute, dans sa fonction de transition, l'une des trois dernières branches.
+	\begin{itemize}
+
+		\item Il ne peut pas exécuter la troisième branche car $M(\xi) = k$.
+		\item S'il exécute la première, deuxième ou la quatrième branche, il adopte 1.
+
+	\end{itemize}
+
+	On montre maintenant par récurrence sur $i$ la proposition suivante :
+
+	$$\forall i \in \mathds{N}, \forall p \in \mathcal{A}_{r+i}, x_p(r+i) = i+1~mod~k$$
+
+	\textbf{Initialisation : } voir ci-dessus
+
+	\textbf{Hérédité :}
+	On suppose que $\forall p \in \mathcal{A}_{r+i}, x_p(r+i) = i+1~mod~k$.
+
+	On veut montrer que $\forall p \in \mathcal{A}_{r+i+1}, x_p(r+i+1) = i+2~mod~k$.
+
+	Soit $M$ la fonction de réception de $p$ au round $r+i+1$.
+	L'hypothèse de récurrence montre que $M(\Pi) \subseteq \{nil, \bot, i+1~mod~k\}$.
+	De plus, $M(\xi) = i+1~mod~k$. Donc $p$ exécute la première ou la deuxième branche de la fonction de transition, et adopte $i+2~mod~k$.
+	Cela achève la récurrence.
+
+	La sûreté découle de cette proposition.
+
+\end{proof}
+
+\begin{lemma}
 	Si $x_\xi(t) = k$, le système est 1-monovalent au round $t+1$.
 \end{lemma}
 \begin{proof}
 	$\xi$ est le centre de l'étoile.
 	Si $x_\xi(t) = k$, au round $t+1$, $\xi$ envoie $k$ à tous les processus. Donc tous les processus, recevant un $k$, exécutent nécessairement la deuxième ou quatrième branche,
-	et adoptent donc $1$. Le système devient donc 1-monovalent.
+	et adoptent donc la valeur 1. Le système devient donc 1-monovalent.
 \end{proof}
 
 \begin{lemma}
-	Si, au round $s$, $\xi$ est actif, et le système est v-monovalent, pour tout $i \in \mathds{N}$, le système est $v+i~mod~k$-monovalent.
+	Si, au round $s$, $\xi$ est actif, et le système est v-monovalent, pour tout $i \in \mathds{N}$, le système est $v+i~mod~k$-monovalent au round $s+i$.
 \end{lemma}
 \begin{proof}
 	On montre cela par récurrence sur $i$.
@@ -700,7 +713,7 @@ On dit que $p$ "fait feu" au round $t$ si $p$ exécute la première branche au r
 	Si $x_\xi(t) = k$, tout processus $p$ fait feu au plus tard au round $t+k i$ où $i$ est le plus petit entier vérifiant $t+k i \geq s_{max} = max \{s_p, p \in \Pi\}$.
 \end{lemma}
 \begin{proof}
-	D'après les lemmes 1 et 2, le système devient 1-monovalent au round $t+1$ et $i~mod~k$-monovalent à tous les rounds $t+i$ suivants.
+	D'après les lemmes 4.2 et 4.3, le système devient 1-monovalent au round $t+1$ et $i~mod~k$-monovalent à tous les rounds $t+i$ suivants.
 	À partir du round $s_{max}$, tous les processus sont actifs.
 	Ainsi, au premier round $t+k i$ vérifiant $t+k i \geq s_{max}$, le système est $k$-monovalent, donc au round $t+k i +1$, tous les processus envoyent $k$ à leurs voisons sortants.
 	Ainsi, les processus ne reçoivent que des $k$, donc tous les processus font feu.
@@ -710,7 +723,7 @@ On dit que $p$ "fait feu" au round $t$ si $p$ exécute la première branche au r
 	Si le système est monovalent au round $t$, tous les processus auront fait feu au plus tard au round $max(t, s_{max})+k$.
 \end{lemma}
 \begin{proof}
-	D'après le lemme 2, le système est toujours monovalent au round $max(t, s_{max})$ et tous les processus sont actifs.
+	D'après le lemme 4.3, le système reste monovalent au round $max(t, s_{max})$ et tous les processus sont actifs.
 	Donc, au plus après $k$ rounds, le système entrera dans un état $k$-monovalent, et au round suivant, tous les processus enverront $k$.
 	Ainsi, tous les processus qui n'auront pas encore fait feu, feront feu.
 	Donc, au plus tard au round $max(t, s_{max})+k$, tous les processus auront fait feu.
@@ -721,138 +734,53 @@ Ainsi, si $C(t) = (v_0, V)$, le système est V-valent au round $t$.
 
 On introduit un ensemble $\mathcal{F}$ de configurations dites "favorables".
 Ainsi, $C(t) = (v, V) \in \mathcal{F} \equiv v = k \vee |V| = 1$.
-Les deux lemmes précédents montrent que si une exécution atteint une configuration favorable, la vivacité est garantie.
+Les lemmes 4.2 et 4.3 montrent que si une exécution atteint une configuration favorable, la vivacité est garantie.
+
 
 \begin{lemma}
-	Toute exécution de cet algorithme est sûr vis-à-vis du problème de synchronisation modulo k lorsque les prédicats $\mathcal{P}_{\xi-nek}$ et $\mathcal{P}_{non-inf}$ sont vérifiés.
+	Soit $t > max \{t_p, p \in \Pi\} \cup \{s_p, p \in \Pi\}$. Le système est mono-valent ou bi-valent avec $V = \{1, w\}$ au round $t$.
 \end{lemma}
 \begin{proof}
-
-	On suppose que $p$ fait feu au round $r$, et est le premier. Nécessairement, $\xi \in HO(p,r)$.
-	La ligne 12 du code montre que la valeur envoyé par $\xi$ est 0.
-	Donc tous les processus ont reçus un 0. Soit $p$ un processus actif quelquonque. Au round $r$, il execute, dans sa fonction de transition, l'une des quatre branches possibles.
+	Soit $w_0 = x_\xi(t-1)$. Soit $p \in \mathcal{A}_t$.
+	Au round $t$, le processus $p$ reçoit la valeur $w$ de la part du processus $\xi$.
 	\begin{itemize}
-
-		\item Il ne peut pas exécuter la troisième branche car $M(\xi) = 0$.
-		\item S'il exécute la première, deuxième ou la quatrième branche, il adopte 0.
-
+		\item Si $p$ reçoit une valeur autre que $w$ et que $\bot$,
+			$p$ n'exécute pas la deuxième branche de la fonction de transition. De plus, $t > t_p$, donc n'exécute pas non plus la troisième branche.
+			Donc $p$ exécute la quatrième branche, donc $x_p(t) = 1$.
+		\item Sinon, $p$ exécute la deuxième branche de la fonction de transition. Donc $x_p(t) = w = w_0+1~mod~k$.
 	\end{itemize}
 
-	On montre maintenant par récurrence sur $i$ la proposition suivante :
-
-	$$\forall i \in \mathds{N}, \forall p \in \mathcal{A}_{r+i}, x_p(r+i) = i~mod~k$$
-
-	\textbf{Initialisation : } voir ci-dessus
-
-	\textbf{Hérédité :}
-	On suppose que $\forall p \in \mathcal{A}_{r+i}, x_p(r+i) = i~mod~k$.
-
-	On veut montrer que $\forall p \in \mathcal{A}_{r+i+1}, x_p(r+i+1) = i+1~mod~k$.
-
-	Soit $M$ la fonction de réception de $p$ au round $r+i+1$.
-	L'hypothèse de récurrence montre que $M(\Pi) \subseteq \{nil, \bot, i+1~mod~k\}$.
-	De plus, $M(\xi) = i+1~mod~k$. Donc $p$ exécute la première ou la deuxième branche de la fonction de transition, et adopte $i+1~mod~k$.
-	Cela achève la récurrence.
-
-	La sûreté découle de cette proposition.
-
+	Cela prouve le lemme.
 \end{proof}
-
-Pour les trois lemmes ci-dessous, on se fixe une exécution de l'algorithme.
-On dit que le système est synchonisé au round $i$ si tous les processus actifs ont la même valeur de compteur dans $\mathds{Z}/k\mathds{Z}$.
-
-\begin{lemma}
-	Sous le prédicat $\mathcal{P}_{\xi-nek}$,
-	si au round $i$, $\xi$ est actif et le système est synchonisé, il l'est également au round $i+1$.
-\end{lemma}
-\begin{proof}
-	Si le système est synchronisé au round $i$, au round $i+1$, tous les processus enverront une même valeur $v$.
-	Donc, pour tout $p \in \mathcal{A}_{i+1}$, on aura $M_p^{i+1}(\Pi) \subseteq \{v+1~mod~k, nil, \bot\}$.
-	Le fait que $\xi$ est actif induit $v+1~mod~k \in M_p^{i+1}(\Pi)$.
-	Donc la deuxième branche de la fonction de transition sera exécutée.
-	La synchronisation est donc maintenue.
-\end{proof}
-\begin{lemma}
-	Sous les prédicats $\mathcal{P}_{\xi-nek}$ et $\mathcal{P}_{non-inf}$,
-	si au round $i$, $\xi$ est actif et le système est synchonisé, tous les processus font feu.
-\end{lemma}
-\begin{proof}
-	Le lemme précédent montre qu'à partir du round $i$, le système reste synchonisé. De plus, à chaque round, la valeur des compteurs est incrémentée.
-	Soit $r$ le round à partir duquel tous les processus sont actifs.
-	Ainsi, lors d'un round $i' \geq max(i, r)$, le système atteindra un état dans lequel tous les compteurs valent $k-1$.
-	On aura alors, au round suivant, $\forall p \in \Pi, M_p^{i'}(\Pi) = \{0\}$.
-	Donc tous les processus font feu.
-\end{proof}
-
-On montre maintenant la vivacité dans un cas simple.
-Soit $\mathcal{P}_{star} \equiv \exists \xi \in \Pi, \forall p \in \Pi, \forall r \in \mathds{N}, HO(p, r) = \{\xi\}$
-
-\begin{theorem}
-	L'algorithme résout la synchronisation modulo $k$ lorsque les prédicats $\mathcal{P}_{star}$ et $\mathcal{P}_{non-inf}$ sont vérifiés.
-\end{theorem}
-\begin{proof}
-	$\xi$ s'active en temps fini d'après le prédicat $\mathcal{P}_{non-inf}$.
-	Soit $r$ le round auquel $\xi$ s'active.
-	Au round $r$, $\xi$ exécute nécessairement la troisième branche de la fonction de transition, donc $x_\xi(r) = k-1$.
-	Ainsi, au round $r+1$, $\xi$ enverra 0 à tous, donc le système se synchronisera sur 0.
-	Le lemme précédent montre la vivacité, et le lemme 1 la sûreté.
-\end{proof}
-
-On montre maintenant la vivacité dans le cas qui nous intéresse.
 
 \begin{theorem}
 	L'algorithme résout la synchronisation modulo $k$ lorsque les prédicats $\mathcal{P}_{\xi-nek}$ et $\mathcal{P}_{non-inf}$ sont vérifiés.
 \end{theorem}
 \begin{proof}
-	$\xi$ s'active en temps fini d'après le prédicat $\mathcal{P}_{non-inf}$.
-	Soit $r$ le round auquel $\xi$ s'active.
-	L'algorithme est conçu de telle manière que chaque processus n'exécute la troisième branche de la fonction de transition qu'une seule fois.
-	Donc il existe un round $r' \geq r$ à partir duquel plus aucun processus n'exécute cette troisième branche.
+
+	On montre que le système atteint toujours une configuration $C(t) \in \mathcal{F}$.
 
 	\begin{description}
-
-		\item[Cas 1 : ] $\xi$ a exécuté la troisième branche de la fonction de transition au cours d'un round $t \geq r$.
-
-			Dans ce cas, au round $t+1$, $\xi$ envoie 0 à tous, donc tous les processus s'alignent sur ce 0. Le système est maintenant synchonisé. Le lemme précédent montre la vivacité.
-
-		\item[Cas 2 : ] $\xi$ n'a jamais exécuté la troisième branche, et n'a pas exécuté la quatrième branche au delà du round $r'$.
-
-			Dans ce cas, au delà du round $r'$, $\xi$ n'exécute que les deux premières branches. Un raisonnement similaire à la preuve du théorème 1 montre la vivacité.
-
-		\item[Cas 3 : ] $\xi$ n'a jamais exécuté la troisième branche, mais a exécuté la quatrième branche au round $t \geq r'$.
-
-			Ainsi, au round $t+1$, $\xi$ envoie 1 à tous. Comme $t \geq r'$, les processus ne peuvent exécuter que la deuxième et la quatrième branche.
-			Les seules valeurs présentes dans le système à la fin du round $t+1$ sont donc 0 et 1.
-			On distingue deux sous-cas possibles :
-
+		\item[Cas 1:] Si $t_\xi \neq 0$, le processus $\xi$ exécute une fois la troisième branche, la vicacité découle du lemme 4.2.
+		\item[Cas 2:] Sinon $t_\xi = 0$. Soit $t > max \{t_p, p \in \Pi\} \cup \{s_p, p \in \Pi\}$. Soient $w$ et $V$ tels que $C(t) = (w, V)$.
 			\begin{description}
-
-				\item[Sous-cas 3.1] $x_\xi(t+1) = 1$
-
-					Dans ce cas, on montre par récurrence sur $i$ que
-					$$\forall i \in \mathds{N}, x_\xi(t+i) = i~mod~k \wedge \forall p \in \mathcal{A}_{t+i}, x_p(t+i) \leq x_\xi(t+i)$$
-
-					\textbf{Initialisation : } voir ci-dessus.
-
-					\textbf{Hérédité : } Pour $i$ donné, on suppose que 
-					$$x_\xi(t+i) = i~mod~k \wedge \forall p \in \mathcal{A}_{t+i}, x_p(t+i) \leq x_\xi(t+i)$$
-					L'hypothèse de récurrence montre que les messages envoyés au round $t+i+1$ sont compris entre 1 et $i+1~mod~k$.
-					Le processus $\xi$ reçoit toujours sa propre valeur, à savoir $i+1~mod~k$, mais n'en reçoit jamais d'autre, celà provoquerait l'exécution de la troisième branche.
-					On a pourtant supposé que $\xi$ n'exécutait jamais cette branche. Cela prouve $x_\xi(t+i+1) = i+1~mod~k$.
-
-					Les autres processus reçoivent au round $t+i+1$ des valeurs comprises entre 1 et $i+1~mod~k$, cela prouve $\forall p \in \mathcal{A}_{t+i}, x_p(t+i) \leq x_\xi(t+i)$.
-
-					Cette récurrence montre qu'au round $t+k$, $\xi$ envoie 0 à tous, ce qui synchrones le système. Le lemme précédent assure la vivacité.
-
-				\item[Sous-cas 3.2] $x_\xi(t+1) = 0$
-
-					Dans ce cas, $\xi$ envoie 1 à tous les processus au round $t+i+1$. Les valeurs envoyées par les autres processus sont nécessairement 1 et 2.
-					$\xi$ ne peut pas avoir reçu un 2, car on a supposé que $\xi$ n'a jamais exécuté la troisième branche. Donc la valeur de $\xi$ à la fin du round est nécessairement 1.
-					Pour les autres processus, les seules valeurs possibles sont 0 et 1. On est donc ramené au cas précédent.
+				\item[Sous-cas 2.1:] Si $V = \{w\}$, le système est monovalent, la vivacité découle du lemme 4.5.
+				\item[Sous-cas 2.2:] Si $|V| > 1$ et $w > 1$, le lemme 4.6 assure que $V = \{1, w\}$ avec $w \neq 1$.
+					\begin{description}
+						\item[Sous-sous-cas 2.2.1:] Au round $t+1$, le processus $\xi$ reçoit la valeur 1. Cela est impossible, car on a supposé que $t_\xi = 0$.
+						\item[Sous-sous-cas 2.2.2:] Au round $t+1$, le processus $\xi$ ne reçoit que sa propre valeur. 
+							On a donc $C(t+1) = (w+1, \{1, w+1\}$. Au round $t+2$, le sous-cas 2.2 se reproduira.
+							On montre donc par récurrence descendante que pour tout $i \in \{w-k, ..., 0\}$,
+							on a $C(t+k-i) = (w-i, \{1, w-i\})$. On a donc $C(t+k-w) \in \mathcal{F}$. La vivacité est donc assurée.
+					\end{description}
+				\item[Sous-cas 2.3:] Si $v = 1$, le lemme 4.5 assure que $V = \{1, w\}$ avec $w \neq 1$.
+					Au round $t+1$, le processus $\xi$ reçoit sa propre valeur 1. On a supposé que $t_\xi = 0$. Donc $\xi$ ne peut pas avoir reçu $w$.
+					On a donc $C(t+1) = (2, \{1, 2\})$. On est ramené au cas 2.2.
 			\end{description}
+		%\item[Sous-sous-cas 2.3.1:] Au round $t+1$, le processus 
 	\end{description}
 
-	Cette disjonction de cas achève donc la vivacité. La sûreté étant garantie par le lemme 1.
+	Les lemmes 4.1, 4.2 et 4.3 permettent donc d'achever la vivacité, ainsi que la sûreté.
 \end{proof}
 
 Maintenant que la validité de l'algorithme SyncMod est établie, on peut affirmer le théorème suivant :
@@ -867,13 +795,17 @@ Maintenant que la validité de l'algorithme SyncMod est établie, on peut affirm
 	La preuve de validité de "Uniforme Voting", précédamment présentée, s'applique donc.
 \end{proof}
 
-\section{Conclusion et extensions}
+\section{Conclusion}
 
-\subsection{Cas des graphes enracinés}
+Mon stage a permi d'établir un algorithme de consensus capable de fonctionner sous des hypothèses très faibles :
+\begin{itemize}
+	\item Seulement un processus correct, capable faire des broadcast.
+	\item Les processus n'ont pas besoin d'identifiant, ni de connaissance sur la taille du réseau.
+	\item Les processus doivent s'activer en temps fini.
+\end{itemize}
 
-Maintenant que le cas $\mathcal{P}_{xi-nek}$ a été traité, on peut s'intéresser au cas, plus général, des graphes dynamiques vérifiant $\mathcal{P}_{T-rooted}$.
-
-
+On pourrait renforcer davantage ce résultat en étudiant la résolubilité du consensus sous le prédicat $\mathcal{P}_{T-rooted}$ plutôt que $\mathcal{P}_{\xi-nek}$.
+Cela améliorerait la tolérance aux pannes.
 
 \printbibliography
 
