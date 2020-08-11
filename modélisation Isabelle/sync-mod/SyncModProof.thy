@@ -331,7 +331,8 @@ definition round_force where
 lemma nonForceAgain : assumes "round_force rho p < n"
 and run:"HORun (HOMachine_to_Algorithm (k_mod.SyncMod_HOMachine k)) rho HO" (is "HORun ?A _ _")
 and "rho n p = Active s"
-shows "~ k_mod.ready_force k (HOrcvdMsgs ?A p (HO (Suc r) p) (rho n)) s" (is "~ k_mod.ready_force k ?msgs s")
+and "k > 2"
+shows "~ k_mod.ready_force k (HOrcvdMsgs ?A p (HO (Suc n) p) (rho n)) s" (is "~ k_mod.ready_force k ?msgs s")
 proof 
     assume "k_mod.ready_force k ?msgs s"
     hence "~ forc s" using k_mod.ready_force_def by auto
@@ -341,14 +342,23 @@ proof
         then obtain r where "? s. rho r p = Active s & forc s" by auto
         then obtain s where rd_forc:"rho (round_force rho p) p = Active s & forc s"
             using round_force_def[of rho p]  someI[of "%r. ? s. rho r p = Active s & forc s" r] by auto 
-        have "!rr ss. rho rr p = Active ss --> forc ss"
+        have "!i ss. rho (round_force rho p + i) p = Active ss --> forc ss"
         proof (rule allI)+
-            fix rr ss
-            show "rho rr p = Active ss --> forc ss"
-            proof (induction "rr - (round_force rho p)")
+            fix i ss
+            show "rho (round_force rho p + i) p = Active ss --> forc ss"
+            proof (induction i)
                 case 0
-                hence "rr = round_force rho p" by auto
-                thus "rho rr p = Active ss --> forc ss"
+                thus "rho (round_force rho p + 0) p = Active ss --> forc ss" using rd_forc by auto
+            next
+                case (Suc ii)
+                show "rho (round_force rho p + (Suc ii)) p = Active ss --> forc ss" 
+                proof
+                    assume "rho (round_force rho p + (Suc ii)) p = Active ss" 
+                    moreover have "rho (ii + round_force rho p) p ~= Aslept"
+                        using nonAsleepAgain[of rho "round_force rho p" p ?A HO _ ii] run HORun_def rd_forc by auto
+                    then obtain st where "rho (ii + round_force rho p) p = Active st" by (cases "rho (ii + round_force rho p) p") auto
+                    ultimately have "k_mod.SyncMod_nextState k p st (HOrcvdMsgs ?A p (HO (Suc (ii + round_force rho p)) p) (rho (ii + round_force rho p))) ss"
+                        using transition[of rho "ii + round_force rho p" p st ss k HO] `2 < k` run by (simp add:add.commute)
 
 lemma SuncMod_liveness : assumes "k_mod.xi_nek HO xi"
 and run:"HORun (HOMachine_to_Algorithm (k_mod.SyncMod_HOMachine k)) rho HO" (is "HORun ?A _ _")
