@@ -33,13 +33,14 @@ definition ready_force where
 
 definition SyncMod_nextState :: "Proc \<Rightarrow> pstate \<Rightarrow> (Proc \<Rightarrow> SendVal message) \<Rightarrow> pstate \<Rightarrow> bool" where
 "SyncMod_nextState p ss msgs st \<equiv>
-    ((fire ss \<and> fire st) | (fire st \<longleftrightarrow> ready_fire msgs)) \<and>
+    fire st = (ready_fire msgs | fire ss) &
     (if ready_force msgs ss then
-        x st = k-1 \<and> forc st
+        x st = k-1 & forc st
         else forc ss = forc st & (
-        if x st = 0 then
+            if EX v. concordant msgs v then x st = (Suc (Eps (%v. concordant msgs v))) mod k else x st = 0))"
+        (*"if x st = 0 then
             \<forall>v. concordant msgs v \<longrightarrow> v = k - 1 else
-            concordant msgs ((x st - 1) mod k)) \<and> (x st) mod k = x st)"
+            concordant msgs ((x st - 1) mod k)) \<and> (x st) mod k = x st)"*)
 
 definition SyncMod_sendMsg where
 "SyncMod_sendMsg p q st \<equiv> if x st = k then Nope else Val (x st)"
