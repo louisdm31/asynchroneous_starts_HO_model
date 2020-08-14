@@ -163,12 +163,11 @@ qed
 lemma A3 : assumes "k_mod.xi_nek HO xi"
 and run:"HORun (HOMachine_to_Algorithm (k_mod.SyncMod_HOMachine k)) rho HO" (is "HORun ?A _ _")
 and "rho r xi = Active s"
-and "x s = k - 1"
 and "k > 2"
 and "monovalent rho (v mod k) r"
 shows "monovalent rho ((v+i) mod k) (r+i)"
 proof (induction i)
-    from assms(6) show "monovalent rho ((v+0) mod k) (r+0)" by auto
+    from assms(5) show "monovalent rho ((v+0) mod k) (r+0)" by auto
 next
     case (Suc i)
     let "?msgs p" = "(HOrcvdMsgs ?A p (HO (Suc (r+Suc i)) p) (rho (r+Suc i)))"
@@ -189,9 +188,8 @@ next
         using run HORun_def assms(3) nonAsleepAgain[of rho r xi ?A HO _ "i+1"] by (simp add: HORun_def add.commute)
     then obtain sxx where "rho (Suc (r+i)) xi = Active sxx" by (cases "rho (Suc (r+i)) xi") auto
     ultimately have "x sxx = (v+i) mod k" using Suc.IH monovalent_def[of rho "(v+i) mod k" "r+i" ] by auto
-    hence "!p. k_mod.SyncMod_sendMsg k xi p sxx = Val ((v+i) mod k)" using k_mod.SyncMod_sendMsg_def by 
-        (metis One_nat_def add_lessD1 assms(5) linorder_not_less mod_le_divisor mod_less_divisor
-        neq0_conv not_add_less2 numerals(2) plus_1_eq_Suc)
+    hence "!p. k_mod.SyncMod_sendMsg k xi p sxx = Val ((v+i) mod k)" using k_mod.SyncMod_sendMsg_def[of k xi _ sxx] `k > 2`
+        by (smt dvd_imp_mod_0 linorder_not_less mod_greater_zero_iff_not_dvd mod_le_divisor mod_less_divisor not_less0)
     hence "!p. sendMsg ?A xi p sxx = Val ((v+i) mod k)"
         using HOMachine_to_Algorithm_def k_mod.SyncMod_HOMachine_def by (simp add: k_mod.SyncMod_HOMachine_def)
     hence "!p. ?msgs p xi = Content (Val ((v+i) mod k))" (is "!p. ?msgs p xi = _")
@@ -204,7 +202,7 @@ next
     proof (rule+)
         fix p ss st
         assume "rho (r+Suc i) p = Active ss" and "rho (Suc (r+Suc i)) p = Active st"
-        hence "k_mod.SyncMod_nextState k p ss (?msgs p) st" using run transition[of rho "r+Suc i" p ss st k HO] assms(5) by blast
+        hence "k_mod.SyncMod_nextState k p ss (?msgs p) st" using run transition[of rho "r+Suc i" p ss st k HO] `k > 2` by blast
         show "x st = (v + Suc i) mod k"
         proof (cases "k_mod.ready_force k (?msgs p) ss")
             case True
@@ -315,7 +313,7 @@ and run:"HORun (HOMachine_to_Algorithm (k_mod.SyncMod_HOMachine k)) rho HO" (is 
 and "rho n p = Active sr"
 and "rho (Suc n) p = Active s"
 and "k > 2"
-shows "~ k_mod.ready_force k (HOrcvdMsgs ?A p (HO (Suc n) p) (rho n)) s" (is "~ k_mod.ready_force k ?msgs s")
+shows "~ k_mod.ready_force k (HOrcvdMsgs ?A p (HO (Suc n) p) (rho n)) sr" (is "~ k_mod.ready_force k ?msgs sr")
 proof (cases "EX r sa saa. rho r p = Active sa & (~ forc sa) & rho (Suc r) p = Active saa & forc saa")
     case True
     then obtain r where "EX sa saa. rho r p = Active sa & (~ forc sa) & rho (Suc r) p = Active saa & forc saa" by auto
@@ -343,9 +341,9 @@ proof (cases "EX r sa saa. rho r p = Active sa & (~ forc sa) & rho (Suc r) p = A
             qed
         qed
     qed
-    hence "ALL s. rho (Suc n) p = Active s --> forc s"
-        using assms(1) allE[of "%i. ALL ss. rho (Suc i + round_force rho p) p = Active ss --> forc ss" "n - round_force rho p"] by auto
-    thus ?thesis using k_mod.ready_force_def[of k ?msgs s] by (metis assms(4))
+    hence "ALL s. rho n p = Active sr --> forc sr"
+        using assms(1) allE[of "%i. ALL ss. rho (Suc i + round_force rho p) p = Active ss --> forc ss" "n - Suc (round_force rho p)"] by auto
+    thus ?thesis using k_mod.ready_force_def[of k ?msgs sr] by (metis assms(3))
 next
     case False
     hence "~ forc s | forc sr" using assms(3) assms(4) by auto
@@ -356,9 +354,7 @@ next
         thus ?thesis using k_mod.SyncMod_nextState_def[of k p sr _ s] by (simp add:`~ forc s` k_mod.ready_force_def)
     next
         assume "forc sr"
-        moreover have "k_mod.SyncMod_nextState k p sr ?msgs s" using transition[of rho n p sr s k HO] assms by auto
-        ultimately have "forc s" using k_mod.SyncMod_nextState_def by auto
-        thus ?thesis using k_mod.ready_force_def[of k _ s] by auto
+        thus ?thesis using k_mod.ready_force_def[of k _ sr] by auto
     qed
 qed
 
@@ -366,35 +362,59 @@ lemma A5 : assumes "k_mod.xi_nek HO xi"
 and run:"HORun (HOMachine_to_Algorithm (k_mod.SyncMod_HOMachine k)) rho HO" (is "HORun ?A _ _")
 and "rho r xi = Active s"
 and "rho (Suc r) xi = Active sxi"
-and "x s = k - 1"
 and "k > 2"
 assumes commS:"HOcommSchedule (k_mod.SyncMod_HOMachine k) (Schedule rho)"
-and "ALL p. round_force rho p < r"
-shows "ALL p sp spp. rho (Suc r) p = Active sp --> rho (Suc (Suc r)) p = Active spp --> x spp ~= 0 --> x spp = (Suc (x sxi)) mod k"
-proof (rule+)
-    fix p sp spp
-    assume sp_def:"rho (Suc r) p = Active sp"
-    and spp_def:"rho (Suc (Suc r)) p = Active spp"
-    and "x spp ~= 0"
-    hence nxt:"k_mod.SyncMod_nextState k p sp (HOrcvdMsgs ?A p (HO (Suc (Suc r)) p) (rho (Suc r))) spp" (is "k_mod.SyncMod_nextState k p sp ?msgs spp")
+and "round_force rho p < r"
+and "rho (Suc r) p = Active sp"
+and "rho (Suc (Suc r)) p = Active spp"
+and "x spp ~= 0"
+shows "x spp = (Suc (x sxi)) mod k"
+proof -
+    have nxt:"k_mod.SyncMod_nextState k p sp (HOrcvdMsgs ?A p (HO (Suc (Suc r)) p) (rho (Suc r))) spp" (is "k_mod.SyncMod_nextState k p sp ?msgs spp")
         using transition[of rho "Suc r" p sp spp k HO] assms by auto
     have "x sxi < k" using transition run assms by auto
     hence "k_mod.SyncMod_sendMsg k xi p sxi = Val (x sxi)" using k_mod.SyncMod_sendMsg_def[of k xi p sxi] by auto
 
-    hence "~ k_mod.ready_force k ?msgs spp" using nonForceAgain[of rho p "Suc r" k HO sp spp] `k > 2` assms(8) sp_def spp_def run less_SucI by blast
+    have "~ k_mod.ready_force k ?msgs sp" using nonForceAgain[of rho p "Suc r" k HO sp spp] `k > 2` assms(8) assms(9) assms(7) run less_SucI by blast
     hence "x spp = (Suc (Eps (%v. k_mod.concordant ?msgs v))) mod k" and "EX v. k_mod.concordant ?msgs v" 
-        using `x spp ~= 0` nxt k_mod.SyncMod_nextState_def[of k p sp ?msgs spp] by 
+        using `x spp ~= 0` nxt k_mod.SyncMod_nextState_def[of k p sp ?msgs spp] by auto
+    moreover from this obtain v where conc:"k_mod.concordant ?msgs v" by auto
+    ultimately have "x spp = (Suc v) mod k" using k_mod.concordant_def by (metis someI_ex)
 
 
-    hence "sendMsg ?A xi p sxi = Val (x sxi)" using HOMachine_to_Algorithm_def k_mod.SyncMod_HOMachine_def by 
-        (simp add: `\<And>k. k_mod.SyncMod_HOMachine k ==
+    have "sendMsg ?A xi p sxi = Val (x sxi)" using HOMachine_to_Algorithm_def k_mod.SyncMod_HOMachine_def assms(4) `x sxi < k`
+        by (simp add: `!!k. k_mod.SyncMod_HOMachine k ==
         (|CinitState = %p st crd. k_mod.SyncMod_initState k p st, sendMsg = k_mod.SyncMod_sendMsg k,
         CnextState = %p st msgs crd. k_mod.SyncMod_nextState k p st msgs, HOcommPerRd = k_mod.SyncMod_commPerRd,
-        HOcommGlobal = k_mod.SyncMod_commGlobal, HOcommSchedule = k_mod.SyncMod_commSchedule |)`)
+        HOcommGlobal = k_mod.SyncMod_commGlobal, HOcommSchedule = k_mod.SyncMod_commSchedule |)` k_mod.SyncMod_sendMsg_def)
     hence "?msgs xi = Content (Val (x sxi))" (is "?msgs xi = _")
         using HOrcvdMsgs_def[of _ p "HO (Suc r) p" "rho (Suc r)"] assms(1) assms(4) k_mod.xi_nek_def[of HO xi] by (simp add:HOrcvdMsgs_def k_mod.xi_nek_def)
+    hence "v = x sxi" using conc k_mod.concordant_def by metis
+    thus "x spp = (Suc (x sxi)) mod k" using `x spp = (Suc v) mod k` by auto
+qed
 
-lemma SuncMod_liveness : assumes "k_mod.xi_nek HO xi"
+lemma A6 : assumes "k_mod.xi_nek HO xi"
+and run:"HORun (HOMachine_to_Algorithm (k_mod.SyncMod_HOMachine k)) rho HO" (is "HORun ?A _ _")
+and "rho r xi = Active s"
+and "monovalent rho (v mod k) r"
+and "k > 2"
+assumes commS:"HOcommSchedule (k_mod.SyncMod_HOMachine k) (Schedule rho)"
+shows "k_mod.liveness rho"
+proof -
+    have "monovalent rho ((v+(k - 1 - v mod k)) mod k) (r+(k - 1 - v mod k))" using A3[of HO xi k rho ] assms by auto
+    hence "monovalent rho (k-1) (r+(k - 1 - v mod k))"
+        by (smt One_nat_def Suc_leI assms(5) diff_diff_cancel diff_is_0_eq mod_add_left_eq mod_less
+        mod_less_divisor not_less ordered_cancel_comm_monoid_diff_class.add_diff_inverse plus_1_eq_Suc zero_less_Suc)
+    moreover have "rho (r+(k - 1 - v mod k)) xi ~= Aslept" using nonAsleepAgain[of rho r xi _ _ _ "k - 1 - v mod k"] assms(3) run HORun_def
+        by (smt add.commute proc_state.distinct(1))
+    then obtain sxi where sxi_def:"rho (r+(k - 1 - v mod k)) xi = Active sxi" by (cases "rho (r+(k - 1 - v mod k)) xi") auto
+    moreover from this have "rho (Suc (r+(k - 1 - v mod k))) xi ~= Aslept" using nonAsleepAgain[of rho "r+(k - 1 - v mod k)" xi _ _ _ 1] run HORun_def by fastforce
+    then obtain sxii where sxii_def:"rho (Suc (r+(k - 1 - v mod k))) xi = Active sxii" by (cases "rho (Suc (r+(k - 1 - v mod k))) xi") auto
+    ultimately have "x sxii = k-1" using monovalent_def[of rho "k-1" "r+(k - 1 - v mod k)"] assms(3) by auto
+    thus ?thesis using A4 assms sxi_def sxii_def by auto
+qed
+
+lemma SyncMod_liveness : assumes "k_mod.xi_nek HO xi"
 and run:"HORun (HOMachine_to_Algorithm (k_mod.SyncMod_HOMachine k)) rho HO" (is "HORun ?A _ _")
 and "k > 2"
 assumes commS:"HOcommSchedule (k_mod.SyncMod_HOMachine k) (Schedule rho)"
@@ -413,5 +433,92 @@ proof -
     next
         case False
         have "EX n. Schedule rho n = UNIV" using commS by (simp add:k_mod.SyncMod_HOMachine_def k_mod.SyncMod_commSchedule_def )
-        then obtain n :: nat where "!p. rho n p ~= Aslept" by auto
-        let ?n = "n + Max ( (round_force rho) ` Proc)"
+        then obtain n :: nat where "ALL p. rho n p ~= Aslept" by auto
+        let ?n = "Suc n + Sum ( (round_force rho) ` UNIV)"
+        have "rho ?n xi ~= Aslept"
+            using nonAsleepAgain[of rho n xi _ _ _ "Suc (Sum ( (round_force rho) ` UNIV))"] run HORun_def `ALL p. rho n p ~= Aslept` by (smt add.commute add_Suc_shift)
+        then obtain sxi where "rho ?n xi = Active sxi" by (cases "rho ?n xi") auto
+        show ?thesis
+        proof (cases "EX v :: nat. v < k & monovalent rho v ?n")
+            case True
+            thus ?thesis using A6[of HO xi k rho ?n sxi] assms `rho ?n xi = Active sxi` by (metis mod_if)
+        next
+            case False
+            thus ?thesis
+            proof (cases "x sxi = 0")
+                case False
+                have "ALL i sxii. rho (?n + i) xi = Active sxii --> x sxii = (x sxi + i) mod k"
+                proof (rule allI)+
+                    fix i sxii
+                    show "rho (?n + i) xi = Active sxii --> x sxii = (x sxi + i) mod k"
+                    proof (induction i arbitrary:sxii)
+                        case 0
+                        have "rho (?n-1) xi ~= Aslept"
+                            using nonAsleepAgain[of rho n xi _ _ _ "Sum ( (round_force rho) ` UNIV)"] run HORun_def `ALL p. rho n p ~= Aslept`
+                            by (smt Nat.add_diff_assoc2 add.commute diff_Suc_1 le_add1 plus_1_eq_Suc)
+                        then obtain sx where "rho (?n-1) xi = Active sx" by (cases "rho (?n-1) xi") auto
+                        hence "x sxi < k" using transition[of rho "?n-1" xi sx sxi] run `rho ?n xi = Active sxi` assms(3) by auto
+                        thus "rho (?n + 0) xi = Active sxii --> x sxii = (x sxi + 0) mod k" using `rho ?n xi = Active sxi` by auto
+                    next
+                        case (Suc ii)
+                        show "rho (?n + (Suc ii)) xi = Active sxii --> x sxii = (x sxi + (Suc ii)) mod k"
+                        proof
+                            assume sxii_def:"rho (?n + (Suc ii)) xi = Active sxii"
+                            moreover have "rho (?n+ii) xi ~= Aslept"
+                                using nonAsleepAgain[of rho n xi _ _ _ ii] run HORun_def `ALL p. rho n p ~= Aslept`
+                                by (smt `rho ?n xi ~= Aslept` add.commute nonAsleepAgain)
+                            then obtain sxiii where sxiii_def:"rho (?n+ii) xi = Active sxiii" by (cases "rho (?n+ii) xi") auto
+                            ultimately have "k_mod.SyncMod_nextState k xi sxiii (HOrcvdMsgs ?A xi (HO (?n + Suc ii) xi) (rho (?n + ii))) sxii"
+                                (is "k_mod.SyncMod_nextState k xi sxiii ?msgs sxii")
+                                using transition[of rho "?n+ii" xi sxiii sxii] run assms(3) by auto
+                            have "round_force rho xi <= Sum ((round_force rho) ` UNIV)"
+                                by (meson finite_UNIV finite_imageI le0 range_eqI sum_nonneg_leq_bound)
+                            hence "?n + ii > round_force rho xi" by auto
+                            hence "~ k_mod.ready_force k ?msgs sxiii" using run nonForceAgain[of rho xi "?n+ii" k HO sxiii sxii] `k > 2` sxiii_def sxii_def by auto
+                            hence "forc sxiii |
+                                (EX p. ?msgs p = Content (Val (k-1))) |
+                                (ALL p q v1 v2. ?msgs p = Content (Val v1) --> ?msgs q = Content (Val v2) --> v1 = v2)"
+                                using k_mod.ready_force_def[of k ?msgs sxiii] by auto
+                            thus "x sxii = (x sxi + (Suc ii)) mod k"
+                            proof
+                                assume "forc sxiii"
+                                moreover have "ALL st i. rho i xi = Active st --> ~ forc st"
+                                proof (rule allI)+
+                                    fix st i
+                                    show "rho i xi = Active st --> ~ forc st"
+                                    proof (induction i arbitrary:st)
+                                        case 0
+                                        show "rho 0 xi = Active st --> ~ forc st" using run stating[of 0 rho xi ] by auto
+                                    next
+                                        case (Suc ii)
+                                        show "rho (Suc ii) xi = Active st --> ~ forc st"
+                                        proof (cases "rho ii xi")
+                                            case Aslept
+                                            thus "rho (Suc ii) xi = Active st --> ~ forc st" using run stating[of "Suc ii" rho xi ] by auto
+                                        next
+                                            case (Active sxi)
+                                            moreover have "ALL sa saa l. rho l xi = Active sa --> (~ forc sa) --> rho (Suc l) xi = Active saa --> (~ forc saa)"
+                                                using `~ (EX sa saa. rho ?txi xi = Active sa & (~ forc sa) & rho (Suc ?txi) xi = Active saa & forc saa)`
+                                                someI_ex[of "%l. EX sa saa. rho l xi = Active sa & (~ forc sa) & rho (Suc l) xi = Active saa & forc saa"]
+                                                round_force_def by (smt Eps_cong)
+                                            ultimately show "rho (Suc ii) xi = Active st --> ~ forc st" using Suc.IH[of sxi] by auto
+                                        qed
+                                    qed
+                                qed
+                                ultimately have "False" using sxiii_def by auto
+                                thus ?thesis by auto
+                            next
+                                assume "(EX p. ?msgs p = Content (Val (k-1))) |
+                                    (ALL p q v1 v2. ?msgs p = Content (Val v1) --> ?msgs q = Content (Val v2) --> v1 = v2)"
+                                thus ?thesis 
+                                proof
+                                    assume "EX p. ?msgs p = Content (Val (k-1))"
+                                    then obtain p where "?msgs p = Content (Val (k-1))" by auto
+                                    have "rho (?n+Suc ii) p ~= Aslept"
+                                        using nonAsleepAgain[of rho n p _ _ _ "Sum ( (round_force rho) ` UNIV) + Suc (Suc ii)"] run HORun_def `ALL p. rho n p ~= Aslept`
+                                        by (smt add.assoc add.commute add_Suc_shift)
+                                    then obtain sp where sp:"rho (?n+Suc ii) p = Active sp" by (cases "rho (?n+Suc ii) p") auto
+                                    hence "rho (?n+Suc (Suc ii)) p ~= Aslept"
+                                        using nonAsleepAgain[of rho "?n+Suc ii" p _ _ _ 1] run HORun_def by fastforce
+                                    then obtain spp where spp:"rho (?n+Suc (Suc ii)) p = Active spp" by (cases "rho (?n+Suc (Suc ii)) p") auto
+                                    show ?thesis using A5[of HO xi k rho "?n + ii" sxiii sxii p sp spp] sxiii_def  sxii_def  sp spp run `k > 2`
