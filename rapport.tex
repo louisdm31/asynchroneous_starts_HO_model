@@ -3,6 +3,7 @@
 \usepackage[noend]{sources-Heard-Of/distribalgo}
 \usepackage{algorithm}
 \usepackage{amssymb}
+\usepackage{listings}
 \usepackage{amsthm}
 \usepackage{dsfont}
 \usepackage{stmaryrd}
@@ -12,7 +13,33 @@
 \newtheorem{theorem}{Théorème}
 \newtheorem{definition}{Définition}
 \setlength{\parskip}{0.22cm}
+\usepackage{xcolor}
 
+\definecolor{codegreen}{rgb}{0,0.6,0}
+\definecolor{codegray}{rgb}{0.5,0.5,0.5}
+\definecolor{codepurple}{rgb}{0.58,0,0.82}
+\definecolor{backcolour}{rgb}{0.95,0.95,0.92}
+
+\lstdefinestyle{mystyle}{
+    backgroundcolor=\color{backcolour},   
+    commentstyle=\color{codegreen},
+    keywordstyle=\color{magenta},
+    numberstyle=\tiny\color{codegray},
+    stringstyle=\color{codepurple},
+    basicstyle=\ttfamily\footnotesize,
+    breakatwhitespace=false,         
+    breaklines=true,                 
+    captionpos=b,                    
+    keepspaces=true,                 
+    numbers=left,                    
+    numbersep=5pt,                  
+    showspaces=false,                
+    showstringspaces=false,
+    showtabs=false,                  
+    tabsize=2
+}
+
+\lstset{style=mystyle}
 \usepackage{biblatex}
 \addbibresource{rapport.bib}
 
@@ -64,6 +91,8 @@ résout le problème de synchronisation modulo $k$, et ouvre donc la voie à la 
 
 L'un des avantages du modèle Heard-Of, par rapport aux approches concurrentes, est d'être facilement exprimable formellement, ce qui le rend particulièrement propice à l'écriture de preuves formelles.
 Afin de renforcer la solidité des preuves d'algorithmes, cet article est accompagnés des preuves, qui ont été vérifiés par l'assistant de preuve Isabelle.
+Dans la dernière section de ce document, à défaut d'inclure l'ensemble du code Isabelle, je présenterai les quelques définitions essentielles du modèle Heard-Of et des algorithmes, ainsi que
+les en-têtes des théorèmes qui auront été prouvés.
 
 \section{Description du modèle}
 
@@ -287,6 +316,84 @@ Il est parfois nécessaire que les processus connissent la taille du réseau $n$
 	Un réseau non identifié est dit \textit{anonyme}.
 \end{definition}
 
+\section{Algorithme "One-Third Rule"}
+
+Dans cette section, il est question d'un algorithme de consensus relativement simple. Dans cet algorithme, chaque processus partage à chaque round sa propre valeur.
+Lorsqu'un processus reçoit une supermajorité de valeurs identiques (c'est-à-dire un quorum constitué de deux tiers des processus du réseau), le processus décide.
+
+Soit $\mathcal{V}$ un emsemble supposé totalement ordonné. Soit $\bot$ un objet vérifiant $\bot \notin \mathcal{V}$.
+On définit l'algorithme "one-third rule" de la façon suivante.
+\begin{itemize}
+	\item Pour tout processus $p$, on pose $States_p = \mathcal{V} \times (\mathcal{V} \cup \{ \bot \})$.
+	Comme $States_p$ est un produit cartésien, on peut définir les notations suivantes :
+	\begin{itemize}
+
+		\item $x : \mathcal{V} \times (\mathcal{V} \cup \{ \bot \}) \rightarrow \mathcal{V}$ est la première projection.
+			La fonction $Val$ associée à l'algorithme "one-third rule" est définie par cette fonction $x$.
+		\item $dec : \mathcal{V} \times (\mathcal{V} \cup \{ \bot \}) \rightarrow \mathcal{V} \cup \{\bot\}$ est la seconde projection.
+			La fonction $Dec$ associée à l'algorithme "one-third rule" est définie par cette fonction $dec$.
+
+	\end{itemize}
+\item Pour tout processus $p$, on pose $Init_p = \mathcal{V} \times \{ \bot \}$. Cet ensemble correspond à l'ensemble des états pour lesquels aucune décision n'a encore été prise.
+\item Les fonctions de transition et d'émission sont définies par les pseudo-code ci-dessous.
+\end{itemize}
+Pour toute fonction de réception $M$ de type $X_\Pi^\mathcal{V}$, on note $\widetilde{M}$ la fonction de type $\mathcal{V} \rightarrow \mathds{N}$ définie par $\widetilde{M}(v) = |M^{-1}(v)|$.
+Ainsi $\widetilde{M}(v)$ est le nombre d'occurrence du message $v$ parmi le multi-ensemble de messages reçus.
+On note également $min \{\widetilde{M}^{-1} (max \widetilde{M})\}$  le minimum parmi les messages les plus fréquents. Cette expression est nécessairement une valeur de $\mathcal{V}$.
+On note enfin $Sup(M)$ le support de $M$ (ie. $Sup(M) = \{p \in \Pi, M(p) \in \mathcal{V}\}$). 
+
+\begin{algorithm}[htb]
+\begin{distribalgo}[1]
+\BLANK \INDENT{\textbf{Initialization:}}
+  \STATE $x_p :=\, v_p$ \COMMENT{  $v_p$ est la valeur initiale de $p$ }
+  \STATE $dec_p :=\, \bot$ 
+%  \STATE $vote_p \in V\cup\{ ? \}$, initially $?$
+
+\ENDINDENT \BLANK
+
+\INDENT{\textbf{Round $r$:}}
+ \INDENT{$S_p:$}
+    \STATE send $\langle\, x_p\, \rangle$ to all processes
+  \ENDINDENT
+  \BLANK
+	\INDENT{$T_p(M):$}
+	\IF{$|Sup(M)| > 2 n/3 $}
+	  \STATE $x_p := min \{\widetilde{M}^{-1} (max \widetilde{M})\}$ \COMMENT{la valeur minimale parmi les $x$ les plus fréquents reçus des processus actifs}
+		\IF{$\widetilde{M}(x_p) > 2 n/3$} 
+		  \STATE $dec_p := x_p$ \COMMENT{plus de $2 n/3$ des valeurs reçues valent $x_p$}
+        \ENDIF
+      \ENDIF
+  \ENDINDENT
+\ENDINDENT \BLANK
+
+
+\caption{The {\em OneThirdRule} algorithm} \label{algo:R}
+\end{distribalgo}
+
+\end{algorithm}
+
+On introduit tout d'abord la notion de graphe dirigé $G=(V,E)$ \emph{$S$-uniforme}, où $S\subseteq V$ est un ensemble de n\oe uds de $G$ :
+	$$ \forall q \in S, \  \{ p \in V : (p,q) \in E\} = S .$$
+Autrement dit, l'ensemble des voisins entrants d'un n\oe ud de $S$ est $S$.
+
+Le graphe $G$ est dit $p$-\emph{superconnect\'e} si 
+	$$ | \{ q \in V : (q ,p ) \in E\} | > 2 |V|/3 .$$
+
+On prouve alors la terminaison pour toute exécution de l'algorithme dont le graphe dynamique $ \mathds{G} $ vérifie  les prédicats suivants :
+\begin{itemize}
+	\item $P_{S-unif-\infty} \equiv
+		\forall r \in \mathds{N}, \exists t \in \mathds{N}, \exists S_t \subseteq \Pi, t > r  \wedge |S_t | > \frac{2 n}{3} \wedge  \mathds{G}_t \mbox{ est $S_t $-uniforme} .$
+	 \item $P_{supermaj-\infty} \equiv
+		\forall r \in \mathds{N}, \forall p\in\Pi, \exists t \in \mathds{N}, t > r  \wedge \mathds{G}_t \mbox{ est $p$-superconnect\'e} .$
+\end{itemize}
+
+\begin{theorem}
+	L'algorithme "one-third rule" r\'esout  le consensus lorsque les processus connaissent la taille du réseau,
+	et lorsque les prédicats $P_{S-unif-\infty}$ et $P_{supermaj-\infty}$ sont vérifiés.
+\end{theorem}
+
+La preuve de ce résultat est reportée en annexe.
+
 \section{Théorèmes de résolubilité}
 
 La première section est consacrée au théorèmes d'impossibilité, qui montrent que les versions affaiblies des prédicats $\mathcal{P}_{\xi-nek}$ et $\mathcal{P}_{non-inf}$ ne suffisent
@@ -335,9 +442,16 @@ Ce deuxième théorème montre que la racine de l'étoile recouvrante doit être
 	\end{description}
 \end{proof}
 
-Il est possible qu'un graphe dynamique $\mathds{G}$ ne respecte pas le prédicat $\mathcal{P}_{\xi-nek}$, mais qu'en "aggrégeant" les rounds par groupe de $k$ round, 
-il soit possible de simuler un graphe dynamique $\mathds{G}_{k-merge}$ tel que $\mathds{G}_{k-merge} \models \mathcal{P}_{\xi-nek}$.
-Cependant, on montre que si les processus ne connaissent pas la valeur de $k$ telle que $\mathds{G}_{k-merge} \models \mathcal{P}_{\xi-nek}$, le consensus n'este pas résoluble.
+Il est possible qu'un graphe dynamique $\mathds{G}$ ne respecte pas le prédicat $\mathcal{P}_{\xi-nek}$, mais qu'en "aggrégeant" plusieurs rounds, on obtienne un graphe dynamique mieux connecté,
+et qui vérifie $\mathcal{P}_{\xi-nek}$.
+Cependant, on montre que si les processus ne connaissent pas le nombre de rounds à aggréger, le consensus n'est pas résoluble.
+
+\begin{definition}
+	Étant donné un graphe dynamique $\mathds{G} = (V, E_i)_{i \in \mathds{N}}$.
+	Étant donné deux entiers $t_1$ et $t_2$, on construit le graphe $\mathds{G}(t_1 : t_2) = (V, E_{aggreg})$ de la manière suivante :
+
+	$$\forall p \in V, \forall q \in V, (p, q) \in E_{aggreg} \equiv \exists h : \mathds{N} \rightarrow \Pi, \forall i \in \{t_1, t_1 + 1, ..., t_2\}, (h(i), h(i+1)) \in E_i$$
+\end{definition}
 
 \begin{definition}
 	Étant donné un prédicat $\Phi$ s'appliquant sur un graphe.
@@ -526,6 +640,8 @@ Les trois sections précédentes permettent d'affirmer le théorème suivant :
 \section{Problème de synchonisation modulo $k$}
 
 Le but de cette section est de proposer un algorithme permettant de synchroniser les différentes phases malgré les départs asynchrones.
+En plus de l'algorithme "Uniforme Voting", le célèbre algorithme Paxos \cite{paxos} fonctionne également par alternance de phases.
+
 L'algorithme qui sera présenté s'inspire de l'algorithme du "firing squad" \cite{firing_squad}.
 Dans l'algorithme du firing-squad, les processus ont chacun un compteur, qu'ils incrémentent à chaque round. Ils partagent la valeur de leur compteur à tous leur voisins sortant, 
 et s'ils reçoivent plusieurs valeurs en conflits, ils adoptent la valeur minimale.
@@ -768,6 +884,179 @@ Maintenant que la validité de l'algorithme SyncMod est établie, on peut affirm
 	donc à fortiori $\mathcal{P}_{sync-mod-2}$.
 	La preuve de validité de "Uniforme Voting", précédamment présentée, s'applique donc.
 \end{proof}
+
+\section{Preuves formelles}
+
+Dans la mesure où les preuves proposées dans ce document ont un aspect combinatoire, il y a toujours un risque qu'un cas limite ait été oublié, et invalide une preuve.
+Afin de renforcer la solidité de ces preuves, il est possible d'utiliser un assistant de preuve, tel que Coq ou Isabelle.
+Le modèle Heard-Of a déjà été traduit en Isabelle \cite{HO_isa},
+et cette traduction du modèle Heard-Of a été utilisé pour prouver la correction de plusieurs algorithmes, dont "One-Third rule", "Uniforme Voting".
+Cette modélisation était cependant limitée aux exécutions avec départs synchrones.
+Il s'agissait donc d'abord d'étendre la modélisation existante du modèle Heard-Of.
+En guise d'entraînement, j'ai également écrit la preuve de "One-Third rule" dans le cas des départs asynchrones.
+Enfin, j'ai construit la preuve de vivacité de l'algorithme SyncMod.
+
+\subsection{Adaptation du modèle Heard-Of}
+
+On définit d'abord un type pour l'état des processus : soit passif, soit actif, avec un état de type \textit{pst}.
+
+\begin{lstlisting}
+datatype 'pst procState = Active "'pst" | Aslept
+\end{lstlisting}
+
+On définit le type des messages reçus par les processus : soit le message contient une valeur de type \textit{msg}, soit le processus émetteur est passif,
+dans ce cas le processus récepteur reçoit $nil$, soit aucun message n'est reçu, cela se traduit par un message de type $Void$.
+
+\begin{lstlisting}
+datatype 'msg message = Content "'msg" | Nil | Void
+\end{lstlisting}
+
+On définit ensuite un algorithme comme un tuple composé d'un ensemble d'états initiaux, d'une fonction d'émission et de transition.
+
+\begin{lstlisting}[mathescape=true]
+record ('proc, 'pst, 'msg) CHOAlgorithm =
+  CinitState ::  "'proc $\Rightarrow$ 'pst $\Rightarrow$ 'proc $\Rightarrow$ bool"
+  sendMsg ::   "'proc $\Rightarrow$ 'proc $\Rightarrow$ 'pst $\Rightarrow$ 'msg"
+  CnextState :: "'proc $\Rightarrow$ 'pst $\Rightarrow$ ('proc $\Rightarrow$ 'msg message) $\Rightarrow$ 'proc $\Rightarrow$ 'pst $\Rightarrow$ bool"
+\end{lstlisting}
+
+Étant donné une fonction $rho : \mathds{N} \rightarrow \Pi \rightarrow Sleep_p \uplus States_p$, il s'agit de définir dans quels cas $rho$ peut constituer la description d'une exécution valide.
+On construit donc le prédicat $HORun$ de la façon suivante :
+
+\begin{lstlisting}[mathescape=true]
+fun HOrcvMsgsQ :: "'proc $\Rightarrow$ ('proc, 'pst, 'msg) CHOAlgorithm  $\Rightarrow$ 'proc $\Rightarrow$
+                         'pst procState $\Rightarrow$ 'msg message" where
+ "HOrcvMsgsQ q A p (Active s) = Content (sendMsg A q p s)" |
+ "HOrcvMsgsQ q A p Aslept = Nil"
+
+definition HOrcvdMsgs :: "('proc, 'pst, 'a) CHOAlgorithm $\Rightarrow$ 'proc $\Rightarrow$
+                          'proc set $\Rightarrow$ ('proc $\Rightarrow$ 'pst state)
+                          $\Rightarrow$ 'proc $\Rightarrow$ 'a message" where
+  "HOrcvdMsgs A p HO cfg $\equiv$
+   $\lambda$ q. if q $\in$ HO then HOrcvMsgsQ q A p (cfg q) else Void"
+
+definition CHOnextConfig where
+  "CHOnextConfig A cfg HO coord cfg' $\equiv$
+   $\forall$ p s.       cfg  p = Active s $\longrightarrow$
+         ($\exists$ s'. cfg' p = Active s' $\wedge$
+		 CnextState A p s (HOrcvdMsgs A p (HO p) cfg) (coord p) s')"
+
+definition CHOinitConfig where
+  "CHOinitConfig A rho coord $\equiv$
+  $\forall$ p (n::nat) s. (n > 0 $\longrightarrow$ rho (n-1) p = Aslept)
+  $\longrightarrow$ rho n p = Active s $\longrightarrow$ CinitState A p s (coord n p)"
+
+
+definition CHORun where
+  "CHORun A rho HOs coords $\equiv$ CHOinitConfig A rho coords
+   $\wedge$ ($\forall$ r. CHOnextConfig A (rho r) (HOs (Suc r)) (coords (Suc r))
+                             (rho (Suc r)))"
+\end{lstlisting}
+
+Ci-dessus, les deux premières définitions définissent la fonction de réception d'un processus $p$ au round $n$, en fonction de $rho$ et de $HO(p, n)$, l'ensemble des voisins entrants de $p$.
+La troisième définition est un prédicat qui vérifie si $rho$ respecte toujours la fonction de transition.
+La quatrième définition est un prédicat qui vérifie si $rho$ respecte la croissance du calendrier d'activation, et si la première valeur de chaque processus $p$ vérifie $p \in Inin_p$.
+
+\subsection{Preuve de correction de "One-Third rule"}
+
+Il s'agit d'abord d'écrire formellement l'algorithme "One-Third rule".
+
+\begin{lstlisting}[mathescape=true]
+definition OTRNextState where
+  "OTRNextState p st msgs st' $\equiv$ 
+   if (2*N) div 3 < card {q. msgs q $\neq$ Void $\and$ msgs q $\neq$ Nil}
+   then st' = $\langle$ x = Min {v . MFR msgs v},
+          decide = $\exists$v. TwoThirds msgs v $\rangle$
+   else st' = st"
+
+definition OTRSendMsg where
+  "OTRSendMsg p q st $\equiv$ x st"
+\end{lstlisting}
+
+Ci-dessus, $MFR$ signifie "most frequent received".
+On démontre ensuite l'intégrité, l'accord et la terminaison.
+
+\begin{lstlisting}[mathescape=true]
+lemma OTRIntegrity:
+  assumes "HORun (HOMachineToAlgorithm OTRM) rho HOs" 
+  and "rho n p = Active $\langle$ x = v, decide = True $\rangle$"
+shows "$\exists$ q s. x s = v $\wedge$ getInitValue rho q = Active s"
+\end{lstlisting}
+
+\begin{lstlisting}[mathescape=true]
+theorem OTRAgreement:
+  assumes run:"HORun (HOMachineToAlgorithm OTRM) rho HOs"
+  and "rho n p = Active $\langle$ x = v, decide = True $\rangle$"
+  and "rho m p' = Active $\langle$ x = w, decide = True $\rangle$"
+  shows "v = w"
+\end{lstlisting}
+
+\begin{lstlisting}[mathescape=true]
+theorem OTRTermination:
+  assumes run: "HORun (HOMachineToAlgorithm OTRM) rho HOs" 
+  and commG: "HOcommGlobal OTRM HOs"
+  and commS: "HOcommSchedule OTRM (Schedule rho)"
+  and nonInf: "$\exists$r. rho r p $\neq$ Aslept"
+  shows "$\exists$ r v. rho r p = Active $\langle$ x = v, decide = True $\rangle$"
+\end{lstlisting}
+
+Ci-dessus, $HOMachineToAlgorithm OTRM$ correspond au tuple contenant les fonctions d'émission et de transition. Le type de ce tuple est $CHOMachine$ (voir section précédente).
+
+\subsection{Preuve de l'algorithme SyncMod}
+
+\begin{lstlisting}
+record pstate = 
+     x :: nat
+     forc :: bool
+     fire :: bool
+    
+datatype SendVal = Val nat | Bot
+\end{lstlisting}
+
+Dans cet algorithme, on décrit l'état par un tuple constitué de trois variables.
+Le type $sendVal$ correspond au type des messages envoyés par les processus.
+À leur premiier round, ils envoyent	 $Bot$. Aux rounds suivants, ils envoyent leur valeur.
+
+\begin{lstlisting}[mathescape=true]
+definition readyFire where
+"readyFire msgs $\equiv$ $\forall$ p. msgs p = Void $\or$ msgs p = Content (Val k)"
+
+definition concordant where
+"concordant msgs v $\equiv$ $\exists$ p. msgs p = Content (Val v) $\wedge$
+($\forall$ q vv. msgs q = Content (Val vv) $\longrightarrow$ vv = v)"
+
+definition readyForce where
+"readyForce msgs ss $\equiv$ ($\neg$ forc ss) $\wedge$ ($\forall$ p. msgs p $\neq$ Content (Val k)) $\wedge$ 
+($\exists$ p q v1 v2. msgs p = Content (Val v1) $\wedge$ msgs q = Content (Val v2) $\wedge$ v1 $\neq$ v2)"
+
+definition SyncModNextState :: "Proc $\Rightarrow$ pstate $\Rightarrow$
+(Proc $\Rightarrow$ SendVal message) $\Rightarrow$ pstate $\Rightarrow$ bool" where
+"SyncModNextState p ss msgs st $\equiv$
+	fire st = (readyFire msgs \vee fire ss) $\wedge$
+	(if readyForce msgs ss then
+		x st = k $\wedge$ forc st
+		else forc ss = forc st $\wedge$ (
+			if $\exists$ v. concordant msgs v
+				then x st = (Suc (\epsilon ($\lambda$ v. concordant msgs v))) mod k
+				else x st = 1))"
+
+definition SyncModSendMsg where
+"SyncModSendMsg p q st $\equiv$ if x st = 0 then Bot else Val (x st)"
+
+definition SyncModInitState where 
+"SyncModInitState p st $\equiv$ x st = 0 $\wedge$ ($\neg$ forc st) $\wedge$ $\neg$ fire st"
+\end{lstlisting}
+
+Les trois premières définitions correspondent aux prédicats qui gardent les trois premières branches dans le pseudo-code de la fonction de transition.
+L'opérateur $\epsilon$ est l'opérateur de Hilbert. Il vérifie $\exists x. P x \Rightarrow P (\epsilon P)$.
+
+\begin{lstlisting}
+lemma SyncModLiveness : assumes "kMod.xiNek HO xi"
+and run:"HORun (HOMachineToAlgorithm (kMod.SyncModhOMachine k)) rho HO"
+and "k > 2"
+assumes commS:"HOcommSchedule (kMod.SyncModhOMachine k) (Schedule rho)"
+shows "kMod.liveness rho"
+\end{lstlisting}
 
 \section{Conclusion}
 
