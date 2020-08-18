@@ -116,7 +116,7 @@ proof -
           show ?case
           proof
             assume pst:"rho (Suc n) p = Active s"
-            have nex:"CHOnextConfig ?A (rho n) (HOs n) (\<lambda>l. undefined) (rho (Suc n))"
+            have nex:"CHOnextConfig ?A (rho n) (HOs (Suc n)) (\<lambda>l. undefined) (rho (Suc n))"
               using run by (auto simp:HORun_def CHORun_def)
             thus "\<exists> m q ss. (m = 0 \<or> rho (m-1) q = Aslept) \<and> rho m q = Active ss \<and> x ss = x s"
             proof (cases)
@@ -129,7 +129,7 @@ proof -
               hence "\<exists>ss. rho n p = Active ss" by (cases ?st) auto
               then obtain ss where actt:"rho n p = Active ss" by auto
               hence "\<exists>s'. rho (Suc n) p = Active s' \<and>
-                      CnextState ?A p ss (HOrcvdMsgs ?A p (HOs n p) (rho n)) undefined s'"
+                      CnextState ?A p ss (HOrcvdMsgs ?A p (HOs (Suc n) p) (rho n)) undefined s'"
                 (is "\<exists>s'. _ \<and> CnextState ?A p ss ?rcvd undefined s'")
                 using nex by (auto simp:CHOnextConfig_def)
               then obtain s' where nxx:"rho (Suc n) p = Active s'\<and>
@@ -250,13 +250,13 @@ text \<open>
 lemma nextState_change:
   assumes "HORun (HOMachine_to_Algorithm OTR_M) rho HOs" (is "HORun ?A _ _")
       and "\<not> ((2*N) div 3 
-              < card {q.  (HOrcvdMsgs (HOMachine_to_Algorithm OTR_M) p (HOs n p) (rho n)) q \<noteq> Void \<and>
-                          (HOrcvdMsgs (HOMachine_to_Algorithm OTR_M) p (HOs n p) (rho n)) q \<noteq> Bot })"
+              < card {q.  (HOrcvdMsgs (HOMachine_to_Algorithm OTR_M) p (HOs (Suc n) p) (rho n)) q \<noteq> Void \<and>
+                          (HOrcvdMsgs (HOMachine_to_Algorithm OTR_M) p (HOs (Suc n) p) (rho n)) q \<noteq> Bot })"
   shows "rho n p = Aslept \<or> rho (Suc n) p = rho n p"
 proof (cases "rho n p")
   case (Active ss)
   then obtain st where "rho (Suc n) p = Active st" using HORun_def CHOnextConfig_def by (metis CHORun_def assms(1))
-  hence "OTR_nextState p ss (HOrcvdMsgs ?A p (HOs n p) (rho n)) st" (is "OTR_nextState p ss ?rcvd st")
+  hence "OTR_nextState p ss (HOrcvdMsgs ?A p (HOs (Suc n) p) (rho n)) st" (is "OTR_nextState p ss ?rcvd st")
     using assms unfolding HORun_def CHORun_def HOnextConfig_def CHOnextConfig_def 
     by (smt Active CHOAlgorithm.simps(3) HOMachine_to_Algorithm_def OTR_HOMachine_def proc_state.inject)
   moreover have "\<not> (2*N) div 3 < card {q. ?rcvd q \<noteq> Void \<and> ?rcvd q \<noteq> Bot}" using assms by auto
@@ -274,7 +274,7 @@ lemma A1:
   and chg:"v1 \<noteq> v2"
   shows "(2*N) div 3 < card { q . \<exists>b. (rho n q) = Active \<lparr> x = v2, decide = b \<rparr> }"
 proof -
-  have "OTR_nextState p ?ss (HOrcvdMsgs ?A p (HOs n p) (rho n)) ?st" (is "OTR_nextState p ?ss ?rcvd ?st")
+  have "OTR_nextState p ?ss (HOrcvdMsgs ?A p (HOs (Suc n) p) (rho n)) ?st" (is "OTR_nextState p ?ss ?rcvd ?st")
     using assms unfolding HORun_def CHORun_def HOnextConfig_def CHOnextConfig_def HOMachine_to_Algorithm_def OTR_HOMachine_def
     by fastforce
   moreover have "?ss \<noteq> ?st" using assms by auto
@@ -313,7 +313,7 @@ proof -
       show "?rcvd q = Content v \<longrightarrow> (\<exists>b. rho n q = Active \<lparr> x = v, decide = b \<rparr>)"
       proof
         assume sdf:"?rcvd q = Content v"
-        hence "(HOrcvdMsgs ?A p (HOs n p) (rho n)) q = Content v" by (simp add:HOrcvdMsgs_def)
+        hence "(HOrcvdMsgs ?A p (HOs (Suc n) p) (rho n)) q = Content v" by (simp add:HOrcvdMsgs_def)
         moreover have "\<exists>s. rho n q = Active s" using sdf
           by (metis HOrcvMsgs_q.elims HOrcvdMsgs_def message.simps(3) message.simps(5))
         then obtain s where stat:"rho n q = Active s" by auto
@@ -339,14 +339,14 @@ text \<open>
 lemma A2:
   assumes run: "HORun (HOMachine_to_Algorithm OTR_M) rho HOs" (is "HORun ?A _ _")
   and HO: "(2*N) div 3
-             < card { q . HOrcvdMsgs (HOMachine_to_Algorithm OTR_M) p (HOs n p) (rho n) q \<noteq> Void \<and>
-                          HOrcvdMsgs (HOMachine_to_Algorithm OTR_M) p (HOs n p) (rho n) q \<noteq> Bot }"
+             < card { q . HOrcvdMsgs (HOMachine_to_Algorithm OTR_M) p (HOs (Suc n) p) (rho n) q \<noteq> Void \<and>
+                          HOrcvdMsgs (HOMachine_to_Algorithm OTR_M) p (HOs (Suc n) p) (rho n) q \<noteq> Bot }"
   and maj: "(2*N) div 3 < card { q . \<exists>s. x s = v \<and> (rho n q) = Active s }"
   and act:"rho n p = Active ss"
   and acts:"rho (Suc n) p = Active st"
   shows "x st = v"
 proof -
-  have nxt: "OTR_nextState p ss (HOrcvdMsgs ?A p (HOs n p) (rho n)) st" (is "OTR_nextState _ _ ?msgs _")
+  have nxt: "OTR_nextState p ss (HOrcvdMsgs ?A p (HOs (Suc n) p) (rho n)) st" (is "OTR_nextState _ _ ?msgs _")
     using HORun_def CHORun_def HOnextConfig_def OTR_HOMachine_def HOMachine_to_Algorithm_def run act acts
     by (smt CHOAlgorithm.select_convs(3) CHOnextConfig_def proc_state.inject)
   let ?HOVothers = "\<Union> { HOV ?msgs w | w . w \<noteq> v}"
@@ -447,7 +447,7 @@ next
     then obtain ss where vss:"x ss = v" and rhoss:"rho (n+m) p = Active ss" by auto
     hence "rho (1+(n+m)) p \<noteq> Aslept" using run nonAsleepAgain HORun_def by (metis proc_state.distinct(1))
     then obtain st where rhost:"rho (n+Suc m) p = Active st" by (cases "rho (n+Suc m) p") auto
-    let ?msgs = "HOrcvdMsgs ?A p (HOs (n+m) p) (rho (n+m))"
+    let ?msgs = "HOrcvdMsgs ?A p (HOs (Suc n+m) p) (rho (n+m))"
     show "p \<in> { p. \<exists>s. x s = v \<and> (rho (n+Suc m) p) = Active s }"
     proof (cases "(2*N) div 3 < card { q. ?msgs q \<noteq> Void \<and> ?msgs q \<noteq> Bot }")
       case True
@@ -517,8 +517,8 @@ proof
             show "(2*N) div 3 < card (?vproc (Suc m) k v)"
             proof (cases "rho m p")
               case ss_def:(Active ss)
-              have "CHOnextConfig ?A (rho m) (HOs m) (\<lambda>w. undefined) (rho (Suc m))" using run CHORun_def HORun_def by fastforce
-              hence "\<exists>st. rho (Suc m) p = Active st \<and> CnextState ?A p ss (HOrcvdMsgs ?A p (HOs m p) (rho m)) undefined st"
+              have "CHOnextConfig ?A (rho m) (HOs (Suc m)) (\<lambda>w. undefined) (rho (Suc m))" using run CHORun_def HORun_def by fastforce
+              hence "\<exists>st. rho (Suc m) p = Active st \<and> CnextState ?A p ss (HOrcvdMsgs ?A p (HOs (Suc m) p) (rho m)) undefined st"
                 (is "\<exists>st. _ \<and> CnextState _ _ _ ?msgs _ _") using \<open>rho m p = Active ss\<close> by (simp add:CHOnextConfig_def)
               hence "\<exists>st. rho (Suc m) p = Active st \<and> OTR_nextState p ss ?msgs st"
                 by (simp add: HOMachine_to_Algorithm_def OTR_HOMachine_def)
@@ -650,7 +650,9 @@ proof -
   have commG_unf:"\<forall>r p. \<exists>rs rp S. rs \<ge> r \<and> card S > (2*N) div 3 \<and> (\<forall>p \<in> S. S = HOs rs p) \<and>
     rp \<ge> r \<and> card (HOs rp p) > (2*N) div 3"
       using commG by (simp add:OTR_commGlobal_def OTR_HOMachine_def)
-  then obtain rs S where "rs \<ge> n" and pic:"card S > (2*N) div 3" and pi:"\<forall>p \<in> S. S = HOs rs p" by force
+  then obtain rs_prev S where "rs_prev \<ge> Suc n" and "card S > (2*N) div 3" and "\<forall>p \<in> S. S = HOs rs_prev p" by force
+  moreover from `rs_prev >= Suc n` obtain rs where "Suc rs = rs_prev" using Suc_le_D by blast
+  ultimately have "rs \<ge> n" and pic:"card S > (2*N) div 3" and pi:"\<forall>p \<in> S. S = HOs (Suc rs) p" by auto
 
   have allact:"\<forall>p \<in> S. \<exists>ss. rho rs p = Active ss"
   proof
@@ -659,7 +661,7 @@ proof -
     have "rho rs p \<noteq> Aslept" using nonAsleepAgain[of rho n p _ _ _ "rs - n"] run \<open>rs \<ge> n\<close> HORun_def \<open>\<forall>p. rho n p \<noteq> Aslept\<close> by force
     thus "\<exists>ss. rho rs p = Active ss" by (cases "rho rs p") auto
   qed
-  let "?msgs q r" = "HOrcvdMsgs (HOMachine_to_Algorithm OTR_M) q (HOs r q) (rho r)"
+  let "?msgs q r" = "HOrcvdMsgs (HOMachine_to_Algorithm OTR_M) q (HOs (Suc r) q) (rho r)"
 
   have msgs_eq:"\<forall>p q. p \<in> S \<longrightarrow> q \<in> S \<longrightarrow> ?msgs q rs = ?msgs p rs"
   proof (rule+)
@@ -700,7 +702,7 @@ proof -
       show "h \<in> S \<longrightarrow> ?msgs p rs h \<noteq> Void \<and> ?msgs p rs h \<noteq> Bot"
       proof
         assume "h \<in> S"
-        hence "h \<in> HOs rs p" using pi \<open>p \<in> S\<close> by auto
+        hence "h \<in> HOs (Suc rs) p" using pi \<open>p \<in> S\<close> by auto
         moreover from allact obtain sh where "rho rs h = Active sh" using \<open>h \<in> S\<close> by auto
         ultimately have "?msgs p rs h = Content (sendMsg ?A h p sh)" 
           by (auto simp: run HORun_def CHOnextConfig_def HOrcvdMsgs_def CHORun_def)
@@ -715,7 +717,7 @@ proof -
     fix q
     assume "q \<in> S"
     from allact and this obtain sq where "rho rs q = Active sq" by auto
-    hence chonxt:"CHOnextConfig ?A (rho rs) (HOs rs) (\<lambda>w. undefined) (rho (Suc rs))" using run by (simp add:HORun_def CHORun_def)
+    hence chonxt:"CHOnextConfig ?A (rho rs) (HOs (Suc rs)) (\<lambda>w. undefined) (rho (Suc rs))" using run by (simp add:HORun_def CHORun_def)
     then obtain sqq where "rho (Suc rs) q = Active sqq" and "CnextState ?A q sq (?msgs q rs) undefined sqq"
       using \<open>rho rs q = Active sq\<close> by (auto simp:CHOnextConfig_def)
     hence "x sqq =  Min {v . MFR (?msgs q rs) v}"
@@ -738,23 +740,25 @@ proof
   fix p
   show "\<exists>rx > rs. \<forall>rr sp. rho (rx+rr) p = Active sp \<longrightarrow> x sp = v"
   proof -
-    from commG_unf obtain rpp where "Suc rs \<le> rpp" and maj_rpp:"2 * N div 3 < card (HOs rpp p)" by blast
+    from commG_unf obtain rpp_suc where "Suc (Suc rs) \<le> rpp_suc" and "2 * N div 3 < card (HOs rpp_suc p)" by blast
+    moreover from `Suc (Suc rs) \<le> rpp_suc` obtain rpp where "rpp_suc = Suc rpp" using Suc_le_D by blast
+    ultimately have "Suc rs \<le> rpp" and maj_rpp:"2 * N div 3 < card (HOs (Suc rpp) p)" by auto
 
-    have maj_xv:"\<forall>rpp ss. Suc rs \<le> rpp \<longrightarrow> 2 * N div 3 < card (HOs rpp p) \<longrightarrow> rho (Suc rpp) p = Active ss \<longrightarrow> x ss = v"
+    have maj_xv:"\<forall>rpp ss. Suc rs \<le> rpp \<longrightarrow> 2 * N div 3 < card (HOs (Suc rpp) p) \<longrightarrow> rho (Suc rpp) p = Active ss \<longrightarrow> x ss = v"
     proof (rule+)
       fix rpp
       fix ss
       assume "Suc rs \<le> rpp"
-      assume majj:"2 * N div 3 < card (HOs rpp p)"
+      assume majj:"2 * N div 3 < card (HOs (Suc rpp) p)"
       moreover assume "rho (Suc rpp) p = Active ss"
       moreover from \<open>\<forall>p. rho n p \<noteq> Aslept\<close> have "rho rpp p \<noteq> Aslept"
         using nonAsleepAgain[of rho n p _ HOs _ "rpp - n"] run HORun_def \<open>n \<le> rs\<close> \<open>Suc rs \<le> rpp\<close> by force
       then obtain sp where "rho rpp p = Active sp" by (cases "rho rpp p") auto
-      moreover have "{q \<in> HOs rpp p. rho rpp q \<noteq> Aslept} = {q. ?msgs p rpp q \<noteq> Void \<and> ?msgs p rpp q \<noteq> Bot}" using HOrcvdMsgs_def
+      moreover have "{q \<in> HOs (Suc rpp) p. rho rpp q \<noteq> Aslept} = {q. ?msgs p rpp q \<noteq> Void \<and> ?msgs p rpp q \<noteq> Bot}" using HOrcvdMsgs_def
         by (metis (no_types, lifting) HOrcvMsgs_q.elims HOrcvMsgs_q.simps(2) message.simps(3) message.simps(5))
       have "\<forall>p. rho rpp p \<noteq> Aslept"
         using \<open>\<forall>p. rho n p \<noteq> Aslept\<close> nonAsleepAgain[of _ n _ ?A _ _ "rpp - n"] \<open>Suc rs \<le> rpp\<close> \<open>n \<le> rs\<close> run HORun_def by fastforce
-      hence "HOs rpp p = {q \<in> HOs rpp p. rho rpp q \<noteq> Aslept}" using Collect_cong by fastforce
+      hence "HOs (Suc rpp) p = {q \<in> HOs (Suc rpp) p. rho rpp q \<noteq> Aslept}" using Collect_cong by fastforce
       hence "2 * N div 3 < card {q. ?msgs p rpp q \<noteq> Void \<and> ?msgs p rpp q \<noteq> Bot}"
         using majj \<open>\<dots> = {q. ?msgs p rpp q \<noteq> Void \<and> ?msgs p rpp q \<noteq> Bot}\<close> by auto
 
@@ -783,20 +787,20 @@ proof
           assume ssp_def:"rho (Suc rpp+Suc rr) p = Active ssp"
           show "x ssp = v"
           proof cases
-            assume "2 * N div 3 < card (HOs (Suc rpp+rr) p)"
+            assume "2 * N div 3 < card (HOs (Suc rpp+Suc rr) p)"
             moreover have "rs \<le> Suc rpp + rr" using \<open>Suc rs \<le> rpp\<close> by auto
             ultimately show "x ssp = v" using maj_xv ssp_def
               by (metis (no_types, lifting) \<open>Suc rs \<le> rpp\<close> add_Suc add_Suc_right
               le_Suc_eq less_add_Suc1 nat_le_iff_add not_add_less1)
           next
-            assume "\<not> (2 * N div 3 < card (HOs (Suc rpp+rr) p))"
+            assume "\<not> (2 * N div 3 < card (HOs (Suc rpp+Suc rr) p))"
             moreover have "\<forall>p. rho (Suc rpp+rr) p \<noteq> Aslept"
               using \<open>\<forall>p. rho n p \<noteq> Aslept\<close> nonAsleepAgain[of _ n _ ?A _ _ "Suc rpp + rr - n"]
               \<open>Suc rs \<le> rpp\<close> \<open>n \<le> rs\<close> run HORun_def by fastforce
-            hence "HOs (Suc rpp+rr) p = {q \<in> HOs (Suc rpp+rr) p. rho (Suc rpp+rr) q \<noteq> Aslept}" using Collect_cong by fastforce
+            hence "HOs (Suc rpp+Suc rr) p = {q \<in> HOs (Suc rpp+Suc rr) p. rho (Suc rpp+rr) q \<noteq> Aslept}" using Collect_cong by fastforce
             also have "\<dots>  = {q. ?msgs p (Suc rpp+rr) q \<noteq> Void \<and> ?msgs p (Suc rpp+rr) q \<noteq> Bot}"
-              using HOrcvdMsgs_def
-              by (metis (no_types, lifting) HOrcvMsgs_q.elims HOrcvMsgs_q.simps(2) message.simps(3) message.simps(5))
+              using HOrcvdMsgs_def[of ?A p "HOs (Suc rpp+Suc rr) p" "rho (Suc rpp+rr)"]
+              add_Suc_right[of "Suc rpp" rr] by (smt Collect_cong message.distinct(1) message.distinct(3))
             ultimately have "\<not> (2 * N div 3 < card {q. ?msgs p (Suc rpp+rr) q \<noteq> Void \<and> ?msgs p (Suc rpp+rr) q \<noteq> Bot})" by auto
             moreover from this have "CnextState ?A p sp (?msgs p (Suc rpp+rr)) undefined ssp"
               using run HORun_def CHORun_def CHOnextConfig_def 
@@ -920,8 +924,10 @@ theorem OTR_consensus:
   shows "consensus (\<lambda>p. getX (getInitValue rho p)) (\<lambda>s. if decide s then Some (x s) else None) rho" (is "consensus ?vals ?Dec _")
 proof -
 have "\<forall>n p v s. rho n p = Active s \<longrightarrow> ?Dec s = Some v \<longrightarrow> v \<in> range (\<lambda>p. getX (getInitValue rho p))"
-proof 
-  fix n
+proof (rule allI impI)+
+  fix n p v s
+  assume "rho n p = Active s" and "?Dec s = Some v"
+  show "v \<in> range (\<lambda>p. getX (getInitValue rho p))"
   show "\<forall>p v s. rho n p = Active s \<longrightarrow> ?Dec s = Some v \<longrightarrow> v \<in> range (\<lambda>p. getX (getInitValue rho p))"
   proof
     fix p
