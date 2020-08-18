@@ -56,21 +56,21 @@
 \subsection{Contexte}
 
 On se place dans le contexte d'un réseau de machines, et on souhaite que ce réseau exécute une certaine tâche, malgré les pannes pouvant survenir.
-Une abondante litérature propose différentes approches permettant de modéliser les systèmes distribués, ainsi que les différents types de pannes possibles.
-%L'un des principaux problèmes étudié dans la litérature est le problème du consensus, où les processus doivent s'accorder sur une même valeur parmi un ensemble de valeurs possibles.
+Une abondante littérature propose différentes approches permettant de modéliser les systèmes distribués, ainsi que les différents types de pannes possibles.
+%L'un des principaux problèmes étudié dans la littérature est le problème du consensus, où les processus doivent s'accorder sur une même valeur parmi un ensemble de valeurs possibles.
 Un modèle particulièrement intéressant, connue sous de nom de "modèle Heard-Of" \cite{model_ho},
 consiste à envisager les processus comme des machines à états, qui progressent par une succession de rounds "clos par communication".
 C'est-à-dire qu'au sein d'un même round, les processus peuvent communiquer.
-On localise les pannes au niveau des laisons entre processus. Ainsi, pour un round donné, un processus peut, ou non, envoyer un message à un autre processus.
+On localise les pannes au niveau des liaisons entre processus. Ainsi, pour un round donné, un processus peut, ou non, envoyer un message à un autre processus.
 
 \subsection{Problème à traiter}
 
 Cet article s'intéresse tout particulièrement au problème du consensus : les processus ont chacun une valeur initiale, et doivent s'accorder sur une valeur parmi l'ensemble des valeurs initiales.
 Des travaux antérieurs étudient en profondeur les possibilité offertes par un système modélisé de cette manière, en fonction des hypothèses faites sur la connectivité du réseau.
 Mais les travaux existants font une hypothèse qui limite considérablement leur portée, en supposant les départs synchrones : les processus démarrent tous au même moment, au sein d'un même premier round.
-L'un des principaux objectifs de cet article est d'étudier la résolubilité du consensus dans un système sans faire l'hypothèses des départs synchrones.
+L'un des principaux objectifs de cet article est d'étudier la résolubilité du consensus dans un système sans faire l'hypothèse des départs synchrones.
 Cet article s'inscrit dans la continuité de \cite{firing_squad}, dont l'objectif était de ramener les systèmes avec départs asynchrones à des systèmes avec départs synchrones, plus simple à traiter.
-%Un article a été publié afin de contourner cette limitation  Cet article propose un algorithme distribué, qui peut être démarré de manière asynchrones par les noeuds du réseau,
+%Un article a été publié afin de contourner cette limitation  Cet article propose un algorithme distribué, qui peut être démarré de manière asynchrones par les nœuds du réseau,
 %mais qui termine au même round pour tous les processus (tous les processus "font feu" en même temps, d'où le nom de l'article).
 %À la suite d'un tel algorithme, on peut exécuter un algorithme de consensus par exemple, sans se soucier des problèmes de départs asynchrones.
 Mais, avec la méthode proposée, les hypothèses très fortes, faites sur la connectivité du réseau, affectent fortement la tolérance au panne.
@@ -85,7 +85,7 @@ pour les rendre compatibles avec départs asynchrones, un problème intermédiai
 En effet, de nombreux algorithmes de consensus, tels que "Uniforme Voting" \cite{model_ho}, reposent sur une alternance de phases, que les processus sont supposés exécuter de façon synchronisée.
 Si un algorithme contient $k$ phases, il est nécessaire que les processus démarrent au cours de rounds qui soient congrus modulo $k$.
 Cet article propose donc un algorithme qui, en s'inspirant de \cite{firing_squad},
-résout le problème de synchronisation modulo $k$, et ouvre donc la voie à la résolubtion du consensus avec départs asynchrones.
+résout le problème de synchronisation modulo $k$, et ouvre donc la voie à la résolution du consensus avec départs asynchrones.
 
 \subsection{Preuves proposées}
 
@@ -103,7 +103,7 @@ Le système est synchrone, c'est-à-dire que la progression du système est subd
 \begin{itemize}
 	\item envoie aux autres un messages, en fonction de l'état dans lequel il se trouve,
 	\item reçoit une partie des messages qui lui sont adressés par ses pairs \emph{au cours de ce même round},
-	\item modifie son état, en fonction des mesaages reçus, et de son état antérieur.
+	\item modifie son état, en fonction des messages reçus, et de son état antérieur.
 \end{itemize}
 
 Pour une exécution donnée (voir définition formelle ci-dessous), la connectivité du réseau peut être décrite par une suite de graphes $(\mathds{G}_r)_{r \in \mathds{N}}$, appelée \textit{graphe dynamique} :
@@ -114,22 +114,20 @@ donc aucune connexion ne fonctionne jamais.
 On est donc amené à restreindre l'ensemble des graphes dynamiques possibles. Ces restrictions prennent généralement la forme de \emph{prédicats de communications}.
 
 %Dans la litérature, on rencontre plusieurs façons de modéliser les pannes, par exemple l'article \cite{dds} envisage entre autre :
-%\begin{itemize}
 
 	%\item Les "crash-failure", c'est-à-dire les cas où des processus peuvent inopinément cesser de fonctionner.
 	%\item Les échanges de messages, c'est-à-dire la réception des messages dans un ordre chronologiquement différent de l'envoi.
 
-%\end{itemize}
 
-Par exemple, pour modéliser un système sans aucune panne, il suffit de considérer le prédicat $\mathcal{P}_{complet}$, dans lequels tous les messages sont toujours livrés :
+Par exemple, pour modéliser un système sans aucune panne, il suffit de considérer le prédicat $\mathcal{P}_{complet}$, dans lequel tous les messages sont toujours livrés :
 
 $$\mathcal{P}_{complet} \equiv \forall r \in \mathds{N}, \forall p \in \Pi, HO(p, r) = \Pi$$
 
-Ici, $HO(p, r)$ désigne l'ensemble des voisins entrants de $p$ dans le graphe $\mathds{G}_r$, et $\Pi$ désigne l'ensemble des noeuds du réseau.
+Ici, $HO(p, r)$ désigne l'ensemble des voisins entrants de $p$ dans le graphe $\mathds{G}_r$, et $\Pi$ désigne l'ensemble des nœuds du réseau.
 Ce prédicat exprime le fait que, à chaque round, le graphe dynamique est complet.
 
-Certains articles modélisent les pannes par des \emph{crash failures} \cite{dds}.
-Pour modéliser un système avec $k$ crash failures dans le modèle Heard-Of,
+Certains articles modélisent les pannes par des \emph{crash-failures} \cite{dds}.
+Pour modéliser un système avec $k$ crash-failures dans le modèle Heard-Of,
 il suffit d'exprimer le fait qu'il existe à chaque round $r$ un quorum $S_r$ d'au moins $|\Pi| - k$ processus dont les messages sont toujours livrés,
 Les processus ayant échoué ne sont plus jamais entendus.
 
@@ -156,7 +154,7 @@ Ces prédicats expriment le fait qu'à chaque round, le graphe de communication 
 Cet arbre est supposé fixe dans le cas de $\mathcal{P}_{T-rooted}$ (on le note $T$), mais peut varier au fil des rounds dans le cas de $\mathcal{P}_{rooted}$.
 Ainsi, $\mathcal{P}_{\xi-rooted}$ (respectivement $\mathcal{P}_{rooted}$) est un cas particulier de $\mathcal{P}_{T-rooted}$ (respectivement $\mathcal{P}_{rooted}$) où $T$ est de profondeur 1.
 
-\subsection{départs synchrones - départs asynchones}
+\subsection{départs synchrones - départs asynchrones}
 
 L'objectif de cet article n'est pas d'étudier les systèmes ouverts, où des processus peuvent se joindre au réseau à tout moment.
 On suppose donc qu'au round 0, tous les processus sont matériellement actifs. En revanche, il se pourrait qu'au round 0, tous les processus ne soient pas prêt à commencer l'algorithme.
@@ -176,10 +174,9 @@ Ce prédicat signifie qu'à partir d'un certain rang $r$, tous les processus son
 
 \subsection{Définition d'un algorithme}
 
-On se donne un ensemble non vide $\Pi$ de cardinalit\'e $n$ et  un ensemble non vide ${\cal M}$ dont les \'el\'ements seront appel\'es des
-	messages et un \'el\'ement particulier {\em nil} qui n'est pas dans $\mathcal{M}$.
-A chaque  $p \in \Pi$,  on associe  un {\em processus} consistant en la donn\'ee des \'el\'ements 
-	suivants :
+On se donne un ensemble non vide $\Pi$ de cardinalité $n$ et  un ensemble non vide ${\cal M}$ dont les éléments seront appel\'es des
+	messages et un éléments particulier {\em nil} qui n'est pas dans $\mathcal{M}$.
+A chaque  $p \in \Pi$,  on associe  un {\em processus} consistant en la donnée des éléments suivants :
 	\begin{itemize}
 	\item un ensemble non vide $States_p$ et un  \'el\'ement $sleep_p \notin States_p$ ;
 	\item un sous-ensemble   $Init_p \subseteq States_p$ ;
@@ -190,7 +187,7 @@ A chaque  $p \in \Pi$,  on associe  un {\em processus} consistant en la donn\'ee
 	  où  $X_\Pi^\mathcal{M}$ est le type d'une fonction partielle
 			de type $\Pi \rightarrow \mathcal{M}$, pouvant prendre la valeur supplémentaire notée $nil \notin \mathcal{M}$.
 	\end{itemize}
-Les \'el\'ements de 	$States_p$  sont appel\'es \emph{\'etats} de $p$, ceux de $Init_p$ \emph{\'etats initiaux} de $p$,
+Les éléments de 	$States_p$  sont appel\'es \emph{\'etats} de $p$, ceux de $Init_p$ \emph{\'etats initiaux} de $p$,
 	la fonction $S_p$ est appel\'ee \emph{fonction d'émission de} $p$ et la fonction $T_p$ \emph{fonction de transition de} $p$.
 
 \begin{definition}\label{def:algo}
@@ -232,7 +229,7 @@ Formellement, une \emph{ex\'ecution} de l'algorithme  $(States_p, Init_p, S_p,T_
 		\item pour chaque processus $p\in \Pi$, $\sigma^0_p \in Init_p$.
 	\end{itemize}
 Ici,  $\mathcal{A}_r \subseteq \Pi$ modélise le sous-ensemble des processus actifs au round~$r$.
-La suite est croissante car, l'\'etat actif est stable : une fois r\'eveill\'e, un processus reste actif pour toujours.
+La suite est croissante car, l'état actif est stable : une fois r\'eveill\'e, un processus reste actif pour toujours.
 
 \textbf{Remarques :}
 \begin{itemize}
@@ -263,7 +260,7 @@ Pour toute  exécution de l'algorithme  $(States_p, Init_p, S_p,T_p)_{p\in \Pi}$
 	\end{itemize}
 Dorénavant, $M_p^r$ est appelée \emph{fonction de réception de $p$ au round $r$}.
 
-\subsection{Probl\`eme du Consensus}
+\subsection{Problème du Consensus}
 
 	Soit un ensemble de valeurs $\mathcal{V}$ non vide.
 	On considère un algorithme $A$ dans lequel les processus reçoivent, lors de leur activation, une valeur initiale $v_p \in \mathcal{V}$,
@@ -308,8 +305,8 @@ Ce premier prédicat définit une famille de graphe dynamique, et le second une 
 \end{definition}
 
 La connaissance qu'ont les processus sur les caractéristiques du système peuvent fortement influer sur la résolubilité de problèmes comme le consensus.
-Il est parfois nécessaire que les processus connissent la taille du réseau $n$ pour que le consensus soit résoluble.
-À défaut de connaitre $n$, il est parfois utile que les processus connissent une borne supérieure $\mathcal{N}$ sur la taille du réseau.
+Il est parfois nécessaire que les processus connaissent la taille du réseau $n$ pour que le consensus soit résoluble.
+À défaut de connaitre $n$, il est parfois utile que les processus connaissent une borne supérieure $\mathcal{N}$ sur la taille du réseau.
 
 \begin{definition}
 	On dit qu'un réseau est \textit{identifié} si les processus connaissent un identifiant $x_p$, unique à chaque processus.
@@ -321,17 +318,17 @@ Il est parfois nécessaire que les processus connissent la taille du réseau $n$
 Dans cette section, il est question d'un algorithme de consensus relativement simple. Dans cet algorithme, chaque processus partage à chaque round sa propre valeur.
 Lorsqu'un processus reçoit une supermajorité de valeurs identiques (c'est-à-dire un quorum constitué de deux tiers des processus du réseau), le processus décide.
 
-Soit $\mathcal{V}$ un emsemble supposé totalement ordonné. Soit $\bot$ un objet vérifiant $\bot \notin \mathcal{V}$.
-On définit l'algorithme "one-third rule" de la façon suivante.
+Soit $\mathcal{V}$ un ensemble supposé totalement ordonné. Soit $\bot$ un objet vérifiant $\bot \notin \mathcal{V}$.
+On définit l'algorithme "One-Third rule" de la façon suivante.
 \begin{itemize}
 	\item Pour tout processus $p$, on pose $States_p = \mathcal{V} \times (\mathcal{V} \cup \{ \bot \})$.
 	Comme $States_p$ est un produit cartésien, on peut définir les notations suivantes :
 	\begin{itemize}
 
 		\item $x : \mathcal{V} \times (\mathcal{V} \cup \{ \bot \}) \rightarrow \mathcal{V}$ est la première projection.
-			La fonction $Val$ associée à l'algorithme "one-third rule" est définie par cette fonction $x$.
+			La fonction $Val$ associée à l'algorithme "One-Third rule" est définie par cette fonction $x$.
 		\item $dec : \mathcal{V} \times (\mathcal{V} \cup \{ \bot \}) \rightarrow \mathcal{V} \cup \{\bot\}$ est la seconde projection.
-			La fonction $Dec$ associée à l'algorithme "one-third rule" est définie par cette fonction $dec$.
+			La fonction $Dec$ associée à l'algorithme "One-Third rule" est définie par cette fonction $dec$.
 
 	\end{itemize}
 \item Pour tout processus $p$, on pose $Init_p = \mathcal{V} \times \{ \bot \}$. Cet ensemble correspond à l'ensemble des états pour lesquels aucune décision n'a encore été prise.
@@ -344,7 +341,7 @@ On note enfin $Sup(M)$ le support de $M$ (ie. $Sup(M) = \{p \in \Pi, M(p) \in \m
 
 \begin{algorithm}[htb]
 \begin{distribalgo}[1]
-\BLANK \INDENT{\textbf{Initialization:}}
+\BLANK \INDENT{\textbf{Initialisation:}}
   \STATE $x_p :=\, v_p$ \COMMENT{  $v_p$ est la valeur initiale de $p$ }
   \STATE $dec_p :=\, \bot$ 
 %  \STATE $vote_p \in V\cup\{ ? \}$, initially $?$
@@ -367,12 +364,12 @@ On note enfin $Sup(M)$ le support de $M$ (ie. $Sup(M) = \{p \in \Pi, M(p) \in \m
 \ENDINDENT \BLANK
 
 
-\caption{The {\em OneThirdRule} algorithm} \label{algo:R}
+\caption{L'algorithme {\em OneThirdRule}} \label{algo:R}
 \end{distribalgo}
 
 \end{algorithm}
 
-On introduit tout d'abord la notion de graphe dirigé $G=(V,E)$ \emph{$S$-uniforme}, où $S\subseteq V$ est un ensemble de n\oe uds de $G$ :
+On introduit tout d'abord la notion de graphe dirigé $G=(V,E)$ \emph{$S$-uniforme}, où $S\subseteq V$ est un ensemble de nœuds de $G$ :
 	$$ \forall q \in S, \  \{ p \in V : (p,q) \in E\} = S .$$
 Autrement dit, l'ensemble des voisins entrants d'un n\oe ud de $S$ est $S$.
 
@@ -388,7 +385,7 @@ On prouve alors la terminaison pour toute exécution de l'algorithme dont le gra
 \end{itemize}
 
 \begin{theorem}
-	L'algorithme "one-third rule" r\'esout  le consensus lorsque les processus connaissent la taille du réseau,
+	L'algorithme "One-Third rule" résout  le consensus lorsque les processus connaissent la taille du réseau,
 	et lorsque les prédicats $P_{S-unif-\infty}$ et $P_{supermaj-\infty}$ sont vérifiés.
 \end{theorem}
 
@@ -442,9 +439,9 @@ Ce deuxième théorème montre que la racine de l'étoile recouvrante doit être
 	\end{description}
 \end{proof}
 
-Il est possible qu'un graphe dynamique $\mathds{G}$ ne respecte pas le prédicat $\mathcal{P}_{\xi-nek}$, mais qu'en "aggrégeant" plusieurs rounds, on obtienne un graphe dynamique mieux connecté,
+Il est possible qu'un graphe dynamique $\mathds{G}$ ne respecte pas le prédicat $\mathcal{P}_{\xi-nek}$, mais qu'en "agrégeant" plusieurs rounds, on obtienne un graphe dynamique mieux connecté,
 et qui vérifie $\mathcal{P}_{\xi-nek}$.
-Cependant, on montre que si les processus ne connaissent pas le nombre de rounds à aggréger, le consensus n'est pas résoluble.
+Cependant, on montre que si les processus ne connaissent pas le nombre de rounds à agréger, le consensus n'est pas résoluble.
 
 \begin{definition}
 	Étant donné un graphe dynamique $\mathds{G} = (V, E_i)_{i \in \mathds{N}}$.
@@ -484,7 +481,7 @@ Cependant, on montre que si les processus ne connaissent pas le nombre de rounds
 
 Il reste maintenant à traiter le cas le plus favorable, à savoir le cas où les prédicats $\mathcal{P}_{\xi-nek}$ et $\mathcal{P}_{non-inf}$ sont vérifiés.
 Ci-dessous se trouve l'algorithme "Uniforme Voting", tiré de \cite{model_ho}.
-Cet algorithme est consitué de deux phases qui alternent en fonction de la parité du round :
+Cet algorithme est constitué de deux phases qui alternent en fonction de la parité du round :
 \begin{itemize}
 	\item Une phase durant laquelle les processus échangent leurs valeurs (lignes 21-23).
 	\item Une phase durant laquelle les processus votent pour leur valeur, et décident en cas d'unanimité (lignes 13-19).
@@ -516,7 +513,7 @@ Voici maintenant l'algorithme "Uniforme Voting	Voting" et sa preuve de correctio
 \begin{minipage}{33em}
 
 
-\INDENT{\textbf{Initialization:}}
+\INDENT{\textbf{Initialisation:}}
   \STATE $x_p := v_p$ ~~~~~~~~\{\emph{$v_p$ is the initial value of $p$}\}
   \STATE $vote_p \in V\cup\{ ? \}$, initially $?$
   \STATE $phase_p = true$
@@ -637,12 +634,12 @@ Les trois sections précédentes permettent d'affirmer le théorème suivant :
 	L'algorithme "Uniforme Voting" résout le consensus lorsque les prédicats$\mathcal{P}_{sync-mod-2}$, $\mathcal{P}_{\xi-nek}$ et $\mathcal{P}_{non-inf}$ sont vérifiés.
 \end{theorem}
 
-\section{Problème de synchonisation modulo $k$}
+\section{Problème de synchronisation modulo $k$}
 
 Le but de cette section est de proposer un algorithme permettant de synchroniser les différentes phases malgré les départs asynchrones.
 En plus de l'algorithme "Uniforme Voting", le célèbre algorithme Paxos \cite{paxos} fonctionne également par alternance de phases.
 
-L'algorithme qui sera présenté s'inspire de l'algorithme du "firing squad" \cite{firing_squad}.
+L'algorithme qui sera présenté s'inspire de l'algorithme du "firing-squad" \cite{firing_squad}.
 Dans l'algorithme du firing-squad, les processus ont chacun un compteur, qu'ils incrémentent à chaque round. Ils partagent la valeur de leur compteur à tous leur voisins sortant, 
 et s'ils reçoivent plusieurs valeurs en conflits, ils adoptent la valeur minimale.
 Si, pour un processus $p$, le compteur dépasse une certaine valeur, $p$ décide alors de \emph{faire feu}.
@@ -668,10 +665,10 @@ Pour des raisons historiques, on considèrera que $\mathds{Z}/k\mathds{Z} = \{1,
 
 \end{definition}
 \begin{definition}
-	L'algorithme $A$ résoud le problème de synchronisation modulo $k$, si toute exécution de $A$ est sûre et termine.
+	L'algorithme $A$ résout le problème de synchronisation modulo $k$, si toute exécution de $A$ est sûre et termine.
 \end{definition}
 
-Pour la suite, on considère une valeur $k > 2$ quelquonque.
+Pour la suite, on considère une valeur $k > 2$ quelconque.
 
 \subsection{Algorithme}
 
@@ -692,7 +689,7 @@ On introduit donc une valeur $\bot$, qui sera envoyé lors du round d'activation
 
 \begin{algorithm}[htb]
 \begin{distribalgo}[1]
-\BLANK \INDENT{\textbf{Initialization:}}
+\BLANK \INDENT{\textbf{Initialisation:}}
 	\STATE $x_p \in \mathds{Z}/k\mathds{Z}$
 	\STATE $try_p = true$
 	\STATE $fire_p = false$
@@ -726,7 +723,7 @@ On introduit donc une valeur $\bot$, qui sera envoyé lors du round d'activation
 	\ENDIF
   \ENDINDENT
 \ENDINDENT 
-\caption{The {\em SyncMod} algorithm} \label{algo:R}
+\caption{L'algorithme {\em SyncMod}} \label{algo:R}
 \end{distribalgo}
 
 \end{algorithm}
@@ -747,7 +744,7 @@ On dit que $p$ "fait feu" au round $t$ si $p$ exécute la première branche au r
 
 	On suppose que $p$ fait feu au round $r$, et est le premier. Nécessairement, $\xi \in HO(p,r)$.
 	La ligne 12 du code montre que la valeur envoyé par $\xi$ est $k$.
-	Donc tous les processus ont reçus un $k$. Soit $p$ un processus actif quelquonque. Au round $r$, il execute, dans sa fonction de transition, l'une des trois dernières branches.
+	Donc tous les processus ont reçus un $k$. Soit $p$ un processus actif quelconque. Au round $r$, il exécute, dans sa fonction de transition, l'une des trois dernières branches.
 	\begin{itemize}
 
 		\item Il ne peut pas exécuter la troisième branche car $M(\xi) = k$.
@@ -793,8 +790,8 @@ On dit que $p$ "fait feu" au round $t$ si $p$ exécute la première branche au r
 		\item[Initialisation :] Vrai par hypothèse.
 		\item[Hérédité :] On suppose que $\forall p \in \mathcal{A}_{s+i}, x_p(s+i) = v+i~mod~k$.
 			On veut montrer que $\forall p \in \mathcal{A}_{s+i+1}, x_p(s+i+1) = v+i+1~mod~k$.
-			Au round $s+i+1$, les processus dans $\mathcal{A}_{s+i}$ envoyent $v+i~mod~k$, d'après l'hypothèse de récurrence.
-			Les processus de $\mathcal{A}_{s+i+1} \setminus \mathcal{A}_{s+i}$ envoyent $\bot$. Les autres envoyent $nil$.
+			Au round $s+i+1$, les processus dans $\mathcal{A}_{s+i}$ envoient $v+i~mod~k$, d'après l'hypothèse de récurrence.
+			Les processus de $\mathcal{A}_{s+i+1} \setminus \mathcal{A}_{s+i}$ envoient $\bot$. Les autres envoient $nil$.
 			Comme $\xi$ est actif, les processus reçoivent tous au moins une fois $v+i~mod~k$. Donc tous les processus actifs exécutent la deuxième branche, et adoptent $v+i+1~mod~k$.
 	\end{description}
 \end{proof}
@@ -805,7 +802,7 @@ On dit que $p$ "fait feu" au round $t$ si $p$ exécute la première branche au r
 \begin{proof}
 	D'après les lemmes 4.2 et 4.3, le système devient 1-monovalent au round $t+1$ et $i~mod~k$-monovalent à tous les rounds $t+i$ suivants.
 	À partir du round $s_{max}$, tous les processus sont actifs.
-	Ainsi, au premier round $t+k i$ vérifiant $t+k i \geq s_{max}$, le système est $k$-monovalent, donc au round $t+k i +1$, tous les processus envoyent $k$ à leurs voisons sortants.
+	Ainsi, au premier round $t+k i$ vérifiant $t+k i \geq s_{max}$, le système est $k$-monovalent, donc au round $t+k i +1$, tous les processus envoient $k$ à leurs voisins sortants.
 	Ainsi, les processus ne reçoivent que des $k$, donc tous les processus font feu.
 \end{proof}
 
@@ -851,7 +848,7 @@ Les lemmes 4.2 et 4.3 montrent que si une exécution atteint une configuration f
 	On montre que le système atteint toujours une configuration $C(t) \in \mathcal{F}$.
 
 	\begin{description}
-		\item[Cas 1:] Si $t_\xi \neq 0$, le processus $\xi$ exécute une fois la troisième branche, la vicacité découle du lemme 4.2.
+		\item[Cas 1:] Si $t_\xi \neq 0$, le processus $\xi$ exécute une fois la troisième branche, la vivacité découle du lemme 4.2.
 		\item[Cas 2:] Sinon $t_\xi = 0$. Soit $t > max \{t_p, p \in \Pi\} \cup \{s_p, p \in \Pi\}$. Soient $w$ et $V$ tels que $C(t) = (w, V)$.
 			\begin{description}
 				\item[Sous-cas 2.1:] Si $V = \{w\}$, le système est monovalent, la vivacité découle du lemme 4.5.
@@ -882,7 +879,7 @@ Maintenant que la validité de l'algorithme SyncMod est établie, on peut affirm
 \begin{proof}
 	Le fait d'exécuter l'algorithme "Uniforme Voting" à la suite de SyncMod assure le fait que le calendrier d'activation de "Uniforme Voting" vérifie $\mathcal{P}_{sync-mod-4}$,
 	donc à fortiori $\mathcal{P}_{sync-mod-2}$.
-	La preuve de validité de "Uniforme Voting", précédamment présentée, s'applique donc.
+	La preuve de validité de "Uniforme Voting", précédemment présentée, s'applique donc.
 \end{proof}
 
 \section{Preuves formelles}
@@ -915,9 +912,9 @@ On définit ensuite un algorithme comme un tuple composé d'un ensemble d'états
 
 \begin{lstlisting}[mathescape=true]
 record ('proc, 'pst, 'msg) CHOAlgorithm =
-  CinitState ::  "'proc $\Rightarrow$ 'pst $\Rightarrow$ 'proc $\Rightarrow$ bool"
-  sendMsg ::   "'proc $\Rightarrow$ 'proc $\Rightarrow$ 'pst $\Rightarrow$ 'msg"
-  CnextState :: "'proc $\Rightarrow$ 'pst $\Rightarrow$ ('proc $\Rightarrow$ 'msg message) $\Rightarrow$ 'proc $\Rightarrow$ 'pst $\Rightarrow$ bool"
+	CinitState ::  "'proc $\Rightarrow$ 'pst $\Rightarrow$ 'proc $\Rightarrow$ bool"
+	sendMsg ::   "'proc $\Rightarrow$ 'proc $\Rightarrow$ 'pst $\Rightarrow$ 'msg"
+	CnextState :: "'proc $\Rightarrow$ 'pst $\Rightarrow$ ('proc $\Rightarrow$ 'msg message) $\Rightarrow$ 'proc $\Rightarrow$ 'pst $\Rightarrow$ bool"
 \end{lstlisting}
 
 Étant donné une fonction $rho : \mathds{N} \rightarrow \Pi \rightarrow Sleep_p \uplus States_p$, il s'agit de définir dans quels cas $rho$ peut constituer la description d'une exécution valide.
@@ -926,14 +923,14 @@ On construit donc le prédicat $HORun$ de la façon suivante :
 \begin{lstlisting}[mathescape=true]
 fun HOrcvMsgsQ :: "'proc $\Rightarrow$ ('proc, 'pst, 'msg) CHOAlgorithm  $\Rightarrow$ 'proc $\Rightarrow$
                          'pst procState $\Rightarrow$ 'msg message" where
- "HOrcvMsgsQ q A p (Active s) = Content (sendMsg A q p s)" |
- "HOrcvMsgsQ q A p Aslept = Nil"
+	"HOrcvMsgsQ q A p (Active s) = Content (sendMsg A q p s)" |
+	"HOrcvMsgsQ q A p Aslept = Nil"
 
 definition HOrcvdMsgs :: "('proc, 'pst, 'a) CHOAlgorithm $\Rightarrow$ 'proc $\Rightarrow$
                           'proc set $\Rightarrow$ ('proc $\Rightarrow$ 'pst state)
                           $\Rightarrow$ 'proc $\Rightarrow$ 'a message" where
-  "HOrcvdMsgs A p HO cfg $\equiv$
-   $\lambda$ q. if q $\in$ HO then HOrcvMsgsQ q A p (cfg q) else Void"
+	"HOrcvdMsgs A p HO cfg $\equiv$
+	$\lambda$ q. if q $\in$ HO then HOrcvMsgsQ q A p (cfg q) else Void"
 
 definition CHOnextConfig where
   "CHOnextConfig A cfg HO coord cfg' $\equiv$
@@ -942,15 +939,15 @@ definition CHOnextConfig where
 		 CnextState A p s (HOrcvdMsgs A p (HO p) cfg) (coord p) s')"
 
 definition CHOinitConfig where
-  "CHOinitConfig A rho coord $\equiv$
-  $\forall$ p (n::nat) s. (n > 0 $\longrightarrow$ rho (n-1) p = Aslept)
-  $\longrightarrow$ rho n p = Active s $\longrightarrow$ CinitState A p s (coord n p)"
+	"CHOinitConfig A rho coord $\equiv$
+	$\forall$ p (n::nat) s. (n > 0 $\longrightarrow$ rho (n-1) p = Aslept)
+	$\longrightarrow$ rho n p = Active s $\longrightarrow$ CinitState A p s (coord n p)"
 
 
 definition CHORun where
-  "CHORun A rho HOs coords $\equiv$ CHOinitConfig A rho coords
-   $\wedge$ ($\forall$ r. CHOnextConfig A (rho r) (HOs (Suc r)) (coords (Suc r))
-                             (rho (Suc r)))"
+	"CHORun A rho HOs coords $\equiv$
+	CHOinitConfig A rho coords
+	$\wedge$ ($\forall$ r. CHOnextConfig A (rho r) (HOs (Suc r)) (coords (Suc r)) (rho (Suc r)))"
 \end{lstlisting}
 
 Ci-dessus, les deux premières définitions définissent la fonction de réception d'un processus $p$ au round $n$, en fonction de $rho$ et de $HO(p, n)$, l'ensemble des voisins entrants de $p$.
@@ -963,11 +960,12 @@ Il s'agit d'abord d'écrire formellement l'algorithme "One-Third rule".
 
 \begin{lstlisting}[mathescape=true]
 definition OTRNextState where
-  "OTRNextState p st msgs st' $\equiv$ 
-   if (2*N) div 3 < card {q. msgs q $\neq$ Void $\and$ msgs q $\neq$ Nil}
-   then st' = $\langle$ x = Min {v . MFR msgs v},
-          decide = $\exists$v. TwoThirds msgs v $\rangle$
-   else st' = st"
+	"OTRNextState p st msgs st' $\equiv$ 
+	if (2*N) div 3 < card {q. msgs q $\neq$ Void $\and$ msgs q $\neq$ Nil}
+	then
+		st' = $\langle$ x = Min {v . MFR msgs v}, decide = $\exists$v. TwoThirds msgs v $\rangle$
+	else
+		st' = st"
 
 definition OTRSendMsg where
   "OTRSendMsg p q st $\equiv$ x st"
@@ -978,29 +976,29 @@ On démontre ensuite l'intégrité, l'accord et la terminaison.
 
 \begin{lstlisting}[mathescape=true]
 lemma OTRIntegrity:
-  assumes "HORun (HOMachineToAlgorithm OTRM) rho HOs" 
-  and "rho n p = Active $\langle$ x = v, decide = True $\rangle$"
+	assumes "HORun (HOMachineToAlgorithm OTRM) rho HOs" 
+	and "rho n p = Active $\langle$ x = v, decide = True $\rangle$"
 shows "$\exists$ q s. x s = v $\wedge$ getInitValue rho q = Active s"
 \end{lstlisting}
 
 \begin{lstlisting}[mathescape=true]
 theorem OTRAgreement:
-  assumes run:"HORun (HOMachineToAlgorithm OTRM) rho HOs"
-  and "rho n p = Active $\langle$ x = v, decide = True $\rangle$"
-  and "rho m p' = Active $\langle$ x = w, decide = True $\rangle$"
-  shows "v = w"
+	assumes run:"HORun (HOMachineToAlgorithm OTRM) rho HOs"
+	and "rho n p = Active $\langle$ x = v, decide = True $\rangle$"
+	and "rho m p' = Active $\langle$ x = w, decide = True $\rangle$"
+shows "v = w"
 \end{lstlisting}
 
 \begin{lstlisting}[mathescape=true]
 theorem OTRTermination:
-  assumes run: "HORun (HOMachineToAlgorithm OTRM) rho HOs" 
-  and commG: "HOcommGlobal OTRM HOs"
-  and commS: "HOcommSchedule OTRM (Schedule rho)"
-  and nonInf: "$\exists$r. rho r p $\neq$ Aslept"
-  shows "$\exists$ r v. rho r p = Active $\langle$ x = v, decide = True $\rangle$"
+	assumes run: "HORun (HOMachineToAlgorithm OTRM) rho HOs" 
+	and pred: "HOcommGlobal OTRM HOs"
+	and nonInf: "$\exists$r. rho r p $\neq$ Aslept"
+shows "$\exists$ r v. rho r p = Active $\langle$ x = v, decide = True $\rangle$"
 \end{lstlisting}
 
-Ci-dessus, $HOMachineToAlgorithm OTRM$ correspond au tuple contenant les fonctions d'émission et de transition. Le type de ce tuple est $CHOMachine$ (voir section précédente).
+Ci-dessus, $HOMachineToAlgorithm~OTRM$ correspond au tuple contenant les fonctions d'émission et de transition. Le type de ce tuple est $CHOMachine$ (voir section précédente).
+Ici, \emph{pred} correspond au prédicat $\mathcal{P}_{supermaj-\infty} \wedge \mathcal{P}_{S-unif-\infty}$.
 
 \subsection{Preuve de l'algorithme SyncMod}
 
@@ -1015,36 +1013,39 @@ datatype SendVal = Val nat | Bot
 
 Dans cet algorithme, on décrit l'état par un tuple constitué de trois variables.
 Le type $sendVal$ correspond au type des messages envoyés par les processus.
-À leur premiier round, ils envoyent	 $Bot$. Aux rounds suivants, ils envoyent leur valeur.
+À leur premier round, ils envoient	 $Bot$. Aux rounds suivants, ils envoient leur valeur.
 
 \begin{lstlisting}[mathescape=true]
 definition readyFire where
-"readyFire msgs $\equiv$ $\forall$ p. msgs p = Void $\or$ msgs p = Content (Val k)"
+	"readyFire msgs $\equiv$ $\forall$ p. msgs p = Void $\or$ msgs p = Content (Val k)"
 
 definition concordant where
-"concordant msgs v $\equiv$ $\exists$ p. msgs p = Content (Val v) $\wedge$
-($\forall$ q vv. msgs q = Content (Val vv) $\longrightarrow$ vv = v)"
+	"concordant msgs v $\equiv$ $\exists$ p. msgs p = Content (Val v) $\wedge$
+	($\forall$ q vv. msgs q = Content (Val vv) $\longrightarrow$ vv = v)"
 
 definition readyForce where
-"readyForce msgs ss $\equiv$ ($\neg$ forc ss) $\wedge$ ($\forall$ p. msgs p $\neq$ Content (Val k)) $\wedge$ 
-($\exists$ p q v1 v2. msgs p = Content (Val v1) $\wedge$ msgs q = Content (Val v2) $\wedge$ v1 $\neq$ v2)"
+	"readyForce msgs ss $\equiv$ ($\neg$ forc ss) $\wedge$ ($\forall$ p. msgs p $\neq$ Content (Val k)) $\wedge$ 
+	($\exists$ p q v1 v2. msgs p = Content (Val v1) $\wedge$ msgs q = Content (Val v2) $\wedge$ v1 $\neq$ v2)"
 
-definition SyncModNextState :: "Proc $\Rightarrow$ pstate $\Rightarrow$
-(Proc $\Rightarrow$ SendVal message) $\Rightarrow$ pstate $\Rightarrow$ bool" where
-"SyncModNextState p ss msgs st $\equiv$
-	fire st = (readyFire msgs \vee fire ss) $\wedge$
-	(if readyForce msgs ss then
+definition SyncModNextState :: "Proc $\Rightarrow$ pstate $\Rightarrow$ (Proc $\Rightarrow$ SendVal message) $\Rightarrow$ pstate $\Rightarrow$ bool" where
+	"SyncModNextState p ss msgs st $\equiv$
+	fire st = (readyFire msgs $\vee$ fire ss) $\wedge$
+	(if readyForce msgs ss
+	then
 		x st = k $\wedge$ forc st
-		else forc ss = forc st $\wedge$ (
-			if $\exists$ v. concordant msgs v
-				then x st = (Suc (\epsilon ($\lambda$ v. concordant msgs v))) mod k
-				else x st = 1))"
+	else
+		forc ss = forc st $\wedge$ (
+		if $\exists$ v. concordant msgs v
+		then
+			x st = (Suc ($\epsilon$ ($\lambda$ v. concordant msgs v))) mod k
+		else
+			x st = 1))"
 
 definition SyncModSendMsg where
-"SyncModSendMsg p q st $\equiv$ if x st = 0 then Bot else Val (x st)"
+	"SyncModSendMsg p q st $\equiv$ if x st = 0 then Bot else Val (x st)"
 
 definition SyncModInitState where 
-"SyncModInitState p st $\equiv$ x st = 0 $\wedge$ ($\neg$ forc st) $\wedge$ $\neg$ fire st"
+	"SyncModInitState p st $\equiv$ x st = 0 $\wedge$ ($\neg$ forc st) $\wedge$ $\neg$ fire st"
 \end{lstlisting}
 
 Les trois premières définitions correspondent aux prédicats qui gardent les trois premières branches dans le pseudo-code de la fonction de transition.
@@ -1052,15 +1053,17 @@ L'opérateur $\epsilon$ est l'opérateur de Hilbert. Il vérifie $\exists x. P x
 
 \begin{lstlisting}
 lemma SyncModLiveness : assumes "kMod.xiNek HO xi"
-and run:"HORun (HOMachineToAlgorithm (kMod.SyncModhOMachine k)) rho HO"
-and "k > 2"
-assumes commS:"HOcommSchedule (kMod.SyncModhOMachine k) (Schedule rho)"
+	and run:"HORun (HOMachineToAlgorithm (kMod.SyncModhOMachine k)) rho HO"
+	and "k > 2"
+	assumes nonInf:"HOcommSchedule (kMod.SyncModhOMachine k) (Schedule rho)"
 shows "kMod.liveness rho"
 \end{lstlisting}
 
+Ici, la première hypothèse correspond au prédicat $\mathcal{P}_{xi-nek}$. La troisième correspond au prédicat $\mathcal{P}_{non-inf}$.
+
 \section{Conclusion}
 
-Mon stage a permi d'établir un algorithme de consensus capable de fonctionner sous des hypothèses très faibles :
+Mon stage a permis d'établir un algorithme de consensus capable de fonctionner sous des hypothèses très faibles :
 \begin{itemize}
 	\item Seulement un processus correct, capable faire des broadcast.
 	\item Les processus n'ont pas besoin d'identifiant, ni de connaissance sur la taille du réseau.
@@ -1069,6 +1072,18 @@ Mon stage a permi d'établir un algorithme de consensus capable de fonctionner s
 
 On pourrait renforcer davantage ce résultat en étudiant la résolubilité du consensus sous le prédicat $\mathcal{P}_{T-rooted}$ plutôt que $\mathcal{P}_{\xi-nek}$.
 Cela améliorerait la tolérance aux pannes.
+
+\subsection{Bilan personnel}
+
+Ce stage de six mois fut pour moi l'occasion d'enrichir mon expérience sur plusieurs aspects.
+La plus-value la plus tangible que j'aie acquise concerne certainement mon initiation à Isabelle. En arrivant, je connaissais l'assistant de preuve Coq, dont le but est similaire à Isabelle,
+mais qui fonctionne de façon très différente. La maitrise de ces deux outils me donne une vision d'ensemble du domaine, qui pourrais me servir si je voulais me spécialiser dans ce domaine.
+
+D'autre part, au début de ce stage, j'avais quelques lacunes quant à la manière de rédiger un article scientifique de façon claire, précise, et conforme aux standards.
+
+\subsection{Remerciements}
+
+Je remercie chaleureusement 
 
 \printbibliography
 
