@@ -521,4 +521,8 @@ proof -
                                     hence "rho (?n+Suc (Suc ii)) p ~= Aslept"
                                         using nonAsleepAgain[of rho "?n+Suc ii" p _ _ _ 1] run HORun_def by fastforce
                                     then obtain spp where spp:"rho (?n+Suc (Suc ii)) p = Active spp" by (cases "rho (?n+Suc (Suc ii)) p") auto
-                                    show ?thesis using A5[of HO xi k rho "?n + ii" sxiii sxii p sp spp] sxiii_def  sxii_def  sp spp run `k > 2`
+                                    have "round_force rho p <= Sum ((round_force rho) ` UNIV)"
+                                        by (meson finite_UNIV finite_imageI le0 range_eqI sum_nonneg_leq_bound)
+                                    hence "?n + ii > round_force rho p" by auto
+                                    hence "x spp = (Suc (x sxii)) mod k" using A5[of HO xi k rho "?n + ii" sxiii sxii p sp spp] sxii_def sxiii_def sp spp run assms by auto
+                                    show ?thesis using sxiii_def  sxii_def  sp spp run `k > 2`
