@@ -278,7 +278,7 @@ proof -
             then obtain sq where "rho ?rd q = Active sq" 
                 using nonAsleepAgain[of rho n q ?A HO "%r q. undefined" "?rd-n"]
                 run HORun_def[of ?A rho HO] `!p. rho n p ~= Aslept` `k > 2` by auto
-            then obtain sqq where "rho (Suc ?rd) q = Active sqq"
+            moreover from this obtain sqq where "rho (Suc ?rd) q = Active sqq"
                 using nonAsleepAgain[of rho ?rd q ?A HO "%r q. undefined" 1] run HORun_def[of ?A rho HO] by auto
             moreover have "r+(n+1)*k > 0" using `k > 2` by auto
 
@@ -390,59 +390,65 @@ qed
 lemma A5 : assumes "k_mod.xi_nek HO xi"
 and run:"HORun (HOMachine_to_Algorithm (k_mod.SyncMod_HOMachine k)) rho HO" (is "HORun ?A _ _")
 and "rho r xi ~= Aslept"
-and "rho (Suc (Suc (Suc r))) xi = Active sxii"
+and "rho (Suc (Suc r)) xi = Active sxi"
 and "k > 2"
-assumes commS:"HOcommSchedule (k_mod.SyncMod_HOMachine k) (Schedule rho)"
+and commS:"HOcommSchedule (k_mod.SyncMod_HOMachine k) (Schedule rho)"
 and "ALL p. round_force rho p < r"
 and "rho (Suc (Suc r)) p = Active sp"
 and "rho (Suc (Suc (Suc r))) p = Active spp"
 and "x spp ~= 0"
 and "round_force rho xi < r"
 and "~ (EX sa saa. rho (round_force rho xi) xi = Active sa & (~ forc sa) & rho (Suc (round_force rho xi)) xi = Active saa & forc saa)"
-shows "x spp = (x sxi) mod k"
+shows "x spp = (Suc (x sxi)) mod k"
 proof -
     from assms(3) obtain s where "rho r xi = Active s" by (cases "rho r xi") auto
     have nxt:"k_mod.SyncMod_nextState k p sp (HOrcvdMsgs ?A p (HO (Suc (Suc (Suc r))) p) (rho (Suc (Suc r)))) spp" (is "k_mod.SyncMod_nextState k p sp (?msgs p) spp")
         using transition[of rho "Suc (Suc r)" p sp spp k HO] assms by auto
     obtain sx where "rho (Suc r) xi = Active sx" using run HORun_def nonAsleepAgain[of rho r xi _ _ _ 1] assms(3) by fastforce
-    hence "x sx < k" using `rho r xi = Active s` transition run assms by auto
+    hence "x sxi < k" and "x sx < k" using `rho r xi = Active s` transition run assms by auto
     hence "k_mod.SyncMod_sendMsg k xi p sx = Val (x sx)" using k_mod.SyncMod_sendMsg_def[of k xi p sx] by auto
 
-    have "~ k_mod.ready_force k (?msgs p) sp" using nonForceAgain[of rho p "Suc r" k HO sp spp] `k > 2` assms(8) assms(9) assms(7) run less_SucI by blast
+    have "~ k_mod.ready_force k (?msgs p) sp" using nonForceAgain[of rho p "Suc (Suc r)" k HO sp spp] `k > 2` assms(8) assms(9) assms(7) run less_SucI by blast
     hence "x spp = (Suc (Eps (%v. k_mod.concordant (?msgs p) v))) mod k" and "EX v. k_mod.concordant (?msgs p) v" 
         using `x spp ~= 0` nxt k_mod.SyncMod_nextState_def[of k p sp "?msgs p" spp] by auto
     moreover from this obtain v where conc:"k_mod.concordant (?msgs p) v" by auto
     ultimately have "x spp = (Suc v) mod k" using k_mod.concordant_def by (metis someI_ex)
 
 
-    have "?msgs p xi = Content (Val (x sx))"
-        using sending_rec[of xi HO "Suc r" p k rho sx] assms(1) `rho (Suc r) xi = Active sx` run k_mod.xi_nek_def `x sx < k` by metis
-    hence "v = x sx" using conc k_mod.concordant_def by metis
-    have "~ k_mod.ready_force k (?msgs xi) sx"
-        using nonForceAgain[of rho xi "Suc r" k HO sx sxi] `k > 2` assms(4) `rho (Suc r) xi = Active sx` assms(11) run less_SucI by blast
-    hence "forc sx |
+    moreover have "?msgs p xi = Content (Val (x sxi))"
+        using sending_rec[of xi HO "Suc (Suc r)" p k rho sxi] assms(1) `rho (Suc (Suc r)) xi = Active sxi` run k_mod.xi_nek_def `x sxi < k` by metis
+    hence "v = x sxi" using conc k_mod.concordant_def by metis
+    ultimately show "x spp = (Suc (x sxi)) mod k" by auto
+qed
+    have "~ k_mod.ready_force k (?msgs xi) sxi"
+        using nonForceAgain[of rho xi "Suc (Suc r)" k HO sxi sxii] `k > 2` assms(4) `rho (Suc (Suc r)) xi = Active sxi` assms(11) run less_SucI by blast
+    hence "forc sxi |
         (EX p. ?msgs xi p = Content (Val (k-1))) |
         (ALL p q v1 v2. ?msgs xi p = Content (Val v1) --> ?msgs xi q = Content (Val v2) --> v1 = v2)"
-        using k_mod.ready_force_def[of k "?msgs xi" sx] by auto
-    thus "x spp = (x sxi) mod k"
+        using k_mod.ready_force_def[of k "?msgs xi" sxi] by auto
+    thus "x spp = (x sxii) mod k"
     proof
-        assume "forc sx"
-        thus ?thesis using neverForce[of rho xi k HO sx] run assms(12) `rho (Suc r) xi = Active sx` by auto
+        assume "forc sxi"
+        thus ?thesis using neverForce[of rho xi k HO sxi] run assms(12) `rho (Suc (Suc r)) xi = Active sxi` by auto
     next
         assume " (EX p. ?msgs xi p = Content (Val (k-1))) | (ALL p q v1 v2. ?msgs xi p = Content (Val v1) --> ?msgs xi q = Content (Val v2) --> v1 = v2)"
         thus ?thesis
         proof
             assume "EX p. ?msgs xi p = Content (Val (k-1))"
             then obtain q where msgs_q:"?msgs xi q = Content (Val (k-1))" by auto
-            then obtain sq sqq where sq:"rho r q = Active sq" and sqq:"rho (Suc r) q = Active sqq" and "x sqq = k-1" using sending[of k rho HO xi r q "k-1"] run by auto
-            hence nxt:"k_mod.SyncMod_nextState k q sq (HOrcvdMsgs ?A q (HO (Suc r) q) (rho r)) sqq" (is "k_mod.SyncMod_nextState k q sq ?msgq sqq")
-                using transition[of rho r q sq sqq k HO] run `2 < k` by auto
-            moreover have "~ k_mod.ready_force k ?msgq sq" using nonForceAgain[of rho q r k HO sq sqq] `k > 2` run sq sqq assms(7) by blast
+            then obtain sq sqq where sq:"rho (Suc r) q = Active sq" and sqq:"rho (Suc (Suc r)) q = Active sqq" and "x sqq = k-1"
+                using sending[of k rho HO xi "Suc r" q "k-1"] run by auto
+            hence nxt:"k_mod.SyncMod_nextState k q sq (HOrcvdMsgs ?A q (HO (Suc (Suc r)) q) (rho (Suc r))) sqq" (is "k_mod.SyncMod_nextState k q sq ?msgq sqq")
+                using transition[of rho "Suc r" q sq sqq k HO] run `2 < k` by auto
+            moreover have "~ k_mod.ready_force k ?msgq sq" using nonForceAgain[of rho q "Suc r" k HO sq sqq] `k > 2` run sq sqq assms(7) less_SucI by blast
             ultimately have "EX v. k_mod.concordant ?msgq v"
                 using k_mod.SyncMod_nextState_def[of k q sq ?msgq sqq] using `x sqq = k - 1` assms(5) by fastforce
-            moreover have "?msgq xi = Content (Val (x s))"
-                using sending_rec[of xi HO r q k rho sx] assms(1) `rho r xi = Active s` run k_mod.xi_nek_def `x sx < k` by metis
-            ultimately have "k_mod.concordant ?msgq (x s)" using k_mod.concordant_def assms(1) k_mod.xi_nek_def by auto
+            moreover have "x sx < k" using run transition[of rho r xi s sx k HO] `k > 2` `rho (Suc r) xi = Active sx` `rho r xi = Active s` by blast 
+            hence "?msgq xi = Content (Val (x sx))"
+                using sending_rec[of xi HO "Suc r" q k rho sx] assms(1) `rho (Suc r) xi = Active sx` run k_mod.xi_nek_def `x sx < k` by metis
+            ultimately have "k_mod.concordant ?msgq (x sx)" using k_mod.concordant_def assms(1) by metis
+            have "q : HO (Suc (Suc r)) q" using run by (simp add:HORun_def CHORun_def)
+            hence "?msgq q = Content (Val (x sx))" using sending_rec[of q HO "Suc r" q k rho sq] run `rho (Suc r) q = Active sq` `k > 2` by auto
 
     thus "x spp = (x sxi) mod k" 
 qed
