@@ -297,17 +297,15 @@ definition CHORun where
                              (rho (Suc r)))"
 
 lemma nonAsleepAgain : assumes "rho n p \<noteq> Aslept" and "CHORun A rho HO coord"
-  shows "rho ((m::nat)+n) p \<noteq> Aslept"
+  shows "EX s. rho (n+(m::nat)) p = Active s"
 proof (induction m)
   case 0
-  show "rho (0+n) p \<noteq> Aslept" using assms by auto
+  show ?case using assms by (cases "rho n p") auto
 next
   case (Suc x)
-  assume "rho (x+n) p \<noteq> Aslept"
-  hence "\<exists>s. rho (x + n) p = Active s" by (cases "rho (x+n) p") auto
-  hence "\<exists>s. rho (Suc x + n) p = Active s"
+  hence "\<exists>s. rho (n + x) p = Active s" by (cases "rho (n+x) p") auto
+  thus "EX s. rho (n + Suc x) p = Active s" 
     using assms CHORun_def CHORun_def CHOnextConfig_def by (metis add.commute add_Suc_right)
-  then show ?case by (cases "rho (Suc x + n) p") auto
 qed
 
 text \<open>
