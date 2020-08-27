@@ -422,7 +422,7 @@ qed
 lemma A5extended : assumes "k_mod.xi_nek HO xi"
 and run:"HORun (HOMachine_to_Algorithm (k_mod.SyncMod_HOMachine k)) rho HO" (is "HORun ?A _ _")
 and "rho r xi ~= Aslept"
-and "rho (Suc (Suc (Suc r))) xi = Active sxii"
+and sxii:"rho (Suc (Suc (Suc r))) xi = Active sxii"
 and "k > 2"
 and commS:"HOcommSchedule (k_mod.SyncMod_HOMachine k) (Schedule rho)"
 and "ALL p. round_force rho p < r"
@@ -430,6 +430,8 @@ and "rho (Suc (Suc r)) p = Active sp"
 and "rho (Suc (Suc (Suc r))) p = Active spp"
 and "x spp ~= 0"
 and "~ (EX sa saa. rho (round_force rho xi) xi = Active sa & (~ forc sa) & rho (Suc (round_force rho xi)) xi = Active saa & forc saa)"
+and sx:"rho (Suc r) xi = Active sx"
+and "x sx ~= k-2"
 shows "x spp = (x sxii) mod k"
 proof -
     from assms(3) obtain s where s:"rho r xi = Active s" by (cases "rho r xi") auto
@@ -441,7 +443,6 @@ proof -
     ultimately have nxt:"x sxii = (if EX v. k_mod.concordant ?msgs v then Suc (Eps (%v. k_mod.concordant ?msgs v)) mod k else 0)"
         using k_mod.SyncMod_nextState_def by auto
     from assms(3) obtain s where "rho r xi = Active s" by (cases "rho r xi") auto
-    obtain sx where sx:"rho (Suc r) xi = Active sx" using run HORun_def nonAsleepAgain[of rho r xi _ _ _ 1] assms(3) by fastforce
     hence "x sxi < k" using sxi transition run assms by auto
     hence loop:"?msgs xi = Content (Val (x sxi))" using assms(1) sxi run by (simp add: k_mod.xi_nek_def sending_rec)
     have "x sxii = (Suc (x sxi)) mod k"
@@ -465,13 +466,15 @@ proof -
         then obtain sq sqq where "rho (Suc r) q = Active sq" and "rho (Suc (Suc r)) q = Active sqq" and "x sqq = k-1"
             using sending[of k rho HO xi "Suc r" q "k-1"] run by auto
         hence "x sqq = Suc (x sx) mod k" using A5[of HO xi k rho r sx q sq sqq] sx assms by auto
-
-        hence "k_mod.SyncMod_nextState k xi sx (HOrcvdMsgs ?A xi (HO (Suc (Suc r)) xi) (rho (Suc r))) sxi" (is "k_mod.SyncMod_nextState k xi sx ?msgx sxi")
-            using transition[of rho "Suc r" xi sx sxi k HO] run sx sxi assms(5) by blast
-        moreover have "~ k_mod.ready_force k ?msgx sx"
-            using nonForceAgain[of rho xi "Suc r" k HO sx sxi] `k > 2` sxi sx assms(7) run less_SucI by blast
-        moreover have "~ forc sx" using neverForce[of rho xi k HO sx] assms(11) run sx by auto
-        ultimately obtain q where "?msgx q = Content (Val (k-1))" using k_mod.ready_force_def[of k ?msgx sx] loop by blast
+        hence "k-1 = Suc (x sx) mod k" using `x sqq = k-1` by auto
+        moreover have "x sx < k" using `rho r xi = Active s` sx run transition[of rho r xi s sx k HO] `k > 2` by auto
+        ultimately show "x sxii = Suc (x sxi) mod k" using assms(13) `k > 2`
+            by (metis Suc_lessI add_lessD1 diff_Suc_1 diff_diff_left less_numeral_extra(3) mod_less mod_self one_add_one zero_less_diff)
+    qed
+    moreover have "x spp = Suc (x sxi) mod k"
+        using A5[of HO xi k rho "Suc r" sxi p sp spp] run assms(1) sxi sx assms(8) assms(9) `k > 2` assms(7) assms(6) assms(10) less_SucI by auto
+    ultimately show ?thesis by auto
+qed
 
 lemma A6 : assumes "k_mod.xi_nek HO xi"
 and run:"HORun (HOMachine_to_Algorithm (k_mod.SyncMod_HOMachine k)) rho HO" (is "HORun ?A _ _")
