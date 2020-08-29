@@ -512,9 +512,19 @@ proof -
                                     hence "rho (?n + ii - 2) xi ~= Aslept" by simp
                                     moreover from this obtain ss where "rho (?n + ii - 1) xi = Active ss"
                                         using run HORun_def nonAsleepAgain[of rho "?n+ii-2" xi ?A HO _ 1] by fastforce
-                                    moreover from rd_forc have "ALL p. round_force rho p < Suc (Suc n) + Sum (range (round_force rho)) + ii - 2" by 
-                                    ultimately have "x ss = Suc (x sxiii) mod k"
-                                        using A5[of HO xi k rho "?n + ii - 2" ss p sp spp] run `k > 2` assms(4) rd_forc by auto
+                                    moreover have "ALL p. round_force rho p < Suc (Suc (Suc n)) + Sum (range (round_force rho)) + ii - 2"
+                                    proof 
+                                        fix p
+                                        from rd_forc have "round_force rho p <  Sum (range (round_force rho)) + (Suc (Suc (Suc n)) + ii - 2)"
+                                            by (metis add.commute add_Suc_shift add_diff_cancel_left' diff_is_0_eq
+                                            less_add_Suc1 nat_less_le one_add_one plus_1_eq_Suc trans_le_add2)
+                                        moreover have " Sum (range (round_force rho)) + (Suc (Suc (Suc n))) + ii - 2 =
+                                                        Suc (Suc (Suc n)) + Sum (range (round_force rho)) + ii - 2" by simp
+                                        ultimately show "round_force rho p < Suc (Suc (Suc n)) + Sum (range (round_force rho)) + ii - 2"
+                                            by simp
+                                    qed
+                                    ultimately have "x spp = Suc (x ss) mod k"
+                                        using A5[of HO xi k rho "?n + ii - 2" ss p sp spp] assms rd_forc by auto
                                     (*obtain sp where sp:"rho (?n+Suc ii) p = Active sp" 
                                         using nonAsleepAgain[of rho n p _ _ _ "Sum ( (round_force rho) ` UNIV) + Suc (Suc ii)"] run HORun_def `ALL p. rho n p ~= Aslept`
                                         by (smt add.assoc add.commute add_Suc_shift)
