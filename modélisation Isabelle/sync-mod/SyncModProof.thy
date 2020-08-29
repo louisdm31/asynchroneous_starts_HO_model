@@ -242,7 +242,7 @@ and "k > 2"
 assumes commS:"HOcommSchedule (k_mod.SyncMod_HOMachine k) (Schedule rho)"
 shows "k_mod.liveness rho"
 proof -
-    have "? n. Schedule rho n = UNIV" using commS by (simp add:k_mod.SyncMod_HOMachine_def k_mod.SyncMod_commSchedule_def )
+    have "EX n. Schedule rho n = UNIV" using commS by (simp add:k_mod.SyncMod_HOMachine_def k_mod.SyncMod_commSchedule_def )
     then obtain n :: nat where "!p. rho n p ~= Aslept" by auto
 
     have "monovalent rho 0 r" using A2 assms by auto
@@ -253,42 +253,31 @@ proof -
         using A3[where ?v = 0 and ?i = "(n+1)*k-1" and ?r = r] assms 
         by (metis (no_types, lifting) add.left_neutral less_one linorder_not_less mod_mult_self1 mod_mult_self2_is_0
         no_zero_divisors not_less0 ordered_cancel_comm_monoid_diff_class.add_diff_assoc zero_eq_add_iff_both_eq_0)
-    have "!p r. rho r p ~= Aslept --> (? rf sf. rho rf p = Active sf & fire sf)"
+    have "ALL p. EX rf sf. rho rf p = Active sf & fire sf"
     proof (rule allI impI)+
         fix p
-        fix r :: nat
-        assume "rho r p ~= Aslept"
-        moreover have "1 \<le> (n+1)*k" using `k > 2` by auto
-        hence "r+((n+1)*k-1) = r+(n+1)*k-1" (is "_ = ?rd") using  ordered_cancel_comm_monoid_diff_class.add_diff_assoc[of 1 "(n+1)*k" r] by auto
-        ultimately obtain ss where "rho (Suc ?rd) p = Active ss" 
-            using run HORun_def nonAsleepAgain[of rho r p _ _ _ "(n+1)*k"]
-            by (smt `1 \<le> (n + 1) * k` add.commute add_Suc_right ordered_cancel_comm_monoid_diff_class.add_diff_inverse plus_1_eq_Suc)
+        have "r + (n+1)*(k-1) = r + ((n+1)*k-1) - n" (is "_ = ?rd - n")
+            using `k > 2` by (smt Groups.mult_ac(2) Nat.add_diff_assoc2 add.commute add_diff_inverse_nat diff_Suc_Suc
+            less_one linorder_not_less mod_if mod_mult_self2_is_0 mult.right_neutral no_zero_divisors not_less0 plus_1_eq_Suc
+            right_diff_distrib' zero_eq_add_iff_both_eq_0)
+        hence "?rd >= n" using `k > 2`
+            by (metis add_gr_0 add_lessD1 less_imp_le_nat mult_pos_pos one_add_one zero_less_diff zero_less_one)
+        then obtain ss where "rho (Suc ?rd) p = Active ss" 
+            using run HORun_def nonAsleepAgain[of rho n p _ _ _ "Suc ?rd - n"] using `ALL p. rho n p ~= Aslept` by fastforce
         moreover from this obtain st where "rho (Suc (Suc ?rd)) p = Active st"
-            using nonAsleepAgain[of rho "Suc ?rd" p _ _ _ 1] run HORun_def Suc_diff_1 assms(5) by fastforce
+            using nonAsleepAgain[of rho "Suc ?rd" p _ _ _ 1] run HORun_def Suc_diff_1 by fastforce
         ultimately have nxt:"k_mod.SyncMod_nextState k p ss (HOrcvdMsgs ?A p (HO (Suc (Suc ?rd)) p) (rho (Suc ?rd))) st"
             (is "k_mod.SyncMod_nextState  _ _ _ ?msgs _")
             using transition[of rho "Suc ?rd" p ss st] run assms(5) by auto
-        have "!q. ?msgs q = Void \<or> ?msgs q = Content (Val (k-1))"
+        have "ALL q. ?msgs q = Void | ?msgs q = Content (Val (k-1))"
         proof
             fix q
-            have "?rd-n = r+n*k+1*k-1-n" using `k > 2` by simp
-            hence positiv:"?rd-n > 0" using `k > 2`
-                by (metis add.commute add_lessD1 diff_diff_left mult.commute mult.right_neutral mult_less_cancel2
-                one_add_one trans_less_add2 zero_less_diff )
-            then obtain sq where "rho ?rd q = Active sq" 
-                using nonAsleepAgain[of rho n q ?A HO "%r q. undefined" "?rd-n"]
-                run HORun_def[of ?A rho HO] `!p. rho n p ~= Aslept` `k > 2` by auto
-            moreover from this obtain sqq where "rho (Suc ?rd) q = Active sqq"
-                using nonAsleepAgain[of rho ?rd q ?A HO "%r q. undefined" 1] run HORun_def[of ?A rho HO] by auto
-            moreover have "r+(n+1)*k > 0" using `k > 2` by auto
-
-
-            moreover have "monovalent rho ((k - 1) :: nat) (?rd :: nat)" using monoval by auto
-    
-
-
+            obtain sq where "rho ?rd q = Active sq"
+                using run HORun_def nonAsleepAgain[of rho n q _ _ _ "?rd - n"] using `ALL p. rho n p ~= Aslept` `?rd >= n` by fastforce
+            moreover obtain sqq where "rho (Suc ?rd) q = Active sqq"
+                using run HORun_def nonAsleepAgain[of rho n q _ _ _ "Suc ?rd - n"] using `ALL p. rho n p ~= Aslept` `?rd >= n` by fastforce
             ultimately have "x sqq = k-1"
-                using assms monovalent_def[of rho "k-1" ?rd] by auto
+                using assms monovalent_def[of rho "k-1" ?rd] monoval assms(5) by auto
 
             hence "k_mod.SyncMod_sendMsg k q p sqq = Val (k-1)"
                 using k_mod.SyncMod_sendMsg_def[of k q p sqq] `k > 2` by auto 
@@ -306,7 +295,7 @@ proof -
         hence "rho (Suc (Suc ?rd)) p = Active st & fire st" using `rho (Suc (Suc ?rd)) p = Active st` by auto
         thus "? rf sf. rho rf p = Active sf & fire sf" by auto
     qed
-    thus "k_mod.liveness rho" using k_mod.liveness_def by auto
+    thus "k_mod.liveness rho" using k_mod.liveness_def by fastforce
 qed
 
 definition round_force where
@@ -393,7 +382,7 @@ and "rho r xi ~= Aslept"
 and "rho (Suc r) xi = Active sxi"
 and "k > 2"
 and commS:"HOcommSchedule (k_mod.SyncMod_HOMachine k) (Schedule rho)"
-and "ALL p. round_force rho p < r"
+and "ALL p. round_force rho p < Suc r"
 and "rho (Suc r) p = Active sp"
 and "rho (Suc (Suc r)) p = Active spp"
 and "x spp ~= 0"
@@ -517,10 +506,10 @@ proof -
         case False
         have "EX n. Schedule rho n = UNIV" using commS by (simp add:k_mod.SyncMod_HOMachine_def k_mod.SyncMod_commSchedule_def )
         then obtain n :: nat where "ALL p. rho n p ~= Aslept" by auto
-        let ?n = "Suc n + Sum ( (round_force rho) ` UNIV)"
-        have "rho ?n xi ~= Aslept"
-            using nonAsleepAgain[of rho n xi _ _ _ "Suc (Sum ( (round_force rho) ` UNIV))"] run HORun_def `ALL p. rho n p ~= Aslept` by (smt add.commute add_Suc_shift)
-        then obtain sxi where "rho ?n xi = Active sxi" by (cases "rho ?n xi") auto
+        let ?n = "Suc (Suc n) + Sum ( (round_force rho) ` UNIV)"
+        obtain sxi where "rho ?n xi = Active sxi" 
+            using nonAsleepAgain[of rho n xi _ _ _ "Suc (Suc (Sum ( (round_force rho) ` UNIV)))"] run HORun_def `ALL p. rho n p ~= Aslept`
+            by (smt add.commute add_Suc_shift)
         show ?thesis
         proof (cases "EX v :: nat. v < k & monovalent rho v ?n")
             case True
@@ -536,28 +525,26 @@ proof -
                     show "rho (?n + i) xi = Active sxii --> x sxii = (x sxi + i) mod k"
                     proof (induction i arbitrary:sxii)
                         case 0
-                        have "rho (?n-1) xi ~= Aslept"
-                            using nonAsleepAgain[of rho n xi _ _ _ "Sum ( (round_force rho) ` UNIV)"] run HORun_def `ALL p. rho n p ~= Aslept`
+                        obtain sx where "rho (?n-1) xi = Active sx"
+                            using nonAsleepAgain[of rho n xi _ _ _ "Suc (Sum ( (round_force rho) ` UNIV))"] run HORun_def `ALL p. rho n p ~= Aslept`
                             by (smt Nat.add_diff_assoc2 add.commute diff_Suc_1 le_add1 plus_1_eq_Suc)
-                        then obtain sx where "rho (?n-1) xi = Active sx" by (cases "rho (?n-1) xi") auto
                         hence "x sxi < k" using transition[of rho "?n-1" xi sx sxi] run `rho ?n xi = Active sxi` assms(3) by auto
                         thus "rho (?n + 0) xi = Active sxii --> x sxii = (x sxi + 0) mod k" using `rho ?n xi = Active sxi` by auto
                     next
                         case (Suc ii)
                         show "rho (?n + (Suc ii)) xi = Active sxii --> x sxii = (x sxi + (Suc ii)) mod k"
                         proof
-                            assume sxii_def:"rho (?n + (Suc ii)) xi = Active sxii"
-                            moreover have "rho (?n+ii) xi ~= Aslept"
-                                using nonAsleepAgain[of rho n xi _ _ _ ii] run HORun_def `ALL p. rho n p ~= Aslept`
-                                by (smt `rho ?n xi ~= Aslept` add.commute nonAsleepAgain)
-                            then obtain sxiii where sxiii_def:"rho (?n+ii) xi = Active sxiii" by (cases "rho (?n+ii) xi") auto
+                            assume sxii_def:"rho (?n + Suc ii) xi = Active sxii"
+                            moreover obtain sxiii where sxiii:"rho (?n+ii) xi = Active sxiii" 
+                                using nonAsleepAgain[of rho ?n xi _ _ _ ii] run HORun_def `rho ?n xi = Active sxi`
+                                by fastforce
                             ultimately have "k_mod.SyncMod_nextState k xi sxiii (HOrcvdMsgs ?A xi (HO (?n + Suc ii) xi) (rho (?n + ii))) sxii"
                                 (is "k_mod.SyncMod_nextState k xi sxiii ?msgs sxii")
                                 using transition[of rho "?n+ii" xi sxiii sxii] run assms(3) by auto
-                            have "round_force rho xi <= Sum ((round_force rho) ` UNIV)"
+                            have rd_forc:"ALL p. round_force rho p <= Sum ((round_force rho) ` UNIV)"
                                 by (meson finite_UNIV finite_imageI le0 range_eqI sum_nonneg_leq_bound)
-                            hence "?n + ii > round_force rho xi" by auto
-                            hence "~ k_mod.ready_force k ?msgs sxiii" using run nonForceAgain[of rho xi "?n+ii" k HO sxiii sxii] `k > 2` sxiii_def sxii_def by auto
+                            hence "?n + ii > round_force rho xi" by (metis Suc_lessD add.commute add_less_le_mono less_add_Suc1 plus_1_eq_Suc trans_less_add2)
+                            hence "~ k_mod.ready_force k ?msgs sxiii" using run nonForceAgain[of rho xi "?n+ii" k HO sxiii sxii] `k > 2` sxiii sxii_def by auto
                             hence "forc sxiii |
                                 (EX p. ?msgs p = Content (Val (k-1))) |
                                 (ALL p q v1 v2. ?msgs p = Content (Val v1) --> ?msgs q = Content (Val v2) --> v1 = v2)"
@@ -566,7 +553,7 @@ proof -
                             proof
                                 assume "forc sxiii"
                                 thus ?thesis using neverForce[of rho xi k HO sxiii] run
-                                ` ~ (EX sa saa. rho ?txi xi = Active sa & (~ forc sa) & rho (Suc ?txi) xi = Active saa & forc saa)` sxiii_def by auto
+                                ` ~ (EX sa saa. rho ?txi xi = Active sa & (~ forc sa) & rho (Suc ?txi) xi = Active saa & forc saa)` sxiii by auto
                             next
                                 assume "(EX p. ?msgs p = Content (Val (k-1))) |
                                     (ALL p q v1 v2. ?msgs p = Content (Val v1) --> ?msgs q = Content (Val v2) --> v1 = v2)"
@@ -574,15 +561,24 @@ proof -
                                 proof
                                     assume "EX p. ?msgs p = Content (Val (k-1))"
                                     then obtain p where "?msgs p = Content (Val (k-1))" by auto
-                                    have "rho (?n+Suc ii) p ~= Aslept"
+                                    then obtain sp spp where sp:"rho (?n+ii-1) p = Active sp" and spp:"rho (?n+ii) p = Active spp" and "x spp = k - 1"
+                                        using sending[of k rho HO xi "?n+ii-1" p "k-1"] run by auto
+                                    moreover have "rho (n + Sum (range (round_force rho)) + ii) xi ~= Aslept"
+                                        using run HORun_def nonAsleepAgain[of rho n xi ?A HO _ "Sum (range (round_force rho)) + ii"] `ALL p. rho n p ~= Aslept`
+                                        by (metis add.assoc proc_state.distinct(1))
+                                    hence "rho (?n + ii - 2) xi ~= Aslept" by simp
+                                    moreover from this obtain ss where "rho (?n + ii - 1) xi = Active ss"
+                                        using run HORun_def nonAsleepAgain[of rho "?n+ii-2" xi ?A HO _ 1] by fastforce
+                                    moreover from rd_forc have "ALL p. round_force rho p < Suc (Suc n) + Sum (range (round_force rho)) + ii - 2" by 
+                                    ultimately have "x ss = Suc (x sxiii) mod k"
+                                        using A5[of HO xi k rho "?n + ii - 2" ss p sp spp] run `k > 2` assms(4) rd_forc by auto
+                                    (*obtain sp where sp:"rho (?n+Suc ii) p = Active sp" 
                                         using nonAsleepAgain[of rho n p _ _ _ "Sum ( (round_force rho) ` UNIV) + Suc (Suc ii)"] run HORun_def `ALL p. rho n p ~= Aslept`
                                         by (smt add.assoc add.commute add_Suc_shift)
-                                    then obtain sp where sp:"rho (?n+Suc ii) p = Active sp" by (cases "rho (?n+Suc ii) p") auto
-                                    hence "rho (?n+Suc (Suc ii)) p ~= Aslept"
+                                    then obtain spp where spp:"rho (?n+Suc (Suc ii)) p = Active spp" 
                                         using nonAsleepAgain[of rho "?n+Suc ii" p _ _ _ 1] run HORun_def by fastforce
-                                    then obtain spp where spp:"rho (?n+Suc (Suc ii)) p = Active spp" by (cases "rho (?n+Suc (Suc ii)) p") auto
                                     have "round_force rho p <= Sum ((round_force rho) ` UNIV)"
                                         by (meson finite_UNIV finite_imageI le0 range_eqI sum_nonneg_leq_bound)
                                     hence "?n + ii > round_force rho p" by auto
-                                    hence "x spp = (Suc (x sxii)) mod k" using A5[of HO xi k rho "?n + ii" sxiii sxii p sp spp] sxiii_def sxii_def sp spp run assms by auto
-                                    show ?thesis using sxiii_def  sxii_def  sp spp run `k > 2`
+                                    hence "x spp = (Suc (x sxii)) mod k" using A5[of HO xi k rho "?n + ii" sxiii _ _ sp] sxiii_def sxii_def sp spp run assms by auto
+                                    show ?thesis using sxiii_def  sxii_def  sp spp run `k > 2`*)
