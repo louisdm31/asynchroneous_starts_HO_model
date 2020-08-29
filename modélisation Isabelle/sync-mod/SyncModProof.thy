@@ -408,63 +408,6 @@ proof -
     ultimately show "x spp = (Suc (x sxi)) mod k" by auto
 qed
 
-lemma A5extended : assumes "k_mod.xi_nek HO xi"
-and run:"HORun (HOMachine_to_Algorithm (k_mod.SyncMod_HOMachine k)) rho HO" (is "HORun ?A _ _")
-and "rho r xi ~= Aslept"
-and sxii:"rho (Suc (Suc (Suc r))) xi = Active sxii"
-and "k > 2"
-and commS:"HOcommSchedule (k_mod.SyncMod_HOMachine k) (Schedule rho)"
-and "ALL p. round_force rho p < r"
-and "rho (Suc (Suc r)) p = Active sp"
-and "rho (Suc (Suc (Suc r))) p = Active spp"
-and "x spp ~= 0"
-and "~ (EX sa saa. rho (round_force rho xi) xi = Active sa & (~ forc sa) & rho (Suc (round_force rho xi)) xi = Active saa & forc saa)"
-and sx:"rho (Suc r) xi = Active sx"
-and "x sx ~= k-2"
-shows "x spp = (x sxii) mod k"
-proof -
-    from assms(3) obtain s where s:"rho r xi = Active s" by (cases "rho r xi") auto
-    obtain sxi where sxi:"rho (Suc (Suc r)) xi = Active sxi" using run HORun_def nonAsleepAgain[of rho r xi _ _ _ 2] assms(3) by fastforce
-    hence nxt:"k_mod.SyncMod_nextState k xi sxi (HOrcvdMsgs ?A xi (HO (Suc (Suc (Suc r))) xi) (rho (Suc (Suc r)))) sxii" (is "k_mod.SyncMod_nextState k xi sxi ?msgs sxii")
-        using transition[of rho "Suc (Suc r)" xi sxi sxii k HO] run assms(4) assms(5) by blast
-    moreover have "~ k_mod.ready_force k ?msgs sxi"
-        using nonForceAgain[of rho xi "Suc (Suc r)" k HO sxi sxii] `k > 2` assms(4) sxi assms(7) run less_SucI by blast
-    ultimately have nxt:"x sxii = (if EX v. k_mod.concordant ?msgs v then Suc (Eps (%v. k_mod.concordant ?msgs v)) mod k else 0)"
-        using k_mod.SyncMod_nextState_def by auto
-    from assms(3) obtain s where "rho r xi = Active s" by (cases "rho r xi") auto
-    hence "x sxi < k" using sxi transition run assms by auto
-    hence loop:"?msgs xi = Content (Val (x sxi))" using assms(1) sxi run by (simp add: k_mod.xi_nek_def sending_rec)
-    have "x sxii = (Suc (x sxi)) mod k"
-    proof (cases "EX v. k_mod.concordant ?msgs v")
-        case True
-        then obtain v where "k_mod.concordant ?msgs v" by auto
-        hence "v = x sxi" using k_mod.concordant_def loop by metis
-        from nxt True have "x sxii = Suc (Eps (%v. k_mod.concordant ?msgs v)) mod k" by auto
-        from True have "k_mod.concordant ?msgs (Eps (%v. k_mod.concordant ?msgs v))" by (simp add: someI_ex)
-        hence "Eps (%v. k_mod.concordant ?msgs v) = x sxi"
-            using k_mod.concordant_def[of ?msgs "Eps (%v. k_mod.concordant ?msgs v)"] `?msgs xi = Content (Val (x sxi))` by auto
-        thus "x sxii = Suc (x sxi) mod k" using nxt True by auto
-    next
-        case False
-        hence "EX q vq. ?msgs q = Content (Val vq) & vq ~= x sxi" using k_mod.concordant_def[of ?msgs "x sxi"] loop by blast
-        moreover have "~ k_mod.ready_force k ?msgs sxi"
-            using nonForceAgain[of rho xi "Suc (Suc r)" k HO sxi sxii] `k > 2` assms(4) sxi assms(7) run less_SucI by blast
-        moreover have "~ forc sxi" using neverForce[of rho xi k HO sxi] assms(11) run sxi by auto
-        ultimately obtain q where "?msgs q = Content (Val (k-1))" and "k-1 ~= x sxi" using k_mod.ready_force_def[of k ?msgs sxi] loop
-            by (smt A2 assms(1) assms(10) assms(5) assms(8) assms(9) monovalent_def run sxi)
-        then obtain sq sqq where "rho (Suc r) q = Active sq" and "rho (Suc (Suc r)) q = Active sqq" and "x sqq = k-1"
-            using sending[of k rho HO xi "Suc r" q "k-1"] run by auto
-        hence "x sqq = Suc (x sx) mod k" using A5[of HO xi k rho r sx q sq sqq] sx assms by auto
-        hence "k-1 = Suc (x sx) mod k" using `x sqq = k-1` by auto
-        moreover have "x sx < k" using `rho r xi = Active s` sx run transition[of rho r xi s sx k HO] `k > 2` by auto
-        ultimately show "x sxii = Suc (x sxi) mod k" using assms(13) `k > 2`
-            by (metis Suc_lessI add_lessD1 diff_Suc_1 diff_diff_left less_numeral_extra(3) mod_less mod_self one_add_one zero_less_diff)
-    qed
-    moreover have "x spp = Suc (x sxi) mod k"
-        using A5[of HO xi k rho "Suc r" sxi p sp spp] run assms(1) sxi sx assms(8) assms(9) `k > 2` assms(7) assms(6) assms(10) less_SucI by auto
-    ultimately show ?thesis by auto
-qed
-
 lemma A6 : assumes "k_mod.xi_nek HO xi"
 and run:"HORun (HOMachine_to_Algorithm (k_mod.SyncMod_HOMachine k)) rho HO" (is "HORun ?A _ _")
 and "rho r xi = Active s"
