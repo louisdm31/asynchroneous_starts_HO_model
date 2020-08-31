@@ -453,6 +453,104 @@ proof -
     qed
 qed
 
+lemma A8 : assumes "k_mod.xi_nek HO xi"
+and run:"HORun (HOMachine_to_Algorithm (k_mod.SyncMod_HOMachine k)) rho HO" (is "HORun ?A _ _")
+and "k > 2"
+and "n > 4"
+and rd:"ALL p. round_force rho p < n - 4"
+and sxx:  "rho (n-3) xi = Active sxx"
+and sxs:  "rho (n-2) xi = Active sxs"
+and ss:   "rho (n-1) xi = Active ss"
+and sxiii:"rho n xi = Active sxiii"
+and sxii: "rho (Suc n) xi = Active sxii"
+and non_forc:"~ (EX sa saa. rho (round_force rho xi) xi = Active sa & (~ forc sa) & rho (Suc (round_force rho xi)) xi = Active saa & forc saa)"
+and commS:"HOcommSchedule (k_mod.SyncMod_HOMachine k) (Schedule rho)"
+and "Suc (n-2) = n-1"
+and "Suc (n-3) = n-2"
+shows "x sxii = Suc (x sxiii) mod k"
+proof -
+    from rd have rd3:"ALL p. round_force rho p < n - 3"
+        by (metis One_nat_def Suc_diff_Suc Suc_lessD add_Suc assms(4) numeral_3_eq_3 numeral_Bit0 one_add_one plus_1_eq_Suc trans_less_add2)
+    hence rd2:"ALL p. round_force rho p < n - 2"
+        by (metis One_nat_def Suc_diff_Suc Suc_lessD add_Suc assms(4) numeral_3_eq_3 numeral_Bit0 one_add_one plus_1_eq_Suc trans_less_add2)
+    hence rd1:"ALL p. round_force rho p < n - 1"
+        by (metis One_nat_def Suc_diff_Suc Suc_lessD add_Suc assms(4) numeral_Bit0 one_add_one plus_1_eq_Suc trans_less_add2)
+    hence rd0:"ALL p. round_force rho p < n"
+        by (metis add_Suc add_diff_inverse_nat assms(4) not_less_eq numeral_Bit0 one_add_one trans_less_add2)
+    have "k_mod.SyncMod_nextState k xi sxiii (HOrcvdMsgs ?A xi (HO (Suc n) xi) (rho n)) sxii"
+        (is "k_mod.SyncMod_nextState k xi sxiii ?msgs sxii")
+        using transition[of rho n xi sxiii sxii] run assms by auto
+    hence "~ k_mod.ready_force k ?msgs sxiii" using run nonForceAgain[of rho xi n k HO sxiii sxii] `k > 2` sxiii sxii rd0 by auto
+    hence "forc sxiii |
+        (EX p. ?msgs p = Content (Val (k-1))) |
+        (ALL p q v1 v2. ?msgs p = Content (Val v1) --> ?msgs q = Content (Val v2) --> v1 = v2)"
+        using k_mod.ready_force_def[of k ?msgs sxiii] by auto
+    thus ?thesis
+    proof
+        assume "forc sxiii"
+        thus ?thesis using neverForce[of rho xi k HO sxiii] run non_forc sxiii by auto
+    next
+        assume "(EX p. ?msgs p = Content (Val (k-1))) |
+            (ALL p q v1 v2. ?msgs p = Content (Val v1) --> ?msgs q = Content (Val v2) --> v1 = v2)"
+        thus ?thesis 
+        proof
+            assume "EX p. ?msgs p = Content (Val (k-1))"
+            then obtain p where "?msgs p = Content (Val (k-1))" by auto
+            hence "x sxii = 0" using A7[of k rho HO n xi sxiii sxii p] assms sxii sxiii using rd0 by auto
+            obtain sp spp where sp:"rho (n-1) p = Active sp" and spp:"rho n p = Active spp" and "x spp = k - 1"
+                using sending[of k rho HO xi "n-1" p "k-1"] assms `?msgs p = Content (Val (k-1))` by auto
+            hence "x spp = Suc (x ss) mod k"
+                using A5[of HO xi k rho "n-2" ss p sp spp] assms rd1
+                by auto
+            thus ?thesis
+            proof (cases "x sxiii = 0")
+                case False
+                hence "x sxiii = Suc (x ss) mod k"
+                    using A5[of HO xi k rho "n-2" ss xi ss sxiii] assms rd1 sxiii ss by auto
+                hence "x sxiii = k-1" using `x spp = k-1` `x spp = Suc (x ss) mod k` by auto
+                thus ?thesis using `x sxii = 0` by (metis Suc_diff_1 assms(3) less_Suc_eq_0_disj less_imp_Suc_add mod_self)
+            next
+                case True
+                have "k-1 = Suc (x ss) mod k"
+                    using A5[of HO xi k rho "n-2" ss p sp spp] assms `x spp = k-1` spp sp ss rd1 by auto
+                moreover have "x ss < k" using transition assms ss by auto
+                ultimately have "x ss = k - 2" using `k > 2`
+                    by (metis Suc_lessI add_lessD1 diff_Suc_1 diff_diff_left less_numeral_extra(3) mod_less mod_self one_add_one zero_less_diff)
+                have "ALL q. HOrcvdMsgs ?A xi (HO n xi) (rho (n-1)) q ~= Content (Val (k-1))" (is "ALL q. ?msgx q ~= _")
+                proof (rule+)
+                    fix q
+                    assume "?msgx q = Content (Val (k-1))"
+                    then obtain sq sqq where sq:"rho (n-2) q = Active sq" and sqq:"rho (n-1) q = Active sqq" and "x sqq = k-1"
+                        using sending[of k rho HO xi "n-2" q "k-1"] assms by auto
+                    hence "x sqq = Suc (x sxs) mod k"
+                        using assms A5[of HO xi k rho "n-3" sxs q sq sqq] sxs rd2 by auto
+                    
+                    hence "x sxs < k" using assms transition[of rho "n-3" xi sxx sxs k HO] sxs by auto
+                    hence "x sxs = k-2" using `x sqq = Suc (x sxs) mod k` `x sqq = k-1`
+                        by (smt Suc_1 Suc_inject assms(3) diff_Suc_Suc mod_Suc mod_if nat.simps(3)
+                        nat_less_le ordered_cancel_comm_monoid_diff_class.add_diff_assoc plus_1_eq_Suc)
+                    let ?msg1 = "%p. HOrcvdMsgs ?A xi (HO (Suc (n-2)) xi) (rho (n-2)) p"
+                    have "?msg1 xi = Content (Val (k-2))" 
+                        using sending_rec[of xi HO "n-2" xi k rho sxs] assms `x sxs = k-2`
+                        by (metis `x sxs < k` k_mod.xi_nek_def)
+                    hence "ALL v. k_mod.concordant ?msg1 v --> v = k-2" using k_mod.concordant_def[of ?msg1] by auto
+                    have nxt:"k_mod.SyncMod_nextState k xi sxs ?msg1 ss"
+                        using transition[of rho "n-2" xi sxs ss k] assms by auto
+                    moreover have "~ k_mod.ready_force k ?msg1 sxs"
+                        using rd2 nonForceAgain[of rho xi "n-2" k HO sxs ss] assms by auto
+                    ultimately have "EX v. k_mod.concordant ?msg1 v"
+                        using assms k_mod.SyncMod_nextState_def[of k xi sxs ?msg1 ss] `x ss = k-2`
+                        apply (smt less_numeral_extra(3) zero_less_diff) done
+                    hence "k_mod.concordant ?msg1 (SOME v. k_mod.concordant ?msg1 v)" using someI_ex[of "%v. k_mod.concordant ?msg1 v"] by auto
+                    hence "(SOME v. k_mod.concordant ?msg1 v) = k-2" using k_mod.concordant_def[of ?msg1] `?msg1 xi = Content (Val (k-2))` by auto
+                    hence "x ss = Suc (k-2) mod k"
+                        using assms k_mod.SyncMod_nextState_def[of k xi sxs ?msg1 ss] `x ss = k-2` nxt `~ k_mod.ready_force k ?msg1 sxs` by auto
+                    thus "False" using `x ss = k-2` `k > 2` by fastforce
+                qed
+
+
+
+                                            
 lemma SyncMod_liveness : assumes "k_mod.xi_nek HO xi"
 and run:"HORun (HOMachine_to_Algorithm (k_mod.SyncMod_HOMachine k)) rho HO" (is "HORun ?A _ _")
 and "k > 2"
@@ -499,108 +597,5 @@ proof -
                         thus "rho (?n + 0) xi = Active sxii --> x sxii = (x sxi + 0) mod k" using `rho ?n xi = Active sxi` by auto
                     next
                         case (Suc ii)
-                        show "rho (?n + (Suc ii)) xi = Active sxii --> x sxii = (x sxi + (Suc ii)) mod k"
-                        proof
-                            assume sxii:"rho (?n + Suc ii) xi = Active sxii"
-                            moreover obtain sxiii where sxiii:"rho (?n+ii) xi = Active sxiii" 
-                                using nonAsleepAgain[of rho ?n xi _ _ _ ii] run HORun_def `rho ?n xi = Active sxi`
-                                by fastforce
-                            ultimately have "k_mod.SyncMod_nextState k xi sxiii (HOrcvdMsgs ?A xi (HO (?n + Suc ii) xi) (rho (?n + ii))) sxii"
-                                (is "k_mod.SyncMod_nextState k xi sxiii ?msgs sxii")
-                                using transition[of rho "?n+ii" xi sxiii sxii] run assms(3) by auto
                             have rd_forc:"ALL p. round_force rho p <= Sum ((round_force rho) ` UNIV)"
                                 by (meson finite_UNIV finite_imageI le0 range_eqI sum_nonneg_leq_bound)
-                            hence "?n + ii > round_force rho xi" by (metis Suc_lessD add.commute add_less_le_mono less_add_Suc1 plus_1_eq_Suc trans_less_add2)
-                            hence "~ k_mod.ready_force k ?msgs sxiii" using run nonForceAgain[of rho xi "?n+ii" k HO sxiii sxii] `k > 2` sxiii sxii by auto
-                            hence "forc sxiii |
-                                (EX p. ?msgs p = Content (Val (k-1))) |
-                                (ALL p q v1 v2. ?msgs p = Content (Val v1) --> ?msgs q = Content (Val v2) --> v1 = v2)"
-                                using k_mod.ready_force_def[of k ?msgs sxiii] by auto
-                            thus "x sxii = (x sxi + (Suc ii)) mod k"
-                            proof
-                                assume "forc sxiii"
-                                thus ?thesis using neverForce[of rho xi k HO sxiii] run
-                                ` ~ (EX sa saa. rho ?txi xi = Active sa & (~ forc sa) & rho (Suc ?txi) xi = Active saa & forc saa)` sxiii by auto
-                            next
-                                assume "(EX p. ?msgs p = Content (Val (k-1))) |
-                                    (ALL p q v1 v2. ?msgs p = Content (Val v1) --> ?msgs q = Content (Val v2) --> v1 = v2)"
-                                thus ?thesis 
-                                proof
-                                    assume "EX p. ?msgs p = Content (Val (k-1))"
-                                    then obtain p where "?msgs p = Content (Val (k-1))" by auto
-                                    hence "x sxii = 0" using A7[of k rho HO "?n+ii" xi sxiii sxii p] assms sxii sxiii 
-                                        using `round_force rho xi < Suc (Suc (Suc (Suc n))) + Sum (range (round_force rho)) + ii` by auto
-                                    obtain sp spp where sp:"rho (?n+ii-1) p = Active sp" and spp:"rho (?n+ii) p = Active spp" and "x spp = k - 1"
-                                        using sending[of k rho HO xi "?n+ii-1" p "k-1"] run `?msgs p = Content (Val (k-1))` by auto
-                                    moreover have non_asl:"rho (n + Sum (range (round_force rho)) + ii) xi ~= Aslept"
-                                        using run HORun_def nonAsleepAgain[of rho n xi ?A HO _ "Sum (range (round_force rho)) + ii"] `ALL p. rho n p ~= Aslept`
-                                        by (metis add.assoc proc_state.distinct(1))
-                                    hence non_asl_minus_4:"rho (?n + ii - 4) xi ~= Aslept" by simp
-                                    hence non_asl_minus_3:"rho (?n + ii - 3) xi ~= Aslept" using nonAsleepAgain[of rho "?n+ii-4" xi _ _ _ 1] run HORun_def by fastforce
-                                    hence non_asl_minus_2:"rho (?n + ii - 2) xi ~= Aslept" using nonAsleepAgain[of rho "?n+ii-3" xi _ _ _ 1] run HORun_def by fastforce
-                                    moreover from this obtain ss where ss:"rho (?n + ii - 1) xi = Active ss"
-                                        using run HORun_def nonAsleepAgain[of rho "?n+ii-2" xi ?A HO _ 1] by fastforce
-                                    moreover have rd_forc4:"ALL p. round_force rho p < Suc (Suc (Suc (Suc (Suc n)))) + Sum (range (round_force rho)) + ii - 4"
-                                    proof 
-                                        fix p
-                                        from rd_forc have "round_force rho p <  Sum (range (round_force rho)) + 1" using Suc_le_eq by fastforce
-                                        moreover have " Sum (range (round_force rho)) + (Suc (Suc (Suc (Suc (Suc n))))) + ii - 4 =
-                                                        Suc (Suc (Suc (Suc (Suc n)))) + Sum (range (round_force rho)) + ii - 4" by simp
-                                        ultimately show "round_force rho p < Suc (Suc (Suc (Suc (Suc n)))) + Sum (range (round_force rho)) + ii - 4" by simp
-                                    qed
-                                    moreover have " Suc (Suc (Suc (Suc (Suc n)))) + Sum (range (round_force rho)) + ii - 4 <=
-                                                    Suc (Suc (Suc (Suc (Suc n)))) + Sum (range (round_force rho)) + ii - 3" by auto
-                                    ultimately have rd_forc3:"ALL p. round_force rho p < Suc (Suc (Suc (Suc (Suc n)))) + Sum (range (round_force rho)) + ii - 3"
-                                        by (metis le_add_diff_inverse2 trans_less_add2)
-                                    moreover have " Suc (Suc (Suc (Suc (Suc n)))) + Sum (range (round_force rho)) + ii - 3 <=
-                                                    Suc (Suc (Suc (Suc (Suc n)))) + Sum (range (round_force rho)) + ii - 2" by auto
-                                    ultimately have rd_forc2:"ALL p. round_force rho p < Suc (Suc (Suc (Suc (Suc n)))) + Sum (range (round_force rho)) + ii - 2"
-                                        by (metis le_add_diff_inverse2 trans_less_add2)
-                                    have "x spp = Suc (x ss) mod k"
-                                        using A5[of HO xi k rho "?n + ii - 2" ss p sp spp] assms ss non_asl_minus_2 rd_forc2
-                                        by (smt Suc_diff_Suc `x spp = k - 1` add_Suc add_lessD1 diff_Suc_1 diff_Suc_Suc nat.simps(3) one_add_one plus_1_eq_Suc sp spp)
-                                    thus ?thesis
-                                    proof (cases "x sxiii = 0")
-                                        case False
-                                        hence "x sxiii = Suc (x ss) mod k"
-                                            using A5[of HO xi k rho "?n + ii - 2" ss xi ss sxiii] assms rd_forc2 sxiii ss non_asl_minus_2 by auto
-                                        hence "x sxiii = k-1" using `x spp = k-1` `x spp = Suc (x ss) mod k` by auto
-                                        hence "k-1 = (x sxi + ii) mod k" using Suc.IH[of sxiii] sxiii by auto
-                                        thus ?thesis
-                                            using `x sxii = 0` by (metis Suc_diff_1 add_Suc_right assms(3) less_Suc_eq_0_disj less_imp_Suc_add mod_Suc_eq mod_self)
-                                    next
-                                        case True
-                                        have "k-1 = Suc (x ss) mod k"
-                                            using A5[of HO xi k rho "?n+ii-2" ss p sp spp] assms `x spp = k-1` spp sp ss non_asl_minus_2 rd_forc2 by auto
-                                        moreover obtain sxs where sxs:"rho (?n+ii-2) xi = Active sxs" using non_asl_minus_2 by (cases "rho (?n+ii-2) xi") auto
-                                        hence "x ss < k" using transition assms ss by auto
-                                        ultimately have "x ss = k - 2" using `k > 2`
-                                            by (metis Suc_lessI add_lessD1 diff_Suc_1 diff_diff_left less_numeral_extra(3) mod_less mod_self one_add_one zero_less_diff)
-                                        have "ALL q. HOrcvdMsgs ?A xi (HO (?n+ii) xi) (rho (?n+ii-1)) q ~= Content (Val (k-1))" (is "ALL q. ?msgx q ~= _")
-                                        proof (rule+)
-                                            fix q
-                                            assume "?msgx q = Content (Val (k-1))"
-                                            then obtain sq sqq where sq:"rho (?n+ii-2) q = Active sq" and sqq:"rho (?n+ii-1) q = Active sqq" and "x sqq = k-1"
-                                                using sending[of k rho HO xi "?n+ii-2" q "k-1"] assms by auto
-                                            hence "x sqq = Suc (x sxs) mod k"
-                                                using assms A5[of HO xi k rho "?n+ii-3" sxs q sq sqq] sxs rd_forc3 non_asl_minus_3 by auto
-                                            
-                                            from non_asl_minus_3 obtain sxx where "rho (?n+ii-3) xi = Active sxx" by (cases "rho (?n+ii-3) xi") auto
-                                            hence "x sxs < k" using assms transition[of rho "?n+ii-3" xi sxx sxs k HO] sxs by auto
-                                            hence "x sxs = k-2" using `x sqq = Suc (x sxs) mod k` `x sqq = k-1`
-                                                by (smt Suc_1 Suc_inject assms(3) diff_Suc_Suc mod_Suc mod_if nat.simps(3)
-                                                nat_less_le ordered_cancel_comm_monoid_diff_class.add_diff_assoc plus_1_eq_Suc)
-                                            hence "HOrcvdMsgs ?A xi (HO (?n+ii-1) xi) (rho (?n+ii-2)) xi = Content (Val (k-2))" (is "?msg1 xi = _")
-                                                using sending_rec[of xi HO "?n+ii-2" xi k rho sxs] assms
-                                                by (metis HOrcvdMsgs_def `x sxs < k` k_mod.xi_nek_def sxs)
-                                            hence nxt:"k_mod.SyncMod_nextState k xi sxs ?msg1 ss" using transition[of rho "?n+ii-2" xi sxs ss k] assms sxs ss by 
-                                            moreover have "~ k_mod.ready_force k ?msgq sq"
-                                                using rd_forccc nonForceAgain[of rho q "?n+ii-2" k HO sq sqq] assms sq sqq by auto
-                                            ultimately have "EX v. k_mod.concordant ?msgq v" 
-                                                using assms `x sqq = k-1` k_mod.SyncMod_nextState_def[of k q sq ?msgq sqq] 
-                                                by (smt diff_Suc_Suc nat.simps(3) nat_less_le one_add_one
-                                                ordered_cancel_comm_monoid_diff_class.add_diff_assoc plus_1_eq_Suc)
-                                            moreover from this have  "x sqq = Suc (SOME v. k_mod.concordant ?msgq v) mod k"
-                                                using assms `x sqq = k-1` k_mod.SyncMod_nextState_def[of k q sq ?msgq sqq] `~ k_mod.ready_force k ?msgq sq` nxt
-                                                by auto
-                                            ultimately have "k-1 = Suc vq mod k" using `x sqq = k - 1` someI_ex by 
