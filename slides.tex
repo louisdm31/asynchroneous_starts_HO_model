@@ -1,0 +1,62 @@
+\documentclass{beamer}
+\usepackage[utf8]{inputenc}
+\usepackage{amsmath}
+\usepackage[noend]{sources-Heard-Of/distribalgo}
+\usepackage{algorithm}
+\usepackage{amssymb}
+\usepackage{listings}
+\usepackage{amsthm}
+\usepackage{dsfont}
+\usepackage{stmaryrd}
+
+
+\title{Vérification et preuve formelle dans le modèle Heard-Of}
+\date{8 septembre 2020}
+\author{Louis Penet de Monterno - stage encadré par Bernadette Charron-Bost}
+
+\begin{document}
+
+\frame{\titlepage}
+
+\begin{frame}
+\frametitle{Algorithme One-Third rule}
+
+Hello !
+
+\begin{algorithm}[htb]
+\begin{distribalgo}[1]
+\BLANK
+\INDENT{\textbf{Initialisation:}}
+	\STATE $x_p := v_p$ \COMMENT{  $v_p$ est la valeur initiale de $p$ }
+	\STATE $dec_p := \bot$ 
+\ENDINDENT
+
+\BLANK
+
+\INDENT{\textbf{Round $r$:}}
+	\INDENT{$S_p:$}
+		\STATE envoyer $\langle x_p \rangle$ à tous les processus
+	\ENDINDENT
+	\BLANK
+	\INDENT{$T_p(M):$}
+		\IF{$|Sup(M)| > 2 n/3 $}
+			\STATE $x_p := min \{\widetilde{M}^{-1} (max \widetilde{M})\}$ \COMMENT{la valeur minimale parmi les $x$ les plus fréquents reçus des processus actifs}
+			\IF{$\widetilde{M}(x_p) > 2 n/3$} 
+				\STATE $dec_p := x_p$ \COMMENT{plus de $2 n/3$ des valeurs reçues valent $x_p$}
+			\ENDIF
+		\ENDIF
+	\ENDINDENT
+\ENDINDENT \BLANK
+
+
+\caption{L'algorithme {\em One-Third rule}} \label{algo:R}
+\end{distribalgo}
+
+\end{algorithm}
+
+
+\end{frame}
+
+
+
+\end{document}
