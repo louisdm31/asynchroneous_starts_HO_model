@@ -43,77 +43,48 @@ On définit les prédicats :
 	\item $P_{S-unif-\infty} \equiv$ il existe infiniment souvent un sous-ensemble dont les membres s'entendent mutuellement exclusivement.
 	\item $P_{supermaj-\infty} \equiv$ chaque processus entend infiniment souvent une supermajorité de voisins entrants.
 \end{itemize}
-On obtient alors :
-\begin{theorem}
-	L'algorithme "One-Third rule" résout  le consensus lorsque les processus connaissent la taille du réseau,
+On obtient alors le résultat suivant :
+
+	\textbf{Théorème : } L'algorithme "One-Third rule" résout  le consensus lorsque les processus connaissent la taille du réseau,
 	et lorsque les prédicats $P_{S-unif-\infty}$ et $P_{supermaj-\infty}$ sont vérifiés.
-\end{theorem}}
+}
 \end{frame}
 
 \begin{frame}
 \frametitle{Algorithmes de consensus}
 Algorithmes de consensus connus :
 	\begin{itemize}
-		\item{\makebox[7cm][l]{Algorithme "One Third rule"} Benchi, Launay, Guidec (2015)}
-		\item{\makebox[7cm][l]{Algorithme "Uniform Voting"} Ben-Or (1983)}
-		\item{\makebox[7cm][l]{Algorithme "Last Voting" (Paxos)} Lamport (2001)}
+		\item{\makebox[6cm][l]{Algorithme "One Third rule"} \scriptsize{Benchi, Launay, Guidec (2015)}}
+		\item{\makebox[6cm][l]{Algorithme "Uniform Voting"} \scriptsize{Ben-Or (1983)}}
+		\item{\makebox[6cm][l]{Algorithme "Last Voting" (Paxos)} \scriptsize{Lamport (2001)}}
 	\end{itemize}
 \end{frame}
 
 \begin{frame}
-\frametitle{Algorithme Uniforme Voting}
-\begin{algorithm}[H]
-\tiny{
-\begin{distribalgo}[1]
-\begin{tabular}{ll}
-\begin{minipage}{33em}
-\INDENT{\textbf{Initialisation:}}
-	\STATE $x_p := v_p$ ~~~~~~~~\{\emph{\tiny $v_p$ est la valeur initiale $p$}\}
-	\STATE $vote_p \in V\cup\{ ? \}$, initialement $?$
-
-\ENDINDENT
-\INDENT{\textbf{Round $2r$:}}
-	\INDENT{$S_p:$}
-		\STATE envoyer $\langle x_p , vote_p \rangle$ à tous les processus
-	\ENDINDENT
-	\INDENT{$T_p:$}
-		\IF{$M(q) = \langle v, v \rangle$}
-			\STATE $x_p:= v$ ~~~~~~~~\{\tiny un vote reçu\}
-		\ELSE
-			\STATE $x_p :=$ smallest  $w$ from  $\langle w , ? \rangle$ received
-		\ENDIF
-		\IF{$M(\Pi) = \{ \langle v, v \rangle \}$}
-			\STATE $DECIDE(v)$ ~~~~~~~~\{\tiny $p$ ne reçoit que des votes identiques\}
-		\ENDIF
-		\STATE $vote_p :=\ ?$
-	\ENDINDENT
-\ENDINDENT
-\INDENT{\textbf{Round $2r+1$:}}
-	\INDENT{$S_p:$}
-		\STATE envoyer $\langle x_p \rangle$ à tous les processus
-	\ENDINDENT
-	\INDENT{$T_p:$}
-		\STATE $ x_p := min M(\Pi) \setminus \{nil\}$ ~~~~~~~~\{\tiny plus petites valeur reçue\}
-		\IF{$M(\Pi) = \{v\}$}
-			\STATE $vote_p := v$ ~~~~~~~~\{\tiny toute les valeurs reçues identiques, aucun nil\}
-		\ENDIF
-	\ENDINDENT
-\ENDINDENT
-\end{minipage}
-\end{tabular}
-\caption{L'algorithme {\em Uniforme Voting}}
-\label{unifvotfig}
-\end{distribalgo}
-}
-\end{algorithm}
+\frametitle{Problème de synchronisation modulo $k$}
+	\begin{description}
+		\item[Sûreté : ] Les processus faisant feu le font lors de rounds qui sont congrus modulo $k$. 
+		\item[Vivacité : ] Tous processus qui s'active en temps fini, fait feu en temps fini. 
+	\end{description}
 \end{frame}
 
 \begin{frame}
-\frametitle{Algorithme Uniforme Voting}
-\begin{theorem}
-	L'algorithme "Uniforme Voting" exécuté en série à la suite de l'algorithme "SyncMod" avec $k = 4$
-	résout le consensus lorsque les prédicats $\mathcal{P}_{\xi-nek}$ et $\mathcal{P}_{non-inf}$ sont vérifiés.
-\end{theorem}
+\frametitle{Algorithme SyncMod}
+	Deuxième contribution de ce stage : 
+	\begin{itemize}
+		\item Identification du problème de synchronisation modulo $k$.
+		\item Construction de l'algorithme SyncMod.
+		\item Preuve de correction de l'algorithme SyncMod, également vérifiée par Isabelle.
+	\end{itemize}
+\end{frame}
+
+
+\begin{frame}
+\frametitle{Algorithme de Coulouma\-Godard}
+\end{frame}
+
+\begin{frame}
+\frametitle{Conclusion}
 \end{frame}
 
 \end{document}
