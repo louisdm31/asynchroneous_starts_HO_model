@@ -11,32 +11,10 @@
 
 \title{Vérification et preuve formelle dans le modèle Heard-Of}
 \date{8 septembre 2020}
-\author{Louis Penet de Monterno - stage encadré par Bernadette Charron-Bost}
+\author{Louis Penet de Monterno \linebreak \scriptsize{stage encadré par Bernadette Charron-Bost}}
+\institute{LIX}
 
 \begin{document}
-
-\frame{\titlepage}
-
-\begin{frame}
-\frametitle{Notations}
-\begin{itemize}
-	\item $\Pi$ désigne l'ensemble des processus.
-	\item $n$ désigne le nombre de processus.
-	\item $HO(p, r)$ désigne l'ensemble des processus ayant pus communiquer avec $p$ au round $r$.
-	\item $\mathds{G}_r$ désigne le graphe de communication au round $r$.
-	\item $\mathcal{A}_r$ désigne l'ensemble des processus actifs au round $r$.
-\end{itemize}
-\end{frame}
-
-\begin{frame}
-\frametitle{Quelques prédicats}
-\begin{itemize}
-\item $\mathcal{P}_{complet} \equiv \forall r \in \mathds{N}, \forall p \in \Pi, HO(p, r) = \Pi$
-\item $\mathcal{P}_{\xi-nek} \equiv \exists \xi \in \Pi, \forall r \in \mathds{N}, \forall p \in \Pi, \xi \in HO(p,r)$
-\item $\mathcal{P}_{nek} \equiv \forall r \in \mathds{N}, \exists \xi \in \Pi, \forall p \in \Pi, \xi \in HO(p,r)$
-\item $\mathcal{P}_{non-inf} \equiv \exists r \in \mathds{N}, \mathcal{A}_r = \Pi$
-\end{itemize}
-\end{frame}
 
 \begin{frame}
 \frametitle{Problème du consensus}
@@ -44,42 +22,22 @@
 	\item[Intégrité :] La valeur décidée par chaque processus est l'une des valeurs initiales.
 	\item[Accord :] Tous les processus décident la même valeur.
 	\item[Terminaison :] Tous les processus décident en temps fini.
+	\item[Irrévocabilité :] Les décisions ne sont jamais modifiées ni annulées.
 \end{description}
 \end{frame}
 
 \begin{frame}
-\frametitle{Algorithme One-Third rule}
-\begin{algorithm}[H]
-\algsetup{linenosize=\small}
-\scriptsize
-\begin{distribalgo}[1]
-\BLANK
-\INDENT{\textbf{Initialisation:}}
-	\STATE $x_p := v_p$ \COMMENT{  $v_p$ est la valeur initiale de $p$ }
-	\STATE $dec_p := \bot$ 
-\ENDINDENT
-\BLANK
-\INDENT{\textbf{Round $r$:}}
-	\INDENT{$S_p:$}
-		\STATE envoyer $\langle x_p \rangle$ à tous les processus
-	\ENDINDENT
-	\BLANK
-	\INDENT{$T_p(M):$}
-		\IF{$|Sup(M)| > 2 n/3 $}
-			\STATE $x_p := min \{\widetilde{M}^{-1} (max \widetilde{M})\}$ \COMMENT{ \scriptsize valeur minimale parmi les plus fréquentes}
-			\IF{$\widetilde{M}(x_p) > 2 n/3$} 
-				\STATE $dec_p := x_p$ \COMMENT{plus de $2 n/3$ des valeurs reçues valent $x_p$}
-			\ENDIF
-		\ENDIF
-	\ENDINDENT
-\ENDINDENT \BLANK
-\caption{L'algorithme {\em One-Third rule}} \label{algo:R}
-\end{distribalgo}
-\end{algorithm}
+\frametitle{Modèle Heard-Of}
 \end{frame}
 
 \begin{frame}
 \frametitle{Algorithme One-Third rule}
+Première contribution de ce stage :
+\begin{itemize}
+	\item L'algorithme "One-Third rule" résout le consensus même lorsque les départs sont asynchrones.
+	\item La preuve a été vérifiée par Isabelle.
+\end{itemize}
+\tiny{
 On définit les prédicats :
 \begin{itemize}
 	\item $P_{S-unif-\infty} \equiv$ il existe infiniment souvent un sous-ensemble dont les membres s'entendent mutuellement exclusivement.
@@ -89,7 +47,17 @@ On obtient alors :
 \begin{theorem}
 	L'algorithme "One-Third rule" résout  le consensus lorsque les processus connaissent la taille du réseau,
 	et lorsque les prédicats $P_{S-unif-\infty}$ et $P_{supermaj-\infty}$ sont vérifiés.
-\end{theorem}
+\end{theorem}}
+\end{frame}
+
+\begin{frame}
+\frametitle{Algorithmes de consensus}
+Algorithmes de consensus connus :
+	\begin{itemize}
+		\item{\makebox[7cm][l]{Algorithme "One Third rule"} Benchi, Launay, Guidec (2015)}
+		\item{\makebox[7cm][l]{Algorithme "Uniform Voting"} Ben-Or (1983)}
+		\item{\makebox[7cm][l]{Algorithme "Last Voting" (Paxos)} Lamport (2001)}
+	\end{itemize}
 \end{frame}
 
 \begin{frame}
@@ -100,114 +68,41 @@ On obtient alors :
 \begin{tabular}{ll}
 \begin{minipage}{33em}
 \INDENT{\textbf{Initialisation:}}
-  \STATE $x_p := v_p$ ~~~~~~~~\{\emph{\tiny $v_p$ est la valeur initiale $p$}\}
-  \STATE $vote_p \in V\cup\{ ? \}$, initialement $?$
-  \STATE $phase_p = true$
+	\STATE $x_p := v_p$ ~~~~~~~~\{\emph{\tiny $v_p$ est la valeur initiale $p$}\}
+	\STATE $vote_p \in V\cup\{ ? \}$, initialement $?$
 
 \ENDINDENT
-\INDENT{\textbf{Round $r$:}}
-	\INDENT{$S_p^r:$}
-		\IF{$phase_p$}
-			\STATE envoyer $\langle x_p , vote_p \rangle$ à tous les processus
-		\ELSE
-			\STATE envoyer $\langle x_p \rangle$ à tous les processus
-			\ENDIF
+\INDENT{\textbf{Round $2r$:}}
+	\INDENT{$S_p:$}
+		\STATE envoyer $\langle x_p , vote_p \rangle$ à tous les processus
 	\ENDINDENT
-	\INDENT{$T_p^r:$}
-		\IF{$phase_p$}
-			\IF{$M(q) = \langle v, v \rangle$}
-				\STATE $x_p:= v$ ~~~~~~~~\{\tiny un vote reçu\}
-			\ELSE
-				\STATE $x_p :=$ smallest  $w$ from  $\langle w , ? \rangle$ received
-			\ENDIF
-			\IF{$M(\Pi) = \{ \langle v, v \rangle \}$}
-				\STATE $DECIDE(v)$ ~~~~~~~~\{\tiny $p$ ne reçoit que des votes identiques\}
-			\ENDIF
-			\STATE $vote_p :=\ ?$
+	\INDENT{$T_p:$}
+		\IF{$M(q) = \langle v, v \rangle$}
+			\STATE $x_p:= v$ ~~~~~~~~\{\tiny un vote reçu\}
 		\ELSE
-			\STATE $ x_p := min M(\Pi) \setminus \{nil\}$ ~~~~~~~~\{\tiny plus petites valeur reçue\}
-			\IF{$M(\Pi) = \{v\}$}
-				\STATE $vote_p := v$ ~~~~~~~~\{\tiny toute les valeurs reçues identiques, aucun nil\}
-			\ENDIF
+			\STATE $x_p :=$ smallest  $w$ from  $\langle w , ? \rangle$ received
 		\ENDIF
-		\STATE $phase_p := \neg phase_p$
+		\IF{$M(\Pi) = \{ \langle v, v \rangle \}$}
+			\STATE $DECIDE(v)$ ~~~~~~~~\{\tiny $p$ ne reçoit que des votes identiques\}
+		\ENDIF
+		\STATE $vote_p :=\ ?$
+	\ENDINDENT
+\ENDINDENT
+\INDENT{\textbf{Round $2r+1$:}}
+	\INDENT{$S_p:$}
+		\STATE envoyer $\langle x_p \rangle$ à tous les processus
+	\ENDINDENT
+	\INDENT{$T_p:$}
+		\STATE $ x_p := min M(\Pi) \setminus \{nil\}$ ~~~~~~~~\{\tiny plus petites valeur reçue\}
+		\IF{$M(\Pi) = \{v\}$}
+			\STATE $vote_p := v$ ~~~~~~~~\{\tiny toute les valeurs reçues identiques, aucun nil\}
+		\ENDIF
 	\ENDINDENT
 \ENDINDENT
 \end{minipage}
 \end{tabular}
 \caption{L'algorithme {\em Uniforme Voting}}
 \label{unifvotfig}
-\end{distribalgo}
-}
-\end{algorithm}
-\end{frame}
-
-\begin{frame}
-\frametitle{Algorithme du Firing-Squad}
-\begin{algorithm}[H]
-\scriptsize{
-\begin{distribalgo}[1]
-\INDENT{\textbf{Initialisation:}}
-	\STATE $x_p \in \mathds{N}$, initialement 0
-\ENDINDENT
-\INDENT{\textbf{Round $r$:}}
-	\INDENT{$S_p:$}
-		\STATE envoyer $\langle x_p \rangle$ à tous les processus
-	\ENDINDENT
-	\BLANK
-	\INDENT{$T_p(M):$}
-		\IF{$nil \in M(\Pi)$}
-			\STATE $x_p := 0$
-		\ELSE
-			\STATE $x_p := 1 + min~M(\Pi)$
-		\ENDIF
-		\IF{$x_p > D$}
-			\STATE $FIRE()$
-		\ENDIF
-	\ENDINDENT
-\ENDINDENT 
-\caption{L'algorithme du {\em Firing-Squad}} \label{algo:R}
-\BLANK
-\end{distribalgo}
-}
-\end{algorithm}
-\end{frame}
-
-\begin{frame}
-\frametitle{Algorithme SyncMod}
-\begin{algorithm}[H]
-\tiny{
-\begin{distribalgo}[1]
-\INDENT{\textbf{Initialisation:}}
-	\STATE $x_p \in \mathds{Z}/k\mathds{Z}$
-	\STATE $try_p = true$
-	\STATE $fire_p = false$
-	\STATE $started_p = false$
-\ENDINDENT 
-\INDENT{\textbf{Round $r$:}}
-	\INDENT{$S_p:$}
-		\IF{$started_p$}
-			\STATE envoyer $\langle x_p \rangle$ à tous les processus
-		\ELSE
-			\STATE envoyer $\bot$ à tous les processus
-		\ENDIF
-	\ENDINDENT
-	\INDENT{$T_p(M):$}
-		\STATE $started_p = true$
-		\IF{$M(\Pi) = \{k\}$}
-			\STATE $fire_p = true$ ~~~~\COMMENT{\tiny tous les messages reçus valent $k$, aucun $nil$, l'algorithme fait feu}
-		\ENDIF
-		\IF{$M(\Pi) \setminus \{nil, \bot\} = \{v\}$}
-			\STATE $x_p = v+1~mod~k$ ~~~~\COMMENT{\tiny si tous les messages ont la même valeur, s'aligner}
-		\ELSIF{$try_p \wedge k \notin M(\Pi)$}
-			\STATE $try_p = false$ ~~~~\COMMENT{\tiny si plusieurs messages discordants, faire tentative de synchronisation forcée}
-			\STATE $x_p = k$
-		\ELSE
-			\STATE $x_p = 1$ ~~~~\COMMENT{\tiny si un k a été reçu, toujours s'aligner}
-		\ENDIF
-	\ENDINDENT
-\ENDINDENT 
-\caption{L'algorithme {\em SyncMod}} \label{algo:R}
 \end{distribalgo}
 }
 \end{algorithm}
