@@ -628,7 +628,7 @@ proof -
             thus ?thesis
             proof (cases "x sxi = 0")
                 case False
-                have "ALL i sxii. rho (?n + i) xi = Active sxii --> x sxii = (x sxi + i) mod k"
+                have escalier:"ALL i sxii. rho (?n + i) xi = Active sxii --> x sxii = (x sxi + i) mod k"
                 proof (rule allI)+
                     fix i sxii
                     show "rho (?n + i) xi = Active sxii --> x sxii = (x sxi + i) mod k"
@@ -680,4 +680,16 @@ proof -
                         qed
                     qed
                 qed
+                obtain sxx where "rho (?n-1) xi = Active sxx" 
+                    using nonAsleepAgain[of rho n xi _ _ _ "Suc (Suc (Suc (Suc (Suc (Sum (range (round_force rho)))))))-1"]
+                    run HORun_def add_diff_assoc[of 1 "Suc (Suc (Suc (Suc (Suc (Sum (range (round_force rho)))))))" n] `ALL p. rho n p ~= Aslept`
+                    by (smt add_Suc add_Suc_shift diff_Suc_1)
+                hence "k-1 >= x sxi"
+                    using transition[of rho "?n-1" xi sxx sxi k] assms `rho ?n xi = Active sxi` by fastforce
+                obtain s where "rho (?n+(k-1-x sxi)) xi = Active s"
+                    using nonAsleepAgain[of rho ?n xi _ _ _ "k-1-x sxi"] run HORun_def `rho ?n xi = Active sxi` by fastforce
+
+                hence "x s = (x sxi + (k-1-x sxi)) mod k" using escalier by auto
+                hence "x s = k - 1" using `k - 1 >= x sxi` by (simp add: add_diff_inverse_nat nat_diff_split)
+                thus ?thesis using A4[of HO xi k rho "?n+(k-1-x sxi)" s] assms `rho (?n+(k-1-x sxi)) xi = Active s` by auto
             next
