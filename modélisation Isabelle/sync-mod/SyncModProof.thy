@@ -625,71 +625,70 @@ proof -
             thus ?thesis using A6[of HO xi k rho ?n sxi] assms `rho ?n xi = Active sxi` by (metis mod_if)
         next
             case False
-            thus ?thesis
-            proof (cases "x sxi = 0")
-                case False
-                have escalier:"ALL i sxii. rho (?n + i) xi = Active sxii --> x sxii = (x sxi + i) mod k"
-                proof (rule allI)+
-                    fix i sxii
-                    show "rho (?n + i) xi = Active sxii --> x sxii = (x sxi + i) mod k"
-                    proof (induction i arbitrary:sxii)
-                        case 0
-                        obtain sx where "rho (?n-1) xi = Active sx"
-                            using nonAsleepAgain[of rho n xi _ _ _ "Suc (Suc (Suc (Suc (Sum ( (round_force rho) ` UNIV)))))"] run HORun_def `ALL p. rho n p ~= Aslept`
-                            by (smt Nat.add_diff_assoc2 add.commute diff_Suc_1 le_add1 plus_1_eq_Suc)
-                        hence "x sxi < k" using transition[of rho "?n-1" xi sx sxi] run `rho ?n xi = Active sxi` assms(3) by auto
-                        thus "rho (?n + 0) xi = Active sxii --> x sxii = (x sxi + 0) mod k" using `rho ?n xi = Active sxi` by auto
-                    next
-                        case (Suc ii)
-                        show "rho (?n + Suc ii) xi = Active sxii --> x sxii = (x sxi + Suc ii) mod k"
-                        proof 
-                            assume "rho (?n + Suc ii) xi = Active sxii"
-                            hence "rho (Suc ?n + ii) xi = Active sxii" by auto
-                            moreover have "ALL p. round_force rho p < ?n +ii - 4"
-                            proof
-                                fix p
-                                have rd_forc:"round_force rho p <= Sum ((round_force rho) ` UNIV)"
-                                    by (meson finite_UNIV finite_imageI le0 range_eqI sum_nonneg_leq_bound)
-                                hence "round_force rho p <= Sum ((round_force rho) ` UNIV) + ((Suc (Suc (Suc (Suc n)))) + ii - 4)" using trans_le_add1 by blast
-                                moreover have "Suc (Suc (Suc (Suc n))) + ii >= 4" by auto
-                                hence " Sum ((round_force rho) ` UNIV) + ((Suc (Suc (Suc (Suc n)))) + ii - 4) =
-                                        Sum ((round_force rho) ` UNIV) + (Suc (Suc (Suc (Suc n)))) + ii - 4"
-                                    using add_diff_assoc[of 4 "Suc (Suc (Suc (Suc n))) + ii" "Sum (range (round_force rho))"] by fastforce
-                                ultimately have "round_force rho p <= Sum ((round_force rho) ` UNIV) + (Suc (Suc (Suc (Suc n)))) + ii - 4"
-                                    by fastforce
-                                thus "round_force rho p < ?n + ii - 4" by auto
-                            qed
-                            moreover obtain sxx where "rho (n+Suc (Suc (Sum ( (round_force rho) ` UNIV)))+ii) xi = Active sxx"
-                                using nonAsleepAgain[of rho n xi _ _ _ "Suc (Suc (Sum ((round_force rho) ` UNIV)))+ii"] run HORun_def `ALL p. rho n p ~= Aslept`
-                                by (metis add.assoc)
-                            hence "rho (?n+ii-3) xi = Active sxx" by fastforce
-                            moreover from this obtain sxs where "rho (?n+ii-2) xi = Active sxs"
-                                using nonAsleepAgain[of rho "?n+ii-3" xi _ _ _ 1] run HORun_def by fastforce
-                            moreover from this obtain ss where "rho (?n+ii-1) xi = Active ss"
-                                using nonAsleepAgain[of rho "?n+ii-2" xi _ _ _ 1] run HORun_def by fastforce
-                            moreover from this obtain sxiii where "rho (?n+ii) xi = Active sxiii"
-                                using nonAsleepAgain[of rho "?n+ii-1" xi _ _ _ 1] run HORun_def by fastforce
-                            moreover from `rho (?n+ii) xi = Active sxiii` have "x sxiii = (x sxi + ii) mod k" using Suc.IH[of sxiii] by auto
-                            moreover have "Suc (?n + ii - 2) = ?n + ii - 1" by auto
-                            moreover have "Suc (?n + ii - 3) = ?n + ii - 2" by auto
-                            moreover have "?n+ii > 4" by auto
-                            ultimately have "x sxii = Suc (x sxiii) mod k"
-                                using A8[of HO xi k rho "?n+ii" sxx sxs ss sxiii sxii] assms
-                                `~ (EX sa saa. rho ?txi xi = Active sa & (~ forc sa) & rho (Suc ?txi) xi = Active saa & forc saa)` by fastforce
-                            thus "x sxii = (x sxi + Suc ii) mod k" using Suc.IH[of sxiii] `rho (?n+ii) xi = Active sxiii` by presburger
+            have escalier:"ALL i sxii. rho (?n + i) xi = Active sxii --> x sxii = (x sxi + i) mod k"
+            proof (rule allI)+
+                fix i sxii
+                show "rho (?n + i) xi = Active sxii --> x sxii = (x sxi + i) mod k"
+                proof (induction i arbitrary:sxii)
+                    case 0
+                    obtain sx where "rho (?n-1) xi = Active sx"
+                        using nonAsleepAgain[of rho n xi _ _ _ "Suc (Suc (Suc (Suc (Sum ( (round_force rho) ` UNIV)))))"] run HORun_def `ALL p. rho n p ~= Aslept`
+                        by (smt Nat.add_diff_assoc2 add.commute diff_Suc_1 le_add1 plus_1_eq_Suc)
+                    hence "x sxi < k" using transition[of rho "?n-1" xi sx sxi] run `rho ?n xi = Active sxi` assms(3) by auto
+                    thus "rho (?n + 0) xi = Active sxii --> x sxii = (x sxi + 0) mod k" using `rho ?n xi = Active sxi` by auto
+                next
+                    case (Suc ii)
+                    show "rho (?n + Suc ii) xi = Active sxii --> x sxii = (x sxi + Suc ii) mod k"
+                    proof 
+                        assume "rho (?n + Suc ii) xi = Active sxii"
+                        hence "rho (Suc ?n + ii) xi = Active sxii" by auto
+                        moreover have "ALL p. round_force rho p < ?n +ii - 4"
+                        proof
+                            fix p
+                            have rd_forc:"round_force rho p <= Sum ((round_force rho) ` UNIV)"
+                                by (meson finite_UNIV finite_imageI le0 range_eqI sum_nonneg_leq_bound)
+                            hence "round_force rho p <= Sum ((round_force rho) ` UNIV) + ((Suc (Suc (Suc (Suc n)))) + ii - 4)" using trans_le_add1 by blast
+                            moreover have "Suc (Suc (Suc (Suc n))) + ii >= 4" by auto
+                            hence " Sum ((round_force rho) ` UNIV) + ((Suc (Suc (Suc (Suc n)))) + ii - 4) =
+                                    Sum ((round_force rho) ` UNIV) + (Suc (Suc (Suc (Suc n)))) + ii - 4"
+                                using add_diff_assoc[of 4 "Suc (Suc (Suc (Suc n))) + ii" "Sum (range (round_force rho))"] by fastforce
+                            ultimately have "round_force rho p <= Sum ((round_force rho) ` UNIV) + (Suc (Suc (Suc (Suc n)))) + ii - 4"
+                                by fastforce
+                            thus "round_force rho p < ?n + ii - 4" by auto
                         qed
+                        moreover obtain sxx where "rho (n+Suc (Suc (Sum ( (round_force rho) ` UNIV)))+ii) xi = Active sxx"
+                            using nonAsleepAgain[of rho n xi _ _ _ "Suc (Suc (Sum ((round_force rho) ` UNIV)))+ii"] run HORun_def `ALL p. rho n p ~= Aslept`
+                            by (metis add.assoc)
+                        hence "rho (?n+ii-3) xi = Active sxx" by fastforce
+                        moreover from this obtain sxs where "rho (?n+ii-2) xi = Active sxs"
+                            using nonAsleepAgain[of rho "?n+ii-3" xi _ _ _ 1] run HORun_def by fastforce
+                        moreover from this obtain ss where "rho (?n+ii-1) xi = Active ss"
+                            using nonAsleepAgain[of rho "?n+ii-2" xi _ _ _ 1] run HORun_def by fastforce
+                        moreover from this obtain sxiii where "rho (?n+ii) xi = Active sxiii"
+                            using nonAsleepAgain[of rho "?n+ii-1" xi _ _ _ 1] run HORun_def by fastforce
+                        moreover from `rho (?n+ii) xi = Active sxiii` have "x sxiii = (x sxi + ii) mod k" using Suc.IH[of sxiii] by auto
+                        moreover have "Suc (?n + ii - 2) = ?n + ii - 1" by auto
+                        moreover have "Suc (?n + ii - 3) = ?n + ii - 2" by auto
+                        moreover have "?n+ii > 4" by auto
+                        ultimately have "x sxii = Suc (x sxiii) mod k"
+                            using A8[of HO xi k rho "?n+ii" sxx sxs ss sxiii sxii] assms
+                            `~ (EX sa saa. rho ?txi xi = Active sa & (~ forc sa) & rho (Suc ?txi) xi = Active saa & forc saa)` by fastforce
+                        thus "x sxii = (x sxi + Suc ii) mod k" using Suc.IH[of sxiii] `rho (?n+ii) xi = Active sxiii` by presburger
                     qed
                 qed
-                obtain sxx where "rho (?n-1) xi = Active sxx" 
-                    using nonAsleepAgain[of rho n xi _ _ _ "Suc (Suc (Suc (Suc (Suc (Sum (range (round_force rho)))))))-1"]
-                    run HORun_def add_diff_assoc[of 1 "Suc (Suc (Suc (Suc (Suc (Sum (range (round_force rho)))))))" n] `ALL p. rho n p ~= Aslept`
-                    by (smt add_Suc add_Suc_shift diff_Suc_1)
-                hence "k-1 >= x sxi"
-                    using transition[of rho "?n-1" xi sxx sxi k] assms `rho ?n xi = Active sxi` by fastforce
-                obtain s where "rho (?n+(k-1-x sxi)) xi = Active s"
-                    using nonAsleepAgain[of rho ?n xi _ _ _ "k-1-x sxi"] run HORun_def `rho ?n xi = Active sxi` by fastforce
+            qed
+            obtain sxx where "rho (?n-1) xi = Active sxx" 
+                using nonAsleepAgain[of rho n xi _ _ _ "Suc (Suc (Suc (Suc (Suc (Sum (range (round_force rho)))))))-1"]
+                run HORun_def add_diff_assoc[of 1 "Suc (Suc (Suc (Suc (Suc (Sum (range (round_force rho)))))))" n] `ALL p. rho n p ~= Aslept`
+                by (smt add_Suc add_Suc_shift diff_Suc_1)
+            hence "k-1 >= x sxi"
+                using transition[of rho "?n-1" xi sxx sxi k] assms `rho ?n xi = Active sxi` by fastforce
+            obtain s where "rho (?n+(k-1-x sxi)) xi = Active s"
+                using nonAsleepAgain[of rho ?n xi _ _ _ "k-1-x sxi"] run HORun_def `rho ?n xi = Active sxi` by fastforce
 
-                hence "x s = (x sxi + (k-1-x sxi)) mod k" using escalier by auto
-                hence "x s = k - 1" using `k - 1 >= x sxi` by (simp add: add_diff_inverse_nat nat_diff_split)
-                thus ?thesis using A4[of HO xi k rho "?n+(k-1-x sxi)" s] assms `rho (?n+(k-1-x sxi)) xi = Active s` by auto
-            next
+            hence "x s = (x sxi + (k-1-x sxi)) mod k" using escalier by auto
+            hence "x s = k - 1" using `k - 1 >= x sxi` by (simp add: add_diff_inverse_nat nat_diff_split)
+            thus ?thesis using A4[of HO xi k rho "?n+(k-1-x sxi)" s] assms `rho (?n+(k-1-x sxi)) xi = Active s` by auto
+        qed
+    qed
+qed
