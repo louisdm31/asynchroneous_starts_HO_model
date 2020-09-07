@@ -16,75 +16,40 @@
 
 \begin{document}
 
+
 \begin{frame}
-\frametitle{Problème du consensus}
-\begin{description}
-	\item[Intégrité :] La valeur décidée par chaque processus est l'une des valeurs initiales.
-	\item[Accord :] Tous les processus décident la même valeur.
-	\item[Terminaison :] Tous les processus décident en temps fini.
-	\item[Irrévocabilité :] Les décisions ne sont jamais modifiées ni annulées.
-\end{description}
+\frametitle{Algorithme de Coulouma-Godard}
 \end{frame}
 
 \begin{frame}
-\frametitle{Modèle Heard-Of}
+\frametitle{Algorithme de Coulouma-Godard}
 \end{frame}
-
 \begin{frame}
-\frametitle{Algorithme One-Third rule}
-Première contribution de ce stage :
-\begin{itemize}
-	\item L'algorithme "One-Third rule" résout le consensus même lorsque les départs sont asynchrones.
-	\item La preuve a été vérifiée par Isabelle.
-\end{itemize}
-\tiny{
-On définit les prédicats :
-\begin{itemize}
-	\item $P_{S-unif-\infty} \equiv$ il existe infiniment souvent un sous-ensemble dont les membres s'entendent mutuellement exclusivement.
-	\item $P_{supermaj-\infty} \equiv$ chaque processus entend infiniment souvent une supermajorité de voisins entrants.
-\end{itemize}
-On obtient alors le résultat suivant :
-
-	\textbf{Théorème : } L'algorithme "One-Third rule" résout  le consensus lorsque les processus connaissent la taille du réseau,
-	et lorsque les prédicats $P_{S-unif-\infty}$ et $P_{supermaj-\infty}$ sont vérifiés.
-}
+\frametitle{Algorithme de Coulouma-Godard}
 \end{frame}
-
 \begin{frame}
-\frametitle{Algorithmes de consensus}
-Algorithmes de consensus connus :
-	\begin{itemize}
-		\item{\makebox[6cm][l]{Algorithme "One Third rule"} \scriptsize{Benchi, Launay, Guidec (2015)}}
-		\item{\makebox[6cm][l]{Algorithme "Uniform Voting"} \scriptsize{Ben-Or (1983)}}
-		\item{\makebox[6cm][l]{Algorithme "Last Voting" (Paxos)} \scriptsize{Lamport (2001)}}
-	\end{itemize}
+\frametitle{Algorithme de Coulouma-Godard}
 \end{frame}
-
 \begin{frame}
-\frametitle{Problème de synchronisation modulo $k$}
+\frametitle{Algorithme de Coulouma-Godard}
+\end{frame}
+\begin{frame}
+\frametitle{Algorithme de Coulouma-Godard}
+\end{frame}
+\begin{frame}
+\frametitle{Problème du Firing-Squad}
 	\begin{description}
-		\item[Sûreté : ] Les processus faisant feu le font lors de rounds qui sont congrus modulo $k$. 
-		\item[Vivacité : ] Tous processus qui s'active en temps fini, fait feu en temps fini. 
+	   \item[Sûreté : ] Les processus font feu au même round.
+	   \item[Vivacité : ] Tous les processus qui s'activent en temps fini, font feu en temps fini. 
 	\end{description}
-\end{frame}
 
+\end{frame}
 \begin{frame}
-\frametitle{Algorithme SyncMod}
-	Deuxième contribution de ce stage : 
+\frametitle{Départs synchrones - départs asynchrones}
+Émergence de deux notions de résolubilité :
 	\begin{itemize}
-		\item Identification du problème de synchronisation modulo $k$.
-		\item Construction de l'algorithme SyncMod.
-		\item Preuve de correction de l'algorithme SyncMod, également vérifiée par Isabelle.
+		\item Résolubilité forte, tolérant les départs asynchrones.
+		\item Résolubilité faible, nécessitant des départs synchrones.
 	\end{itemize}
 \end{frame}
-
-
-\begin{frame}
-\frametitle{Algorithme de Coulouma\-Godard}
-\end{frame}
-
-\begin{frame}
-\frametitle{Conclusion}
-\end{frame}
-
 \end{document}
