@@ -1,0 +1,216 @@
+\documentclass{article}
+\usepackage{amsmath}
+\usepackage[noend]{sources-Heard-Of/distribalgo}
+\usepackage{algorithm}
+\usepackage{amssymb}
+\usepackage{listings}
+\usepackage{amsthm}
+\usepackage{dsfont}
+\usepackage{stmaryrd}
+\usepackage[left=2cm, right=2cm, top=2cm]{geometry}
+\usepackage[utf8]{inputenc}
+
+\usepackage{biblatex}
+\addbibresource{rapport.bib}
+
+\title{Synchronisation modulo $k$ in distributed system}
+\date{August 2020}
+\author{Louis Penet de Monterno - Bernadette Charron-Bost}
+
+\begin{document}
+
+\maketitle
+
+\section{Heard-Of model}
+
+\subsection{Definition of an algorithm}
+
+Let $\Pi$ be a set of cardinality $n$. For each element of $\Pi$, a process is defined by the following entries :
+
+\begin{itemize}
+	\item A non-empty $States_p$ set, and an element $sleep_p \notin States_p$.
+	\item A subset $Init_p \subseteq States_p$.
+	\item A sending function $S_p : States_p \times \Pi \rightarrow \mathcal{M}$.
+	\item A transition function $T_p : States_p \times \mathcal{X}_\Pi^{\mathcal{M}} \rightarrow States_p$,
+		where $\mathcal{X}_\Pi^{\mathcal{M}}$ is the type of a partial function
+		of type $\Pi \rightarrow \mathcal{M} \uplus \{nil\}$.
+\end{itemize}
+
+The elements of $States_p$ are the states of $p$, and those of $Init_p$ are the possible initial values.
+
+\begin{definition}
+	An algorithm is a tuple $(States_p, Init_p, S_p, T_p)$ for each element $p \in \Pi$.
+\end{definition}
+
+
+\subsection{Definition of an execution}
+
+The Heard-Of model is round based. At any round $r$, any active process $p$ run the following steps :
+
+\begin{itemize}
+	\item It emits a messages determined by its current state and the sending function.
+	\item It receives a subset $HO(p,r)$ from the set of messages that were addressed to him
+		\textit{during the same round}.
+	\item It updates its state, according to the transition function, taking into account $HO(p,r)$.
+\end{itemize}
+
+A passive process always emits $nil$, and remains in the $sleep_p$ state.
+It can spontaneously be activated. In that case, its state moves from $sleep_p$ to $\sigma^0_p \in Init_p$.
+The function $HO$ can also be viewed as a series of graph $\mathds{G}_r = (\Pi, E_r)$ where
+
+$$(p, q) \in E_r \Leftrightarrow p \in HO(p, r)$$
+
+The graph $\mathds{G}_r$ represents the possibilities of communications between any pair of process.
+The absence of communication means a failure has occurred, either in the sending process, or in the connection.
+
+An execution of an algorithm $(States_p, Init_p, S_p, T_p)$ is defined by a tuple
+$(\mathds{G}, \mathcal{A}, (\sigma^0_p)_{p \in \Pi})$ where :
+
+\begin{itemize}
+	\item $\mathds{G}$ is a series of communication graph. Since a process should always be able to communicate 
+		with itself, the communication graphs should always contain self-loops.
+	\item $\mathcal{A}$ is the activation schedule. $\mathcal{A}_r$ is the set of active process in round $r$.
+		It must be an increasing series, verifying $\mathcal{A}_0 = \emptyset$.
+	\item $(\sigma^0_p)_{p \in \Pi}$ is the family of initial states for every process.
+\end{itemize}
+
+\textbf{Remarks :}
+
+\begin{itemize}
+	\item With synchronous starts, every process start during the same round : 
+		$$\forall r \in \mathds{N}, \mathcal{A}_r \in \{\emptyset, \Pi\}$$
+
+	\item The knowledge of $\mathcal{A}$ is equivalent to the knowledge of a function
+		$s : \Pi \rightarrow \mathds{N} \cup \{\infty\}$ defined by :
+		$$s(p) = \left \{ \begin{array}{l ll}
+		  \infty & \mbox{ if  } p \notin \bigcup\limits_{r \in \mathds{N}}  \mathcal{A}_r & 
+			  \mbox { ($p$ remains inactive forever) } \\
+		  r  & \mbox{ if  } p \notin \mathcal{A}_{r-1} \mbox{ et } p \in \mathcal{A}_{r}  &
+			  \mbox{ ($p$ is activated in round $r$)}.
+		  \end{array} \right.$$
+
+\end{itemize}
+
+For any given execution $(\mathds{G}, \mathcal{A}, (\sigma^0_p)_{p \in \Pi})$,
+the state $\Gamma_p(r)$ of any process $p$ at any round $r$ can be inductively defined :
+
+\begin{itemize}
+	\item $\forall r \in \mathds{N}, \forall p \in \Pi \setminus \mathcal{A}_{r+1}, \Gamma_p(r) = sleep_p$
+	\item $\forall r \in \mathds{N}, \forall p \in \mathcal{A}_{r+1} \setminus \mathcal{A}_r,
+		\Gamma_p(r) = \sigma^0_p$
+	\item $\forall r \in \mathds{N}, \forall p \in \mathcal{A}_r, \Gamma_p(r+1) = T_p(\Gamma_p(r), M_p^{r+1})$
+		where $M_p^r$ is the \textit{reception function} of $p$ at round $r$.
+		Its type is $\mathcal{X}_\Pi^{\mathcal{M}}$.
+		It is defined by
+			$$ M_p^r(q) = \left \{ \begin{array}{l l}
+	                         nil  & \mbox{ if  } q \in (\Pi \setminus \mathcal{A}_r  ) \cap  HO(p,r)  \\
+	                         S_q (\Gamma_q(r-1), p)  & \mbox{ if  }   q \in \mathcal{A}_r  \cap  HO(p,r) \\
+	                         \mbox{undefined} & \mbox{ if  }   q \notin  HO(p,r) .
+	                          \end{array} \right.$$ 
+\end{itemize}
+
+\subsection{The consensus problem}
+
+This article focuses on the consensus problem. Let $\mathcal{V}$ be a set of values. Each process has an 
+initial value $v_p$. The processes execute an algorithm $A$. At each round, each process holds a decision value
+$Dec_p(r) \in \mathcal{V} \uplus \{\bot\}$. If $Dec_p(r) = v$, the process $p$ is said to have decided $v$
+in round $r$. If $Dec_p(r) = \bot$, the process $p$ is said to not have decided yet.
+
+\begin{definition}
+	An execution verifies integrity if 
+	$$\forall r \in \mathds{N}, \forall p \in \mathcal{A}_r, Dec_p(r) \in \{\bot\} \uplus \{v_q, q \in \Pi\}$$
+\end{definition}
+
+\begin{definition}
+	An execution verifies agreement if 
+	$$\forall r, r' \in \mathds{N}, \forall p \in \mathcal{A}_r, \forall q \in \mathcal{A}_{r'},
+	Dec_p(r) = \bot \vee Dec_q(r') = \bot \vee Dec_p(r) = Dec_q(r') $$
+\end{definition}
+
+\begin{definition}
+	An execution verifies termination if
+	$$ \forall p \in \bigcup\limits_{s \in \mathds{N}} \mathcal{A}_s, \exists r \in \mathds{N}, \ 
+		p \in \mathcal{A}_r \wedge Dec(\Gamma_p(r)) \neq \bot .  $$
+\end{definition}
+
+\begin{definition}
+	An algorithm $A$ solves consensus under the predicates $\mathcal{P}_{\mathcal{G}}$ and $\mathcal{P}_{cal}$
+	if, for any execution $(\mathds{G}, \mathcal{A}, (\sigma^0_p)_{p \in \Pi})$ verifying 
+	$\mathds{G} \models \mathcal{P}_{\mathcal{G}}$ and $\mathcal{A} \models \mathcal{P}_{cal}$
+	verifies also integrity, termination, and agreement.
+\end{definition}
+
+\subsection{The synchronisation problem}
+
+\begin{definition}
+	Let $k > 1$ be a parameter. Let us consider an algorithm $A$ and a subset $S_{fire} \subseteq States_p$
+	such as $S_{fire} \cap Init_p = \emptyset$.
+	For any execution of $A$, the firing function is defined by :
+
+	$$Fire(p) = \left \{
+		\begin{array}{l l}
+		\infty & \mbox{if} \forall r \in \mathds{N}, \Gamma_p(r) \notin S_{fire} \\
+		Min \{r \in \mathds{N}, \Gamma_p(r) \in S_{fire} \wedge \Gamma_p(r-1) \notin S_{fire} & \mbox{otherwise}\}
+		\end{array}
+		$$
+\end{definition}
+
+\begin{definition}
+	A given execution of $A$ satisfies safety relative to synchronisation modulo $k$ problem if :
+	$$\exists c \in \mathds{N}, \forall p \in \bigcup\limits_{i \in \mathds{N}} \mathcal{A}_i,
+	Fire(p) \neq \infty \Rightarrow Fire(p)~mod~k = c$$
+\end{definition}
+
+\begin{definition}
+	A given execution of $A$ satisfies liveness relative to synchronisation modulo $k$ problem if :
+	$$\forall p \in \bigcup\limits_{i \in \mathds{N}} \mathcal{A}_i, Fire(p) \neq \infty$$
+\end{definition}
+
+\section{The SyncMod algorithm}
+
+
+\begin{algorithm}[htb]
+\begin{distribalgo}[1]
+\BLANK \INDENT{\textbf{Initialisation:}}
+	\STATE $x_p \in \mathds{Z}/k\mathds{Z}$
+	\STATE $try_p = true$
+	\STATE $fire_p = false$
+	\STATE $started_p = false$
+
+\ENDINDENT \BLANK
+
+\INDENT{\textbf{Round $r$:}}
+	\INDENT{$S_p:$}
+		\IF{$started_p$}
+			\STATE send $\langle x_p \rangle$ to all processes
+		\ELSE
+			\STATE send $\bot$ to all processes
+		\ENDIF
+	\ENDINDENT
+	\BLANK
+	\INDENT{$T_p(M):$}
+		\STATE $started_p = true$
+		\IF{$M(\Pi) = \{k\}$}
+			\STATE $fire_p = true$ ~~~~\COMMENT{if every received message is $k$, and no $nil$, fire !}
+		\ENDIF
+		\IF{$M(\Pi) \setminus \{nil, \bot\} = \{v\}$}
+			\STATE $x_p = v+1~mod~k$ ~~~~\COMMENT{if received message are concordant, adopt their value}
+		\ELSIF{$try_p \wedge k \notin M(\Pi)$}
+			\STATE $try_p = false$ ~~~~\COMMENT{if received messages are discordant, try a "forced synchronisation"}
+			\STATE $x_p = k$
+		\ELSE
+			\STATE $x_p = 1$ ~~~~\COMMENT{if at least one "$k$" is received, adopt 1}
+		\ENDIF
+	\ENDINDENT
+\ENDINDENT 
+\caption{{\em SyncMod} algorithm} \label{algo:R}
+\end{distribalgo}
+
+\end{algorithm}
+
+\subsection{Notations}
+
+Given $V \subseteq \mathds{Z}/k\mathds{Z}$, the
+
+
+\end{document}
