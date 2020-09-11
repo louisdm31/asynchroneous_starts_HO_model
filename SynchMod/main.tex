@@ -1,402 +1,136 @@
-\documentclass{article}
-\usepackage{amsmath}
-\usepackage[noend]{sources-Heard-Of/distribalgo}
-\usepackage{algorithm}
-\usepackage{amssymb}
-\usepackage{listings}
-\usepackage{amsthm}
-\usepackage{dsfont}
-\usepackage{stmaryrd}
-\usepackage[left=2cm, right=2cm, top=2cm]{geometry}
-\usepackage[utf8]{inputenc}
+\documentclass[11pt,letterpaper]{article}
+\special{papersize=8.5in,11in}
 
-\newtheorem{lemma}{Lemma}[section]
-\newtheorem{theorem}{Theoreme}
-\newtheorem{definition}{Definition}
-\usepackage{biblatex}
-\addbibresource{rapport.bib}
+\usepackage{fullpage}
+%\usepackage{amsaddr}
+\usepackage{amsmath,amssymb,amsthm,dsfont}
+\usepackage{tikz}
+\usetikzlibrary{shapes.symbols,arrows}
 
-\title{Synchronisation modulo $k$ in distributed system}
-\date{August 2020}
-\author{Louis Penet de Monterno - Bernadette Charron-Bost}
+\usetikzlibrary{shapes.symbols,arrows}
+\usepackage{enumerate}
+%\usepackage{fullpage}
+
+\usepackage{algorithm,algorithmic}
+
+\renewcommand{\algorithmicrequire}{\textbf{Initialization:}}
+\renewcommand{\algorithmicensure}{\textbf{In each round $t$ do:}}
+
+\newcommand{\INITIALLY}{\REQUIRE{}}
+\newcommand{\ROUND}{\ENSURE{}}
+
+
+\DeclareMathOperator{\NC}{NC}
+\DeclareMathOperator{\NCL}{NCL}
+\DeclareMathOperator{\lcm}{lcm}
+\DeclareMathOperator{\Rem}{Rem}
+%
+\DeclareMathOperator{\Simp}{Simp}
+\DeclareMathOperator{\Crit}{Crit}
+\DeclareMathOperator{\Extr}{Extr}
+\DeclareMathOperator{\Closed}{Closed}
+\DeclareMathOperator{\Cyc}{Closed}
+\DeclareMathOperator{\Step}{Step}
+\DeclareMathOperator{\Red}{Red}
+\DeclareMathOperator{\Inc}{Inc}
+\DeclareMathOperator{\Start}{Start}
+\DeclareMathOperator{\End}{End}
+\DeclareMathOperator{\Edges}{Edges}
+\DeclareMathOperator{\Sections}{Sections}
+\newcommand{\CDD}{{cd}}
+\newcommand{\EP}{{ep}}
+\newcommand{\CF}{{cr}}
+\newcommand{\nc}{{\mathrm{ nc}}}
+\newcommand{\In}{{\mathrm {In}}}
+\newcommand{\legendre}[2]{\genfrac{(}{)}{}{}{#1}{#2}}
+%\newcommand{\cT}{{ \legendre{c}{T}  }}
+\newcommand{\cT}{{ (c,T)  }}
+\newcommand{\tY}{\tilde{Y}}
+\newcommand{\oY}{\overline{Y}}
+
+\newcommand{\IR}{\mathds{R}}
+\newcommand{\IN}{\mathds{N}}
+\newcommand{\IZ}{\mathds{Z}}
+\newcommand{\IQ}{\mathds{Q}}
+\newcommand{\IC}{\mathds{C}}
+\newcommand{\M}{\mathcal{M}}
+
+\newcommand{\Bcnc}{A^{\Delta}_{\mathrm {c}}}                %
+\newcommand{\Bunu}{\tilde{B}}            %
+\newcommand{\Bms}{\tilde{B}}            %
+\newcommand{\Bep}{A^{\Delta}_\mathrm{e}}                %
+\newcommand{\Benp}{A^{\Delta}_\mathrm{e}}                %
+\newcommand{\Bneone}{A^{\Delta}_\mathrm{r}}                %
+\newcommand{\Bnetwo}{A^{\Delta}_\mathrm{r}^\mathrm{HA}}        %
+
+\newcommand{\SCC}{\mathcal{C}}
+\newcommand{\CP}{\mathcal{P}_\ccirclearrowleft}
+%
+\newcommand{\IRmax}{\overline{\IR}}
+\newcommand{\IRmin}{{\IR}_{\min}}
+\newcommand{\wstar}{{w}_{*}}
+\newcommand{\ito}{{i\!\to}}
+\newcommand{\Pa}{{\mathcal{W}}}
+
+\newcommand{\real}[1]{\mathbf{N}_{\geqslant {#1}}}
+\newcommand{\realrem}[2]{\mathbf{N}_{\geqslant {#1}}^{({#2})}}
+
+\renewcommand{\le}{\leqslant}
+\renewcommand{\leq}{\leqslant}
+\renewcommand{\ge}{\geqslant}
+\renewcommand{\geq}{\geqslant}
+
+\newcommand{\one}{\mathds{1}}
+%
+%
+\newcommand{\shlomo}[1]{\comment{\textcolor{red}{Shlomo: #1}}}
+\newcommand{\be}[1]{\comment{\textcolor{blue}{b: #1}}}
+\newcommand{\comment}[1]{\textcolor{red}{\textbf{#1}}}
+\newcommand{\ignore}[1]{}
+
+
+\newtheorem{thm}{Theorem}
+\newtheorem{pro}[thm]{Proposition}
+\newtheorem{lem}[thm]{Lemma}
+\newtheorem{cor}[thm]{Corollary}
+%\newtheorem{def}[thm]{Definition}
+\newtheorem{defi}[thm]{Definition}
+
+\newcommand{\onevec}{{\mathbf{1}}}
+\newcommand{\zerovec}{{\mathbf{0}}}
 
 \begin{document}
 
+\title{Synchronization Modulo $k$ in Dynamic Networks}
+%\titlerunning{Synchronization in Dynamic Networks}
+
+ \author{%
+ Bernadette Charron-Bost\textsuperscript{1} 
+  \and Louis Penet de Monterno\textsuperscript{1}}
+ \date{\textsuperscript{1} \'Ecole polytechnique, 91128 Palaiseau, France\\~\\
+ \today
+  }
+
 \maketitle
 
-\section{Introduction}
 
-\subsection{Motivation}
 
-The resolvability of consensus problem has been studied for a long time, and several algorithm have been 
-proposed. However these algorithms have not been designed with asynchronous starts in mind.
-The main issue that makes them non-asynchronous-start-resilient lies in their structure :
-they are composed of several alternating phases.
-For example, the well-known Paxos algorithm is structured as a rotation of four phases, (named prepare,
-promise, accept, accepted).
-The algorithm is supposed to work properly if each phase is executed simultaneously by every processes.
+\begin{abstract}
+\input{abstract}
+\end{abstract}
 
-In the case of synchronous starts, the processes always start with the first phase (prepare), and then rotate.
-In that situation, the simultaneousness of each phase is guaranteed.
-However, in the case of asynchronous starts, that could result in conflicts.
+\input{introduction}
+\input{model}
+\input{specs}
+\input{preuve}	
+\input{conclusion}
+%\input{Acknowledgements}
 
-To solve this problem, we need to make sure that the starting round of each process are congruent modulo $k$,
-where $k$ is a parameter representing the number of phase of the target algorithm.
+%\paragraph{Acknowledgements.} 
 
-\subsection{Proposed solution}
-
-The goal of this document is to propose an algorithm that solves the "synchronisation modulo $k$" problem.
-Such an algorithm could be executed on a distributed system without synchronous starts,
-an at a certain round, each process would "fire".
-That would be a starting signal for the target algorithm.
-The starting signals will hopefully satisfy the above-mentioned property :
-the starting round of each process are congruent modulo $k$.
-
-
-\section{Heard-Of model}
-
-\subsection{Definition of an algorithm}
-
-Let $\Pi$ be a set of cardinality $n$. For each element of $\Pi$, a process is defined by the following entries :
-
-\begin{itemize}
-	\item A non-empty $States_p$ set, and an element $sleep_p \notin States_p$.
-	\item A subset $Init_p \subseteq States_p$.
-	\item A sending function $S_p : States_p \times \Pi \rightarrow \mathcal{M}$.
-	\item A transition function $T_p : States_p \times \mathcal{X}_\Pi^{\mathcal{M}} \rightarrow States_p$,
-		where $\mathcal{X}_\Pi^{\mathcal{M}}$ is the type of a partial function
-		of type $\Pi \rightarrow \mathcal{M} \uplus \{nil\}$.
-\end{itemize}
-
-The elements of $States_p$ are the states of $p$, and those of $Init_p$ are the possible initial values.
-
-\begin{definition}
-	An algorithm is a tuple $(States_p, Init_p, S_p, T_p)$ for each element $p \in \Pi$.
-\end{definition}
-
-
-\subsection{Definition of an execution}
-
-The Heard-Of model is round based. At any round $r$, any active process $p$ run the following steps :
-
-\begin{itemize}
-	\item It emits a messages determined by its current state and the sending function.
-	\item It receives a subset $HO(p,r)$ from the set of messages that were addressed to him
-		\textit{during the same round}.
-	\item It updates its state, according to the transition function, taking into account $HO(p,r)$.
-\end{itemize}
-
-A passive process always emits $nil$, and remains in the $sleep_p$ state.
-It can spontaneously be activated. In that case, its state moves from $sleep_p$ to $\sigma^0_p \in Init_p$.
-The function $HO$ can also be viewed as a series of graph $\mathds{G}_r = (\Pi, E_r)$ where
-
-$$(p, q) \in E_r \Leftrightarrow p \in HO(p, r)$$
-
-The graph $\mathds{G}_r$ represents the possibilities of communications between any pair of process.
-The absence of communication means a failure has occurred, either in the sending process, or in the connection.
-
-An execution of an algorithm $(States_p, Init_p, S_p, T_p)$ is defined by a tuple
-$(\mathds{G}, \mathcal{A}, (\sigma^0_p)_{p \in \Pi})$ where :
-
-\begin{itemize}
-	\item $\mathds{G}$ is a series of communication graph. Since a process should always be able to communicate 
-		with itself, the communication graphs should always contain self-loops.
-	\item $\mathcal{A}$ is the activation schedule. $\mathcal{A}_r$ is the set of active process in round $r$.
-		It must be an increasing series, verifying $\mathcal{A}_0 = \emptyset$.
-	\item $(\sigma^0_p)_{p \in \Pi}$ is the family of initial states for every process.
-\end{itemize}
-
-\textbf{Remarks :}
-
-\begin{itemize}
-	\item With synchronous starts, every process start during the same round : 
-		$$\forall r \in \mathds{N}, \mathcal{A}_r \in \{\emptyset, \Pi\}$$
-
-	\item The knowledge of $\mathcal{A}$ is equivalent to the knowledge of a function
-		$s : \Pi \rightarrow \mathds{N} \cup \{\infty\}$ defined by :
-		$$s(p) = \left \{ \begin{array}{l ll}
-		  \infty & \mbox{ if  } p \notin \bigcup\limits_{r \in \mathds{N}}  \mathcal{A}_r & 
-			  \mbox { ($p$ remains inactive forever) } \\
-		  r  & \mbox{ if  } p \notin \mathcal{A}_{r-1} \mbox{ et } p \in \mathcal{A}_{r}  &
-			  \mbox{ ($p$ is activated in round $r$)}.
-		  \end{array} \right.$$
-
-\end{itemize}
-
-For any given execution $(\mathds{G}, \mathcal{A}, (\sigma^0_p)_{p \in \Pi})$,
-the state $\Gamma_p(r)$ of any process $p$ at any round $r$ can be inductively defined :
-
-\begin{itemize}
-	\item $\forall r \in \mathds{N}, \forall p \in \Pi \setminus \mathcal{A}_{r+1}, \Gamma_p(r) = sleep_p$
-	\item $\forall r \in \mathds{N}, \forall p \in \mathcal{A}_{r+1} \setminus \mathcal{A}_r,
-		\Gamma_p(r) = \sigma^0_p$
-	\item $\forall r \in \mathds{N}, \forall p \in \mathcal{A}_r, \Gamma_p(r+1) = T_p(\Gamma_p(r), M_p^{r+1})$
-		where $M_p^r$ is the \textit{reception function} of $p$ at round $r$.
-		Its type is $\mathcal{X}_\Pi^{\mathcal{M}}$.
-		It is defined by
-			$$ M_p^r(q) = \left \{ \begin{array}{l l}
-	                         nil  & \mbox{ if  } q \in (\Pi \setminus \mathcal{A}_r  ) \cap  HO(p,r)  \\
-	                         S_q (\Gamma_q(r-1), p)  & \mbox{ if  }   q \in \mathcal{A}_r  \cap  HO(p,r) \\
-	                         \mbox{undefined} & \mbox{ if  }   q \notin  HO(p,r) .
-	                          \end{array} \right.$$ 
-\end{itemize}
-
-\subsection{The consensus problem}
-
-This article focuses on the consensus problem. Let $\mathcal{V}$ be a set of values. Each process has an 
-initial value $v_p$. The processes execute an algorithm $A$. At each round, each process holds a decision value
-$Dec_p(r) \in \mathcal{V} \uplus \{\bot\}$. If $Dec_p(r) = v$, the process $p$ is said to have decided $v$
-in round $r$. If $Dec_p(r) = \bot$, the process $p$ is said to not have decided yet.
-
-\begin{definition}
-	An execution verifies integrity if 
-	$$\forall r \in \mathds{N}, \forall p \in \mathcal{A}_r, Dec_p(r) \in \{\bot\} \uplus \{v_q, q \in \Pi\}$$
-\end{definition}
-
-\begin{definition}
-	An execution verifies agreement if 
-	$$\forall r, r' \in \mathds{N}, \forall p \in \mathcal{A}_r, \forall q \in \mathcal{A}_{r'},
-	Dec_p(r) = \bot \vee Dec_q(r') = \bot \vee Dec_p(r) = Dec_q(r') $$
-\end{definition}
-
-\begin{definition}
-	An execution verifies termination if
-	$$ \forall p \in \bigcup\limits_{s \in \mathds{N}} \mathcal{A}_s, \exists r \in \mathds{N}, \ 
-		p \in \mathcal{A}_r \wedge Dec(\Gamma_p(r)) \neq \bot .  $$
-\end{definition}
-
-\begin{definition}
-	An algorithm $A$ solves consensus under the predicates $\mathcal{P}_{\mathcal{G}}$ and $\mathcal{P}_{cal}$
-	if, for any execution $(\mathds{G}, \mathcal{A}, (\sigma^0_p)_{p \in \Pi})$ verifying 
-	$\mathds{G} \models \mathcal{P}_{\mathcal{G}}$ and $\mathcal{A} \models \mathcal{P}_{cal}$
-	verifies also integrity, termination, and agreement.
-\end{definition}
-
-\subsection{The synchronisation problem}
-
-\begin{definition}
-	Let $k > 1$ be a parameter. Let us consider an algorithm $A$ and a subset $S_{fire} \subseteq States_p$
-	such as $S_{fire} \cap Init_p = \emptyset$.
-	For any execution of $A$, the firing function is defined by :
-
-	$$Fire(p) = \left \{
-		\begin{array}{l l}
-		\infty & \mbox{if}~\forall r \in \mathds{N}, \Gamma_p(r) \notin S_{fire} \\
-		Min \{r \in \mathds{N}, \Gamma_p(r) \in S_{fire}\} & \mbox{otherwise}
-		\end{array} $$
-\end{definition}
-
-\begin{definition}
-	A given execution of $A$ satisfies safety relative to synchronisation modulo $k$ problem if :
-	$$\exists c \in \mathds{N}, \forall p \in \bigcup\limits_{i \in \mathds{N}} \mathcal{A}_i,
-	Fire(p) \neq \infty \Rightarrow Fire(p)~mod~k = c$$
-\end{definition}
-
-\begin{definition}
-	A given execution of $A$ satisfies liveness relative to synchronisation modulo $k$ problem if :
-	$$\forall p \in \bigcup\limits_{i \in \mathds{N}} \mathcal{A}_i, Fire(p) \neq \infty$$
-\end{definition}
-
-\section{The SyncMod algorithm}
-
-In the SyncMod algorithm, each process has a counter value in $\mathds{Z}/k\mathds{Z}$. At each round,
-they send their counter to all processes.
-Then, the transition function is a case disjunction composed of four branches.
-
-\begin{algorithm}[htb]
-\begin{distribalgo}[1]
-\BLANK \INDENT{\textbf{Initialisation:}}
-	\STATE $x_p \in \mathds{Z}/k\mathds{Z}$
-	\STATE $force_p = true$
-	\STATE $fire_p = false$
-	\STATE $started_p = false$
-
-\ENDINDENT \BLANK
-
-\INDENT{\textbf{Round $r$:}}
-	\INDENT{$S_p:$}
-		\IF{$started_p$}
-			\STATE send $\langle x_p \rangle$ to all processes
-		\ELSE
-			\STATE send $\bot$ to all processes
-		\ENDIF
-	\ENDINDENT
-	\BLANK
-	\INDENT{$T_p(M):$}
-		\STATE $started_p = true$
-		\IF{$M(\Pi) = \{k\}$}
-			\STATE $fire_p = true$ ~~~~\COMMENT{if every received message is $k$, and no $nil$, fire !}
-		\ENDIF
-		\IF{$M(\Pi) \setminus \{nil, \bot\} = \{v\}$}
-			\STATE $x_p = v+1~mod~k$ ~~~~\COMMENT{if received message are concordant, adopt their value}
-		\ELSIF{$force_p \wedge k \notin M(\Pi)$}
-			\STATE $force_p = false$ ~~~~\COMMENT{if received messages are discordant,
-				try a "forced synchronisation"}
-			\STATE $x_p = k$
-		\ELSE
-			\STATE $x_p = 1$ ~~~~\COMMENT{if at least one "$k$" is received, adopt 1}
-		\ENDIF
-	\ENDINDENT
-\ENDINDENT 
-\caption{{\em SyncMod} algorithm} \label{algo:R}
-\end{distribalgo}
-
-\end{algorithm}
-
-\subsection{Notation}
-
-\begin{definition}
-	Given $V \subseteq \mathds{Z}/k\mathds{Z}$, the system is said to be V-valent in round $r$ if :
-	$$V = \{v \in \mathds{Z}/k\mathds{Z}, \exists p \in \mathcal{A}_r, x_p = v\}$$
-\end{definition}
-
-The system is said to be v-monovalent if the system is $\{v\}$-valent.
-
-The previous definition of the $Fire$ function can be precised in the context of this algorithm.
-
-$$Fire(p) = \left \{
-	\begin{array}{l l}
-	\infty & \mbox{if}~\forall r \in \mathds{N}, \Gamma_p(r) \notin S_{fire} \\
-		Min \{r \in \mathds{N}, fire_p(r)\} & \mbox{otherwise}
-	\end{array} $$
-
-Similarly, a $Force$ function can be defined.
-
-$$Force(p) = \left \{
-	\begin{array}{l l}
-	\infty & \mbox{if}~\forall r \in \mathds{N}, \Gamma_p(r) \notin S_{fire} \\
-		Min \{r \in \mathds{N}, Force_p(r)\} & \mbox{otherwise}
-	\end{array} $$
-
-\subsection{Safety proof}
-
-\begin{lemma}\label{lem:safety}
-	Any execution of SyncMod is safe relative to the synchronisation modulo $k$ problem
-	if the predicates $\mathcal{P}_{\xi-nek}$ and $\mathcal{P}_{non-inf}$ are verified.
-\end{lemma}
-\begin{proof}
-	Let $p$ the first firing process, in round $r$.
-	Since $\xi \in HO(p,r)$, the value sent by $\xi$ is necessarily $k$, thus every process have received a $k$.
-	The pseudo-code is designed such that the processes adopt $1$ as soon as they receive at least one $k$.
-
-	Now we can show by recurrence over $i$ that :
-
-	$$\forall i \in \mathds{N}, \forall q \in \mathcal{A}_{r+i}, x_q(r+i) = i + 1~mod~k$$
-
-	\begin{description}
-		\item[Initialisation :] See above.
-		\item[Heredity :] We assume that 
-		$$\forall q \in \mathcal{A}_{r+i}, x_q(r+i) = i + 1~mod~k$$
-	We need to show that 
-	$$\forall q \in \mathcal{A}_{r+i+1}, x_q(r+i+1) = i + 2~mod~k$$
-	Let $M$ be the reception function of $p$ in round $r+i+1$.
-			From the recurrence hypothesis, we can deduce that $M(\Pi) \subseteq \{nil, \bot, i+1~mod~k\}$.
-			Moreover $M(\xi) = i+1~mod~k$.
-			Thus the second branches is executed. That ends the recurrence.
-	\end{description}
-
-	Thus, processes can only decide in rounds such that $i~mod~k = 0$, which guarantees the safety.
-\end{proof}
-
-\subsection{Liveness proof}
-
-\begin{lemma}\label{lem:k_mono}
-	If $x_\xi(t) = k$, the system is 1-monovalent in round $t+1$.
-\end{lemma}
-\begin{proof}
-	If $x_\xi(t) = k$, the process $\xi$ sends $k$ to all processes in round $t+1$.
-	Every process receives this message, thus they must execute the second or the forth branch, and adopt 1.
-\end{proof}
-
-\begin{lemma}\label{lem:mono_mono}
-	If $\xi$ is active in round $s$, and the system is v-monovalent, it must be $v+i$-monovalent in round $s+i$,
-	for any $i \in \mathds{N}$.
-\end{lemma}
-\begin{proof}
-	The proof of this lemma is done by recurrence over $i$.
-	\begin{description}
-		\item[Initialisation :] Trivial.
-		\item[Heredity :] We assume that
-			$$\forall p \in \mathcal{A}_{s+i}, x_p(s+i) = v+i~mod~k$$
-			We have to show that 
-			$$\forall p \in \mathcal{A}_{s+i+1}, x_p(s+i+1) = v+i+1~mod~k$$
-			In round $s+i+1$, processes in $\mathcal{A}_{s+i}$ send $v+i~mod~k$, whereas processes 
-			in $\mathcal{A}_{s+i+1} \setminus \mathcal{A}_{s+i}$ send $\bot$.
-			Moreover $\xi$ belongs to $\mathcal{A}_{s+i}$.
-			Thus, every active process must execute the second branch.
-			Thus the heredity holds.
-	\end{description}
-\end{proof}
-
-\begin{lemma}\label{lem:k_liv}
-	If $x_\xi(t) = k$ and the predicate $\mathcal{P}_{non-inf}$ is verified, the liveness is guaranteed.
-\end{lemma}
-\begin{proof}
-	The lemmas \ref{lem:k_mono} and \ref{lem:mono_mono}, the system is 1-monovalent in round $t+i$,
-	thus $i~mod~k$-monovalent in every $t+i$ following rounds.
-	From the predicate $\mathcal{P}_{non-inf}$ we can obtain a round $s_{max}$ in which every process is active.
-	At any round $r$ verifying $r > s_{max}$ and $r = t + i$ and $i~mod~k = 0$, the system is k-monovalent,
-	and every process is active. Thus every process, including $\xi$, will send $k$.
-	Thus, every process will fire.
-\end{proof}
-
-\begin{lemma}\label{lem:mono_liv}
-	If $\xi$ is active in round $t$, and the system is monovalent, the liveness is guaranteed.
-\end{lemma}
-\begin{proof}
-	The lemma \ref{lem:mono_mono} guarantees that the system remains monovalent, and that it reaches a
-	k-monovalent state.
-	Thus $x_\xi(t) = k$, and the lemma \ref{lem:k_liv} shows that the liveness is guaranteed.
-\end{proof}
-
-\begin{lemma}\label{lem:mono_bi}
-	If $t$ satisfies $t > max \{Force(p) < \infty, p \in \Pi\} \cup \{s(p), p \in \Pi\}$,
-	the system is monovalent or V-valent in round $t$, where $V = \{1, w\}$.
-\end{lemma}
-\begin{proof}
-	Given any $p \in \mathcal{A}_t$, the process $p$ receives the value $x_\xi(t-1)$ from $\xi$ in round $t$.
-	\begin{itemize}
-		\item If $p$ also receives a value different from $x_\xi(t-1)$ and $\bot$, the process $p$ does not 
-			execute the second branch. It does not execute the third one, either, since $t > Force(p)$.
-			Then, the only possibility is $x_p(t) = 1$.
-		\item Otherwise, $p$ executes the second branch, and adopts $x_\xi(t-1)+1~mod~k$.
-	\end{itemize}
-\end{proof}
-
-\begin{theorem}
-	The SyncMod algorithm solves the synchronisation modulo $k$ problem if the predicates $\mathcal{P}_{non-inf}$
-	and $\mathcal{P}_{\xi-nek}$ are satisfied.
-\end{theorem}
-\begin{proof}
-	\begin{description}
-		\item[Case 1 : ] If $Force(\xi) = \infty$, the process $\xi$ executes once the third branch.
-			Thus, the liveness results from lemma \ref{lem:k_liv}.
-
-		\item[Case 2 :] Otherwise $Force(\xi) \neq \infty$.
-			Let $t$ be a round verifying $t > max \{Force(p) < \infty, p \in \Pi\} \cup \{s(p), p \in \Pi\}$.
-			The lemma \ref{lem:mono_bi} shows that the system is either monovalent or bivalent in round $t$.
-			\begin{description}
-				\item[Sub-case 2.1] The system is monovalent. The liveness results from lemma \ref{lem:mono_liv}.
-				\item[Sub-case 2.2] The system is V-valent with $V = \{1, w\}$ and $w = x_\xi(t) \neq 1$.
-					\begin{description}
-						\item[Sub-sub-case 2.2.1 : ] In round $t+1$, the process $\xi$ receives at least once
-							the value 1.
-							This case is actually impossible, since we assumed that $Force(\xi) \neq \infty$.
-						\item[Sub-sub-case 2.2.2 : ] In round $t+1$, the process $\xi$ only receives $w$.
-							Hence, $x_\xi(t+1) = w+1$. The system is now either monovalent,
-							or V'-valent, with $V' = \{1, w+1\}$.
-							The sub-case 2.2 happens again in round $t+1$.
-							We can show by recurrence over $i$ that $\xi$ reaches a state where $x_\xi(t+i) = k$.
-							The liveness results from lemma \ref{lem:k_liv}.
-					\end{description}
-				\item[Subcase 2.3 : ] The system is V-valent with $V = \{1, w\}$ and $w = x_\xi(t) = 1$.
-					In round $t+1$, the process $\xi$ receives its own value : 1.
-					It cannot receives $w$, since we assumed that $Force(\xi) \neq \infty$.
-					Hence, in round $t+1$, we have $x_\xi(t+1) = 2$.
-					We are now brought back to sub-case 2.2.
-			\end{description}
-	\end{description}
-	The liveness is now proved, and the safety results from lemma \ref{lem:safety}.
-\end{proof}
+\bibliographystyle{plain}
+\bibliography{dynamic}
 
 \end{document}
+
+
