@@ -26,11 +26,38 @@
 
 \section{Introduction}
 
+The topic of distributed systems has focused a lot of attention in recent years.
+Lots of today's digital services relies on distributed systems to improve the resilience of critical infrastructure.
+A typical problem in distributed computing consists in emulating a data structure, or an algorithm on a distributed
+set of machines, such that the correctness of the considered algorithm is unaffected by the failures of some components.
+
+There are two major frameworks in this field : synchronous and asynchronous systems. The exact definition of these terms may vary.
+In an asynchronous system, the model considers each machine as an individual state machine, which may progress independently from the others,
+just like people working from home and communicating by email.
+% They can send messages and check  to other machines whenever they want.
+In a synchronous system, the model assumes the existence of a global schedule of execution.
+The timeline is composed in a succession of rounds, the processes make progress step by step,
+just like people having a meeting every day. abo about the synchrony of the starts.
+This document is focused en synchronous systems.
+
+% In the framework of synchronous system, an assumption can be made
+
 \subsection{Motivation}
 
-The resolvability of consensus problem has been studied for a long time, and several algorithm have been 
-proposed. However these algorithms have not been designed with asynchronous starts in mind.
-The main issue that makes them non-asynchronous-start-resilient lies in their structure :
+In the litterature, most of the proposed algorithms for synchronous system make an additional assumption.
+This assumption tells that there exists a round at which every process start the execution of the algorithm.
+In this context, the system is said to have \emph{synchronous starts}.
+In opposition, a system where each process may start at an unpredictable round is said to have \emph{asynchronous starts}.
+Since most system in the litterature rely on the assumption of synchronous starts, we may wonder weather this hypothesis may be avoided.
+
+This work may be useful in practice, since the hypothesis of synchronous starts adds an engineering constraint, which in some cases is difficult to solve.
+For example, Let's assume that a system needs to execute several tasks in series.
+When a processes ends a task, he has to start the next one, however it does not know if others processes have finished the previous task and are ready to go on.
+If each task is computed with an asynchronous-starts-tolerant algorithm, this is no longer an issue.
+
+\subsection{Approach of this article}
+
+The main issue that makes existing algorithm non-asynchronous-start-resilient lies in their structure :
 they are composed of several alternating phases.
 For example, the well-known Paxos algorithm is structured as a rotation of four phases, (named prepare,
 promise, accept, accepted).
@@ -38,10 +65,12 @@ The algorithm is supposed to work properly if each phase is executed simultaneou
 
 In the case of synchronous starts, the processes always start with the first phase (prepare), and then rotate.
 In that situation, the simultaneousness of each phase is guaranteed.
-However, in the case of asynchronous starts, that could result in conflicts.
+However, in the case of asynchronous starts, that could result in conflicting phases executed simultaneously.
 
 To solve this problem, we need to make sure that the starting round of each process are congruent modulo $k$,
 where $k$ is a parameter representing the number of phase of the target algorithm.
+This problem is named \emph{synchronisation modulo $k$ problem}.
+The point of this article is to solve this problem.
 
 \subsection{Proposed solution}
 
