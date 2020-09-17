@@ -27,37 +27,37 @@
 \section{Introduction}
 
 The topic of distributed systems has focused a lot of attention in recent years.
-Lots of today's digital services relies on distributed systems to improve the resilience of critical infrastructure.
-A typical problem in distributed computing consists in emulating a data structure, or an algorithm on a distributed
+Lots of today's digital services relies on distributed systems to improve the resilience of critical infrastructures.
+A typical problem in distributed computing consists in emulating a data structure (stack, dictionary ...), or an algorithm (consensus ...) on a distributed
 set of machines, such that the correctness of the considered algorithm is unaffected by the failures of some components.
 
-There are two major frameworks in this field : synchronous and asynchronous systems. The exact definition of these terms may vary.
-In an asynchronous system, the model considers each machine as an individual state machine, which may progress independently from the others,
+There are two major frameworks in this field : synchronous and asynchronous systems (the exact definition of these terms may vary).
+In an \emph{asynchronous system}, the model considers each machine as an individual state machine, which may progress independently from the others,
 just like people working from home and communicating by email.
 % They can send messages and check  to other machines whenever they want.
-In a synchronous system, the model assumes the existence of a global schedule of execution.
+In opposition, a \emph{synchronous model} assumes the existence of a global schedule of execution.
 The timeline is composed in a succession of rounds, the processes make progress step by step,
-just like people having a meeting every day. abo about the synchrony of the starts.
+just like people having a meeting every day.
 This document is focused en synchronous systems.
 
 % In the framework of synchronous system, an assumption can be made
 
 \subsection{Motivation}
 
-In the litterature, most of the proposed algorithms for synchronous system make an additional assumption.
+In the literature, most of the proposed algorithms for synchronous system make an additional assumption.
 This assumption tells that there exists a round at which every process start the execution of the algorithm.
 In this context, the system is said to have \emph{synchronous starts}.
 In opposition, a system where each process may start at an unpredictable round is said to have \emph{asynchronous starts}.
-Since most system in the litterature rely on the assumption of synchronous starts, we may wonder weather this hypothesis may be avoided.
+Since most system in the literature rely on the assumption of synchronous starts, we may wonder whether this hypothesis may be avoided.
 
 This work may be useful in practice, since the hypothesis of synchronous starts adds an engineering constraint, which in some cases is difficult to solve.
-For example, Let's assume that a system needs to execute several tasks in series.
-When a processes ends a task, he has to start the next one, however it does not know if others processes have finished the previous task and are ready to go on.
-If each task is computed with an asynchronous-starts-tolerant algorithm, this is no longer an issue.
+For example, let's assume that a system needs to execute several tasks in series.
+When a process ends a task, he has to start the next one, however it does not know if others processes have finished the previous task and are ready to go on.
+If each task is computed with an asynchronous-starts-tolerant algorithm, that is no longer an issue.
 
 \subsection{Approach of this article}
 
-The main issue that makes existing algorithm non-asynchronous-start-resilient lies in their structure :
+The main issue that makes existing algorithms non-asynchronous-start-resilient lies in their structure :
 they are composed of several alternating phases.
 For example, the well-known Paxos algorithm is structured as a rotation of four phases, (named prepare,
 promise, accept, accepted).
@@ -68,34 +68,49 @@ In that situation, the simultaneousness of each phase is guaranteed.
 However, in the case of asynchronous starts, that could result in conflicting phases executed simultaneously.
 
 To solve this problem, we need to make sure that the starting round of each process are congruent modulo $k$,
-where $k$ is a parameter representing the number of phase of the target algorithm.
+where $k$ is a parameter representing the number of phases of the target algorithm ($k=4$ in the case of Paxos).
 This problem is named \emph{synchronisation modulo $k$ problem}.
 The point of this article is to solve this problem.
 
 \subsection{Proposed solution}
 
-The goal of this document is to propose an algorithm that solves the "synchronisation modulo $k$" problem.
+The goal of this document is to propose an algorithm that solves the synchronisation modulo $k$ problem.
 Such an algorithm could be executed on a distributed system without synchronous starts,
 an at a certain round, each process would "fire".
 That would be a starting signal for the target algorithm.
-The starting signals will hopefully satisfy the above-mentioned property :
+The starting signals will hopefully satisfy the property mentioned above :
 the starting round of each process are congruent modulo $k$.
 
 
 \section{Heard-Of model}
 
 Among the different synchronous models, we chose to work with the Heard-Of model.
-One of the most important differenciating factor between distributed models is the modelisation of fault-tolerance.
-In the litterature, various possibilities have been considered : crash-failures, loss of message, messages swapped, malicious attack ...
+One of the most important differentiating factor between distributed models is the way the fault-tolerance is handled.
+In the literature, various possibilities have been considered : crash-failures, loss of message, messages swapped, malicious attack ...
 In the Heard-Of model, the failures are supposed to happen during the communication.
 The processes are modeled by state machines (formal definition below).
 
 At each round, each process :
 \begin{itemize}
 	\item Send a message according to its current state.
-	\item Receives a subset of the messages that were destinated to itself. The non-received messages are lost, due to a failure during the sending or the transmission.
-	\item Compute a new state, according to its previous state, and the messagess it received.
+	\item Receives a subset of the messages that were destined to itself. The non-received messages are lost, due to a failure during the sending or the transmission.
+	\item Compute a new state, according to its previous state, and the messages it received.
 \end{itemize}
+
+\subsection{Modeling of asynchronous starts}
+
+A system with asynchronous starts is not an open system where processes can join at any moment.
+We rather consider that every process belongs to the system from the beginning, but may not be ready yet.
+A non-ready process remains passive relative to the considered algorithm, and signals its non-readiness by sending at each round, to each process a special message $nil$.
+
+In this document, we will make the assumption that no process can remain inactive forever.
+To formally write this hypothesis, we introduce the series $(\mathcal{A}_r)_{r \in \mathds{N}}$, where, for a given execution (see the formal definition below), $\mathcal{A}_r \subseteq \Pi$ 
+represents the set of active processes at round $r$.
+The "non inactive forever" hypothesis can now be written as :
+
+$$P_{\neg-passiv-forever} \equiv \exists r \in \mathds{N}, \mathcal{A}_r = \Pi$$
+
+Here $\Pi$ is the set of all processes.
 
 \subsection{Definition of an algorithm}
 
@@ -199,8 +214,8 @@ the state $\Gamma_p(r)$ of any process $p$ at any round $r$ can be inductively d
 
 \begin{definition}
 	A given execution of $A$ satisfies safety relative to synchronisation modulo $k$ problem if :
-	$$\exists c \in \mathds{N}, \forall p \in \bigcup\limits_{i \in \mathds{N}} \mathcal{A}_i,
-	Fire(p) \neq \infty \Rightarrow Fire(p)~mod~k = c$$
+	$$\exists c \in \mathds{Z}/k\mathds{Z}, \forall p \in \bigcup\limits_{i \in \mathds{N}} \mathcal{A}_i,
+	Fire(p) \neq \infty \Rightarrow Fire(p) \equiv c[k]$$
 \end{definition}
 
 \begin{definition}
@@ -254,6 +269,21 @@ Then, the transition function is a case disjunction composed of four branches.
 
 \end{algorithm}
 
+\subsection{Required hypothesis}
+
+In order to prove the safety and the liveness of this algorithm, we need to make the following hypothesis :
+there exists a process, called $\xi$, which is supposed correct. This process never crash, and, at each round, it manages to send 
+messages to every other processes. The $n-1$ remaining processes may crash, their messages may be lost, with an arbitrarily high frequency.
+In order to formally express this hypothesis, we write a predicate over the $HO$ function defined in a previous section :
+
+$$P_{\xi-reliable} \equiv \exists \xi \in \Pi, \forall p \in \Pi, \forall r \in \mathds{N}, \xi \in HO(p,r)$$
+
+In the predicate above, $\xi \in HO(p,r)$ informally means that $\xi$ belongs to the Heard-Of set of $p$ at round $r$. In other words, $p$ receives the message of $\xi$ at round $r$.
+We can arguably state that this hypothesis is verified in a real-life systems.
+Otherwise, a system without trusty process would be a very low quality system.
+
+\textbf{Note :} This hypothesis does not imply that every process "know" the identity of the $\xi$ verifying the predicate.
+
 \subsection{Notation}
 
 \begin{definition}
@@ -276,14 +306,14 @@ Similarly, a $Force$ function can be defined.
 $$Force(p) = \left \{
 	\begin{array}{l l}
 	\infty & \mbox{if}~\forall r \in \mathds{N}, \Gamma_p(r) \notin S_{fire} \\
-		Min \{r \in \mathds{N}, Force_p(r)\} & \mbox{otherwise}
+		Min \{r \in \mathds{N}, force_p(r)\} & \mbox{otherwise}
 	\end{array} $$
 
 \subsection{Safety proof}
 
 \begin{lemma}\label{lem:safety}
 	Any execution of SyncMod is safe relative to the synchronisation modulo $k$ problem
-	if the predicates $\mathcal{P}_{\xi-nek}$ and $\mathcal{P}_{non-inf}$ are verified.
+	if the predicates $\mathcal{P}_{\xi-reliable}$ and $\mathcal{P}_{\neg-passiv-forever}$ are verified.
 \end{lemma}
 \begin{proof}
 	Let $p$ the first firing process, in round $r$.
@@ -312,7 +342,7 @@ $$Force(p) = \left \{
 \subsection{Liveness proof}
 
 \begin{lemma}\label{lem:k_mono}
-	If $x_\xi(t) = k$, the system is 1-monovalent in round $t+1$.
+	If $x_\xi(t) = k$, and the predicate $\mathcal{P}_{\xi-reliable}$ is verified, the system is 1-monovalent in round $t+1$.
 \end{lemma}
 \begin{proof}
 	If $x_\xi(t) = k$, the process $\xi$ sends $k$ to all processes in round $t+1$.
@@ -320,7 +350,7 @@ $$Force(p) = \left \{
 \end{proof}
 
 \begin{lemma}\label{lem:mono_mono}
-	If $\xi$ is active in round $s$, and the system is v-monovalent, it must be $v+i$-monovalent in round $s+i$,
+	If $\xi$ is active in round $s$, and the system is v-monovalent, and the predicate $\mathcal{P}_{\xi-reliable}$ is verified, it must be $v+i$-monovalent in round $s+i$,
 	for any $i \in \mathds{N}$.
 \end{lemma}
 \begin{proof}
@@ -340,19 +370,19 @@ $$Force(p) = \left \{
 \end{proof}
 
 \begin{lemma}\label{lem:k_liv}
-	If $x_\xi(t) = k$ and the predicate $\mathcal{P}_{non-inf}$ is verified, the liveness is guaranteed.
+	If $\xi$ is active at round $t$, if $x_\xi(t) = k$ and the predicates $\mathcal{P}_\xi_{reliable}$ and $\mathcal{P}_{\neg-passiv-forever}$ are verified, the liveness is guaranteed.
 \end{lemma}
 \begin{proof}
 	The lemmas \ref{lem:k_mono} and \ref{lem:mono_mono}, the system is 1-monovalent in round $t+i$,
 	thus $i~mod~k$-monovalent in every $t+i$ following rounds.
-	From the predicate $\mathcal{P}_{non-inf}$ we can obtain a round $s_{max}$ in which every process is active.
+	From the predicate $\mathcal{P}_{\neg-passiv-forever}$ we can obtain a round $s_{max}$ in which every process is active.
 	At any round $r$ verifying $r > s_{max}$ and $r = t + i$ and $i~mod~k = 0$, the system is k-monovalent,
 	and every process is active. Thus every process, including $\xi$, will send $k$.
 	Thus, every process will fire.
 \end{proof}
 
 \begin{lemma}\label{lem:mono_liv}
-	If $\xi$ is active in round $t$, and the system is monovalent, the liveness is guaranteed.
+	If $\xi$ is active in round $t$, if the system is monovalent, and the predicates $\mathcal{P}_\xi_{reliable}$ and $\mathcal{P}_{\neg-passiv-forever}$ are verified, the liveness is guaranteed.
 \end{lemma}
 \begin{proof}
 	The lemma \ref{lem:mono_mono} guarantees that the system remains monovalent, and that it reaches a
@@ -361,8 +391,8 @@ $$Force(p) = \left \{
 \end{proof}
 
 \begin{lemma}\label{lem:mono_bi}
-	If $t$ satisfies $t > max \{Force(p) < \infty, p \in \Pi\} \cup \{s(p), p \in \Pi\}$,
-	the system is monovalent or V-valent in round $t$, where $V = \{1, w\}$.
+	If $t$ satisfies $t > max \{Force(p) < \infty, p \in \Pi\} \cup \{s(p), p \in \Pi\}$, and the predicate $\mathcal{P}_{\xi-reliable}$ is verified,
+	then the system is either monovalent or V-valent in round $t$, where $V = \{1, w\}$.
 \end{lemma}
 \begin{proof}
 	Given any $p \in \mathcal{A}_t$, the process $p$ receives the value $x_\xi(t-1)$ from $\xi$ in round $t$.
@@ -375,8 +405,8 @@ $$Force(p) = \left \{
 \end{proof}
 
 \begin{theorem}
-	The SyncMod algorithm solves the synchronisation modulo $k$ problem if the predicates $\mathcal{P}_{non-inf}$
-	and $\mathcal{P}_{\xi-nek}$ are satisfied.
+	The SyncMod algorithm solves the synchronisation modulo $k$ problem if the predicates $\mathcal{P}_{\neg-passiv-forever}$
+	and $\mathcal{P}_{\xi-reliable}$ are satisfied.
 \end{theorem}
 \begin{proof}
 	\begin{description}
