@@ -85,8 +85,17 @@ the starting round of each process are congruent modulo $k$.
 \section{Heard-Of model}
 
 Among the different synchronous models, we chose to work with the Heard-Of model.
-In this model, the processes are modeled by state machines (formal definition below).
-At each round, 
+One of the most important differenciating factor between distributed models is the modelisation of fault-tolerance.
+In the litterature, various possibilities have been considered : crash-failures, loss of message, messages swapped, malicious attack ...
+In the Heard-Of model, the failures are supposed to happen during the communication.
+The processes are modeled by state machines (formal definition below).
+
+At each round, each process :
+\begin{itemize}
+	\item Send a message according to its current state.
+	\item Receives a subset of the messages that were destinated to itself. The non-received messages are lost, due to a failure during the sending or the transmission.
+	\item Compute a new state, according to its previous state, and the messagess it received.
+\end{itemize}
 
 \subsection{Definition of an algorithm}
 
