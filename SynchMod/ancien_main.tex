@@ -1,6 +1,6 @@
 \documentclass{article}
 \usepackage{amsmath}
-\usepackage[noend]{sources-Heard-Of/distribalgo}
+\usepackage[noend]{libHO/distribalgo}
 \usepackage{algorithm}
 \usepackage{amssymb}
 \usepackage{listings}
@@ -83,6 +83,10 @@ the starting round of each process are congruent modulo $k$.
 
 
 \section{Heard-Of model}
+
+Among the different synchronous models, we chose to work with the Heard-Of model.
+In this model, the processes are modeled by state machines (formal definition below).
+At each round, 
 
 \subsection{Definition of an algorithm}
 
@@ -169,37 +173,6 @@ the state $\Gamma_p(r)$ of any process $p$ at any round $r$ can be inductively d
 	                         \mbox{undefined} & \mbox{ if  }   q \notin  HO(p,r) .
 	                          \end{array} \right.$$ 
 \end{itemize}
-
-\subsection{The consensus problem}
-
-This article focuses on the consensus problem. Let $\mathcal{V}$ be a set of values. Each process has an 
-initial value $v_p$. The processes execute an algorithm $A$. At each round, each process holds a decision value
-$Dec_p(r) \in \mathcal{V} \uplus \{\bot\}$. If $Dec_p(r) = v$, the process $p$ is said to have decided $v$
-in round $r$. If $Dec_p(r) = \bot$, the process $p$ is said to not have decided yet.
-
-\begin{definition}
-	An execution verifies integrity if 
-	$$\forall r \in \mathds{N}, \forall p \in \mathcal{A}_r, Dec_p(r) \in \{\bot\} \uplus \{v_q, q \in \Pi\}$$
-\end{definition}
-
-\begin{definition}
-	An execution verifies agreement if 
-	$$\forall r, r' \in \mathds{N}, \forall p \in \mathcal{A}_r, \forall q \in \mathcal{A}_{r'},
-	Dec_p(r) = \bot \vee Dec_q(r') = \bot \vee Dec_p(r) = Dec_q(r') $$
-\end{definition}
-
-\begin{definition}
-	An execution verifies termination if
-	$$ \forall p \in \bigcup\limits_{s \in \mathds{N}} \mathcal{A}_s, \exists r \in \mathds{N}, \ 
-		p \in \mathcal{A}_r \wedge Dec(\Gamma_p(r)) \neq \bot .  $$
-\end{definition}
-
-\begin{definition}
-	An algorithm $A$ solves consensus under the predicates $\mathcal{P}_{\mathcal{G}}$ and $\mathcal{P}_{cal}$
-	if, for any execution $(\mathds{G}, \mathcal{A}, (\sigma^0_p)_{p \in \Pi})$ verifying 
-	$\mathds{G} \models \mathcal{P}_{\mathcal{G}}$ and $\mathcal{A} \models \mathcal{P}_{cal}$
-	verifies also integrity, termination, and agreement.
-\end{definition}
 
 \subsection{The synchronisation problem}
 
