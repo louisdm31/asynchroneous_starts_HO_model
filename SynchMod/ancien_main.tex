@@ -36,7 +36,7 @@ In an \emph{asynchronous system}, the model considers each machine as an individ
 just like people working from home and communicating by email.
 % They can send messages and check  to other machines whenever they want.
 In opposition, a \emph{synchronous model} assumes the existence of a global schedule of execution.
-The timeline is composed in a succession of rounds, the processes make progress step by step,
+The timeline is composed in a succession of rounds, the nodes make progress step by step,
 just like people having a meeting every day.
 This document is focused en synchronous systems.
 
@@ -45,14 +45,14 @@ This document is focused en synchronous systems.
 \subsection{Motivation}
 
 In the literature, most of the proposed algorithms for synchronous system make an additional assumption.
-This assumption tells that there exists a round at which every process start the execution of the algorithm.
+This assumption tells that there exists a round at which every node start the execution of the algorithm.
 In this context, the system is said to have \emph{synchronous starts}.
-In opposition, a system where each process may start at an unpredictable round is said to have \emph{asynchronous starts}.
+In opposition, a system where each node may start at an unpredictable round is said to have \emph{asynchronous starts}.
 Since most system in the literature rely on the assumption of synchronous starts, we may wonder whether this hypothesis may be avoided.
 
 This work may be useful in practice, since the hypothesis of synchronous starts adds an engineering constraint, which in some cases is difficult to solve.
 For example, let's assume that a system needs to execute several tasks in series.
-When a process ends a task, he has to start the next one, however it does not know if others processes have finished the previous task and are ready to go on.
+When a node ends a task, he has to start the next one, however it does not know if others nodes have finished the previous task and are ready to go on.
 If each task is computed with an asynchronous-starts-tolerant algorithm, that is no longer an issue.
 
 \subsection{Approach of this article}
@@ -61,13 +61,13 @@ The main issue that makes existing algorithms non-asynchronous-start-resilient l
 they are composed of several alternating phases.
 For example, the well-known Paxos algorithm is structured as a rotation of four phases, (named prepare,
 promise, accept, accepted).
-The algorithm is supposed to work properly if each phase is executed simultaneously by every processes.
+The algorithm is supposed to work properly if each phase is executed simultaneously by every nodes.
 
-In the case of synchronous starts, the processes always start with the first phase (prepare), and then rotate.
+In the case of synchronous starts, the nodes always start with the first phase (prepare), and then rotate.
 In that situation, the simultaneousness of each phase is guaranteed.
 However, in the case of asynchronous starts, that could result in conflicting phases executed simultaneously.
 
-To solve this problem, we need to make sure that the starting round of each process are congruent modulo $k$,
+To solve this problem, we need to make sure that the starting round of each node are congruent modulo $k$,
 where $k$ is a parameter representing the number of phases of the target algorithm ($k=4$ in the case of Paxos).
 This problem is named \emph{synchronisation modulo $k$ problem}.
 The point of this article is to solve this problem.
@@ -76,11 +76,21 @@ The point of this article is to solve this problem.
 
 The goal of this document is to propose an algorithm that solves the synchronisation modulo $k$ problem.
 Such an algorithm could be executed on a distributed system without synchronous starts,
-an at a certain round, each process would "fire".
+an at a certain round, each node would "fire".
 That would be a starting signal for the target algorithm.
 The starting signals will hopefully satisfy the property mentioned above :
-the starting round of each process are congruent modulo $k$.
+the starting round of each node are congruent modulo $k$.
 
+\subsection{Validity domain}
+
+We would like to maximize the fault-tolerance of our systems.
+In the literature, the fault-tolerance is often expressed by the maximum number of crash-failure that are expected to happen.
+Hence, a $t$-resilient system is correct if at most $t$ nodes stop working.
+In the Heard-Of model which we use, the crash-failures are not defined as a "first-class" notion.
+Instead, they they can be encapsulated inside the communication assumptions.
+In this article, we will consider scenarios where at least one node is able to communicate with every other node.
+This assumption is compliant with a failure of $n-1$ nodes, where $n$ is the total number of nodes.
+Thus, this work is hopefully useful for real-life system.
 
 \section{Heard-Of model}
 
@@ -88,9 +98,9 @@ Among the different synchronous models, we chose to work with the Heard-Of model
 One of the most important differentiating factor between distributed models is the way the fault-tolerance is handled.
 In the literature, various possibilities have been considered : crash-failures, loss of message, messages swapped, malicious attack ...
 In the Heard-Of model, the failures are supposed to happen during the communication.
-The processes are modeled by state machines (formal definition below).
+The nodes are modeled by state machines (formal definition below).
 
-At each round, each process :
+At each round, each node :
 \begin{itemize}
 	\item Send a message according to its current state.
 	\item Receives a subset of the messages that were destined to itself. The non-received messages are lost, due to a failure during the sending or the transmission.
@@ -99,22 +109,22 @@ At each round, each process :
 
 \subsection{Modeling of asynchronous starts}
 
-A system with asynchronous starts is not an open system where processes can join at any moment.
-We rather consider that every process belongs to the system from the beginning, but may not be ready yet.
-A non-ready process remains passive relative to the considered algorithm, and signals its non-readiness by sending at each round, to each process a special message $nil$.
+A system with asynchronous starts is not an open system where nodes can join at any moment.
+We rather consider that every node belongs to the system from the beginning, but may not be ready yet.
+A non-ready node remains passive relative to the considered algorithm, and signals its non-readiness by sending at each round, to each node a special message null.
 
-In this document, we will make the assumption that no process can remain inactive forever.
+In this document, we will make the assumption that no node can remain inactive forever.
 To formally write this hypothesis, we introduce the series $(\mathcal{A}_r)_{r \in \mathds{N}}$, where, for a given execution (see the formal definition below), $\mathcal{A}_r \subseteq \Pi$ 
-represents the set of active processes at round $r$.
+represents the set of active nodes at round $r$.
 The "non inactive forever" hypothesis can now be written as :
 
 $$P_{\neg-passiv-forever} \equiv \exists r \in \mathds{N}, \mathcal{A}_r = \Pi$$
 
-Here $\Pi$ is the set of all processes.
+Here $\Pi$ is the set of if the predicates $\mathcal{P}_{\neg-passiv-forever}$ are satisfied all nodes.
 
 \subsection{Definition of an algorithm}
 
-Let $\Pi$ be a set of cardinality $n$. For each element of $\Pi$, a process is defined by the following entries :
+Let $\Pi$ be a set of cardinality $n$. For each element of $\Pi$, a node is defined by the following entries :
 
 \begin{itemize}
 	\item A non-empty $States_p$ set, and an element $sleep_p \notin States_p$.
@@ -122,7 +132,7 @@ Let $\Pi$ be a set of cardinality $n$. For each element of $\Pi$, a process is d
 	\item A sending function $S_p : States_p \times \Pi \rightarrow \mathcal{M}$.
 	\item A transition function $T_p : States_p \times \mathcal{X}_\Pi^{\mathcal{M}} \rightarrow States_p$,
 		where $\mathcal{X}_\Pi^{\mathcal{M}}$ is the type of a partial function
-		of type $\Pi \rightarrow \mathcal{M} \uplus \{nil\}$.
+		of type $\Pi \rightarrow \mathcal{M} \uplus \{null\}$.
 \end{itemize}
 
 The elements of $States_p$ are the states of $p$, and those of $Init_p$ are the possible initial values.
@@ -134,7 +144,7 @@ The elements of $States_p$ are the states of $p$, and those of $Init_p$ are the 
 
 \subsection{Definition of an execution}
 
-The Heard-Of model is round based. At any round $r$, any active process $p$ run the following steps :
+The Heard-Of model is round based. At any round $r$, any active node $p$ run the following steps :
 
 \begin{itemize}
 	\item It emits a messages determined by its current state and the sending function.
@@ -143,30 +153,30 @@ The Heard-Of model is round based. At any round $r$, any active process $p$ run 
 	\item It updates its state, according to the transition function, taking into account $HO(p,r)$.
 \end{itemize}
 
-A passive process always emits $nil$, and remains in the $sleep_p$ state.
+A passive node always emits null, and remains in the $sleep_p$ state.
 It can spontaneously be activated. In that case, its state moves from $sleep_p$ to $\sigma^0_p \in Init_p$.
 The function $HO$ can also be viewed as a series of graph $\mathds{G}_r = (\Pi, E_r)$ where
 
 $$(p, q) \in E_r \Leftrightarrow p \in HO(p, r)$$
 
-The graph $\mathds{G}_r$ represents the possibilities of communications between any pair of process.
-The absence of communication means a failure has occurred, either in the sending process, or in the connection.
+The graph $\mathds{G}_r$ represents the possibilities of communications between any pair of node.
+The absence of communication means a failure has occurred, either in the sending node, or in the connection.
 
 An execution of an algorithm $(States_p, Init_p, S_p, T_p)$ is defined by a tuple
 $(\mathds{G}, \mathcal{A}, (\sigma^0_p)_{p \in \Pi})$ where :
 
 \begin{itemize}
-	\item $\mathds{G}$ is a series of communication graph. Since a process should always be able to communicate 
+	\item $\mathds{G}$ is a series of communication graph. Since a node should always be able to communicate 
 		with itself, the communication graphs should always contain self-loops.
-	\item $\mathcal{A}$ is the activation schedule. $\mathcal{A}_r$ is the set of active process in round $r$.
+	\item $\mathcal{A}$ is the activation schedule. $\mathcal{A}_r$ is the set of active node in round $r$.
 		It must be an increasing series, verifying $\mathcal{A}_0 = \emptyset$.
-	\item $(\sigma^0_p)_{p \in \Pi}$ is the family of initial states for every process.
+	\item $(\sigma^0_p)_{p \in \Pi}$ is the family of initial states for every node.
 \end{itemize}
 
 \textbf{Remarks :}
 
 \begin{itemize}
-	\item With synchronous starts, every process start during the same round : 
+	\item With synchronous starts, every node start during the same round : 
 		$$\forall r \in \mathds{N}, \mathcal{A}_r \in \{\emptyset, \Pi\}$$
 
 	\item The knowledge of $\mathcal{A}$ is equivalent to the knowledge of a function
@@ -181,7 +191,7 @@ $(\mathds{G}, \mathcal{A}, (\sigma^0_p)_{p \in \Pi})$ where :
 \end{itemize}
 
 For any given execution $(\mathds{G}, \mathcal{A}, (\sigma^0_p)_{p \in \Pi})$,
-the state $\Gamma_p(r)$ of any process $p$ at any round $r$ can be inductively defined :
+the state $\Gamma_p(r)$ of any node $p$ at any round $r$ can be inductively defined :
 
 \begin{itemize}
 	\item $\forall r \in \mathds{N}, \forall p \in \Pi \setminus \mathcal{A}_{r+1}, \Gamma_p(r) = sleep_p$
@@ -192,7 +202,7 @@ the state $\Gamma_p(r)$ of any process $p$ at any round $r$ can be inductively d
 		Its type is $\mathcal{X}_\Pi^{\mathcal{M}}$.
 		It is defined by
 			$$ M_p^r(q) = \left \{ \begin{array}{l l}
-	                         nil  & \mbox{ if  } q \in (\Pi \setminus \mathcal{A}_r  ) \cap  HO(p,r)  \\
+	                         null  & \mbox{ if  } q \in (\Pi \setminus \mathcal{A}_r  ) \cap  HO(p,r)  \\
 	                         S_q (\Gamma_q(r-1), p)  & \mbox{ if  }   q \in \mathcal{A}_r  \cap  HO(p,r) \\
 	                         \mbox{undefined} & \mbox{ if  }   q \notin  HO(p,r) .
 	                          \end{array} \right.$$ 
@@ -205,7 +215,7 @@ the state $\Gamma_p(r)$ of any process $p$ at any round $r$ can be inductively d
 	such as $S_{fire} \cap Init_p = \emptyset$.
 	For any execution of $A$, the firing function is defined by :
 
-	$$Fire(p) = \left \{
+	$$t_{fire}(p) = \left \{
 		\begin{array}{l l}
 		\infty & \mbox{if}~\forall r \in \mathds{N}, \Gamma_p(r) \notin S_{fire} \\
 		Min \{r \in \mathds{N}, \Gamma_p(r) \in S_{fire}\} & \mbox{otherwise}
@@ -215,52 +225,66 @@ the state $\Gamma_p(r)$ of any process $p$ at any round $r$ can be inductively d
 \begin{definition}
 	A given execution of $A$ satisfies safety relative to synchronisation modulo $k$ problem if :
 	$$\exists c \in \mathds{Z}/k\mathds{Z}, \forall p \in \bigcup\limits_{i \in \mathds{N}} \mathcal{A}_i,
-	Fire(p) \neq \infty \Rightarrow Fire(p) \equiv c[k]$$
+	t_{fire}(p) \neq \infty \Rightarrow t_{fire}(p) \equiv c[k]$$
 \end{definition}
 
 \begin{definition}
 	A given execution of $A$ satisfies liveness relative to synchronisation modulo $k$ problem if :
-	$$\forall p \in \bigcup\limits_{i \in \mathds{N}} \mathcal{A}_i, Fire(p) \neq \infty$$
+	$$\forall p \in \bigcup\limits_{i \in \mathds{N}} \mathcal{A}_i, t_{fire}(p) \neq \infty$$
 \end{definition}
 
-\section{The SyncMod algorithm}
+\section{The \textit{SynchMod} algorithm}
 
-In the SyncMod algorithm, each process has a counter value in $\mathds{Z}/k\mathds{Z}$. At each round,
-they send their counter to all processes.
-Then, the transition function is a case disjunction composed of four branches.
+In the SyncMod algorithm, each node maintains a counter in $\mathds{Z}/k\mathds{Z}$. At each round,
+they send their counter to all nodes.
+Then, the transition function is a case disjunction :
+\begin{itemize}
+	\item If the received messages are concordant, the node adopts their values, and increments it.
+		\begin{itemize}
+			\item If the received messages are all equal to "k", the node fires.
+		\end{itemize}
+	\item If the received values are discordant, and at least one "k" have been received, adopt 1 (because $k+1~mod~k = 1$).
+	\item If the received values are discordant, and no "k" has been received, the node tries a "forced synchronization". It adopts "k".
+		Thus, in the next round, it will send "k" to all nodes. Those which will receive this "k" will be forced to adopt it (see case above).
+		Each node tries a "forced synchronization" only once.
+	\item Otherwise (if a "forced synchronization" has already been done, and the messages are discordant), the node adopts 1.
+\end{itemize}
+
+\noindent This protocol is designed such that :
+\begin{itemize}
+	\item If every node have the same value $v$ at round $t$, only the first case above will be triggered, and all nodes will adopt $v+1~mod~k$.
+		In other words, a monovalent systems remains monovalent at the following rounds (see lemma \ref{lem:mono_mono}).
+	\item If the system becomes monovalent at round $t$, the liveness is guaranteed, since the systems will eventually reach a state where every node is active and sends "k".
+		(see lemma \ref{lem:mono_liv})
+	\item If the node at the center of the star tries a "forced synchronization", every node will adopt 1, then the liveness results from the previous two facts.
+	\item If the node at the center of the star never tries a "forced synchronization", we will show by a non-trivial reasoning that the liveness is still guaranteed.
+\end{itemize}
 
 \begin{algorithm}[htb]
 \begin{distribalgo}[1]
-\BLANK \INDENT{\textbf{Initialisation:}}
-	\STATE $x_p \in \mathds{Z}/k\mathds{Z}$
-	\STATE $force_p = true$
-	\STATE $fire_p = false$
-	\STATE $started_p = false$
+\BLANK \INDENT{\textbf{Initialization:}}
+	\STATE $\overline{c}_p \in \mathds{Z}/k\mathds{Z} \cup \{\bot\}$, initially $\bot$
+	\STATE $force_p \leftarrow true$
+	\STATE $fire_p \leftarrow false$
 
 \ENDINDENT \BLANK
 
 \INDENT{\textbf{Round $r$:}}
 	\INDENT{$S_p:$}
-		\IF{$started_p$}
-			\STATE send $\langle x_p \rangle$ to all processes
-		\ELSE
-			\STATE send $\bot$ to all processes
-		\ENDIF
+		\STATE send $\langle \overline{c}_p \rangle$ to all nodes
 	\ENDINDENT
 	\BLANK
 	\INDENT{$T_p(M):$}
-		\STATE $started_p = true$
-		\IF{$M(\Pi) = \{k\}$}
-			\STATE $fire_p = true$ ~~~~\COMMENT{if every received message is $k$, and no $nil$, fire !}
+		\IF{every received message contains $k$}
+			\STATE $fire_p \leftarrow true$
 		\ENDIF
-		\IF{$M(\Pi) \setminus \{nil, \bot\} = \{v\}$}
-			\STATE $x_p = v+1~mod~k$ ~~~~\COMMENT{if received message are concordant, adopt their value}
-		\ELSIF{$force_p \wedge k \notin M(\Pi)$}
-			\STATE $force_p = false$ ~~~~\COMMENT{if received messages are discordant,
-				try a "forced synchronisation"}
-			\STATE $x_p = k$
+		\IF{every received messages, excluding null and $\bot$, contains the same value $v$}
+			\STATE $\overline{c}_p \leftarrow v+1~mod~k$
+		\ELSIF{$force_p \wedge$ no $k$ has been received}
+			\STATE $force_p \leftarrow false$ ~~~~\COMMENT{try a "forced synchronisation"}
+			\STATE $\overline{c}_p \leftarrow k$
 		\ELSE
-			\STATE $x_p = 1$ ~~~~\COMMENT{if at least one "$k$" is received, adopt 1}
+			\STATE $\overline{c}_p \leftarrow 1$ ~~~~\COMMENT{in particular, if at least one $k$ has been received, adopt 1}
 		\ENDIF
 	\ENDINDENT
 \ENDINDENT 
@@ -272,38 +296,39 @@ Then, the transition function is a case disjunction composed of four branches.
 \subsection{Required hypothesis}
 
 In order to prove the safety and the liveness of this algorithm, we need to make the following hypothesis :
-there exists a process, called $\xi$, which is supposed correct. This process never crash, and, at each round, it manages to send 
-messages to every other processes. The $n-1$ remaining processes may crash, their messages may be lost, with an arbitrarily high frequency.
+there exists a node, called $\xi$, whose messages always reach their destination.
+The communication graph of each round must contain a "star" whose center is always the node $\xi$.
+
 In order to formally express this hypothesis, we write a predicate over the $HO$ function defined in a previous section :
 
-$$P_{\xi-reliable} \equiv \exists \xi \in \Pi, \forall p \in \Pi, \forall r \in \mathds{N}, \xi \in HO(p,r)$$
+$$P_{centered} \equiv \exists \xi \in \Pi, \forall p \in \Pi, \forall r \in \mathds{N}, \xi \in HO(p,r)$$
 
 In the predicate above, $\xi \in HO(p,r)$ informally means that $\xi$ belongs to the Heard-Of set of $p$ at round $r$. In other words, $p$ receives the message of $\xi$ at round $r$.
-We can arguably state that this hypothesis is verified in a real-life systems.
-Otherwise, a system without trusty process would be a very low quality system.
 
-\textbf{Note :} This hypothesis does not imply that every process "know" the identity of the $\xi$ verifying the predicate.
+From this point, we only consider communication graphs verifying this predicate.
+In addition of $\mathcal{P}_{centered}$, we also need $\mathcal{P}_{\neg-passiv-forever}$.
+We will also suppose that the activation schedule verifies $\mathcal{P}_{\neg-passiv-forever}$.
 
 \subsection{Notation}
 
 \begin{definition}
-	Given $V \subseteq \mathds{Z}/k\mathds{Z}$, the system is said to be V-valent in round $r$ if :
-	$$V = \{v \in \mathds{Z}/k\mathds{Z}, \exists p \in \mathcal{A}_r, x_p = v\}$$
+	Given $V \subseteq \mathds{Z}/k\mathds{Z}$, the system is said to be V-valent in round $r$ if
+	$$V = \{v \in \mathds{Z}/k\mathds{Z}, \exists p \in \mathcal{A}_r, \overline{c}_p = v\}$$
 \end{definition}
 
 The system is said to be v-monovalent if the system is $\{v\}$-valent.
 
-The previous definition of the $Fire$ function can be precised in the context of this algorithm.
+The previous definition of the $t_{fire}$ function can be precised in the context of this algorithm.
 
-$$Fire(p) = \left \{
+$$t_{fire}(p) = \left \{
 	\begin{array}{l l}
 	\infty & \mbox{if}~\forall r \in \mathds{N}, \Gamma_p(r) \notin S_{fire} \\
 		Min \{r \in \mathds{N}, fire_p(r)\} & \mbox{otherwise}
 	\end{array} $$
 
-Similarly, a $Force$ function can be defined.
+Similarly, a $t_{force}$ function can be defined.
 
-$$Force(p) = \left \{
+$$t_{force}(p) = \left \{
 	\begin{array}{l l}
 	\infty & \mbox{if}~\forall r \in \mathds{N}, \Gamma_p(r) \notin S_{fire} \\
 		Min \{r \in \mathds{N}, force_p(r)\} & \mbox{otherwise}
@@ -312,128 +337,126 @@ $$Force(p) = \left \{
 \subsection{Safety proof}
 
 \begin{lemma}\label{lem:safety}
-	Any execution of SyncMod is safe relative to the synchronisation modulo $k$ problem
-	if the predicates $\mathcal{P}_{\xi-reliable}$ and $\mathcal{P}_{\neg-passiv-forever}$ are verified.
+	Any execution of SyncMod is safe relative to the synchronisation modulo $k$ problem.
 \end{lemma}
 \begin{proof}
-	Let $p$ the first firing process, in round $r$.
-	Since $\xi \in HO(p,r)$, the value sent by $\xi$ is necessarily $k$, thus every process have received a $k$.
-	The pseudo-code is designed such that the processes adopt $1$ as soon as they receive at least one $k$.
+	Let $p$ the first firing node, in round $r$.
+	Since $\xi \in HO(p,r)$, the value sent by $\xi$ is necessarily $k$, thus every node have received a $k$.
+	The pseudo-code is designed such that the nodes adopt $1$ as soon as they receive at least one $k$.
 
 	Now we can show by recurrence over $i$ that :
 
-	$$\forall i \in \mathds{N}, \forall q \in \mathcal{A}_{r+i}, x_q(r+i) = i + 1~mod~k$$
+	$$\forall i \in \mathds{N}, \forall q \in \mathcal{A}_{r+i}, \overline{c}_q(r+i) = i + 1~mod~k$$
 
 	\begin{description}
-		\item[Initialisation :] See above.
+		\item[Initialization :] See above.
 		\item[Heredity :] We assume that 
-		$$\forall q \in \mathcal{A}_{r+i}, x_q(r+i) = i + 1~mod~k$$
+			$$\forall q \in \mathcal{A}_{r+i}, \overline{c}_q(r+i) = i + 1~mod~k$$
 	We need to show that 
-	$$\forall q \in \mathcal{A}_{r+i+1}, x_q(r+i+1) = i + 2~mod~k$$
+			$$\forall q \in \mathcal{A}_{r+i+1}, \overline{c}_q(r+i+1) = i + 2~mod~k$$
 	Let $M$ be the reception function of $p$ in round $r+i+1$.
-			From the recurrence hypothesis, we can deduce that $M(\Pi) \subseteq \{nil, \bot, i+1~mod~k\}$.
+			From the recurrence hypothesis, we can deduce that $M(\Pi) \subseteq \{null, \bot, i+1~mod~k\}$.
 			Moreover $M(\xi) = i+1~mod~k$.
 			Thus the second branches is executed. That ends the recurrence.
 	\end{description}
 
-	Thus, processes can only decide in rounds such that $i~mod~k = 0$, which guarantees the safety.
+	Thus, nodes can only decide in rounds such that $i~mod~k = 0$, which guarantees the safety.
 \end{proof}
 
 \subsection{Liveness proof}
 
 \begin{lemma}\label{lem:k_mono}
-	If $x_\xi(t) = k$, and the predicate $\mathcal{P}_{\xi-reliable}$ is verified, the system is 1-monovalent in round $t+1$.
+	If $\overline{c}_\xi(t) = k$, the system is 1-monovalent in round $t+1$.
 \end{lemma}
 \begin{proof}
-	If $x_\xi(t) = k$, the process $\xi$ sends $k$ to all processes in round $t+1$.
-	Every process receives this message, thus they must execute the second or the forth branch, and adopt 1.
+	If $\overline{c}_\xi(t) = k$, the node $\xi$ sends $k$ to all nodes in round $t+1$.
+	Every node receives this message, thus they must execute the second or the forth branch, and adopt 1.
 \end{proof}
 
 \begin{lemma}\label{lem:mono_mono}
-	If $\xi$ is active in round $s$, and the system is v-monovalent, and the predicate $\mathcal{P}_{\xi-reliable}$ is verified, it must be $v+i$-monovalent in round $s+i$,
+	If $\xi$ is active in round $s$, and the system is v-monovalent, it must be $v+i$-monovalent in round $s+i$,
 	for any $i \in \mathds{N}$.
 \end{lemma}
 \begin{proof}
 	The proof of this lemma is done by recurrence over $i$.
 	\begin{description}
-		\item[Initialisation :] Trivial.
+		\item[Initialization :] Trivial.
 		\item[Heredity :] We assume that
-			$$\forall p \in \mathcal{A}_{s+i}, x_p(s+i) = v+i~mod~k$$
+			$$\forall p \in \mathcal{A}_{s+i}, \overline{c}_p(s+i) = v+i~mod~k$$
 			We have to show that 
-			$$\forall p \in \mathcal{A}_{s+i+1}, x_p(s+i+1) = v+i+1~mod~k$$
-			In round $s+i+1$, processes in $\mathcal{A}_{s+i}$ send $v+i~mod~k$, whereas processes 
+			$$\forall p \in \mathcal{A}_{s+i+1}, \overline{c}_p(s+i+1) = v+i+1~mod~k$$
+			In round $s+i+1$, nodes in $\mathcal{A}_{s+i}$ send $v+i~mod~k$, whereas nodes 
 			in $\mathcal{A}_{s+i+1} \setminus \mathcal{A}_{s+i}$ send $\bot$.
 			Moreover $\xi$ belongs to $\mathcal{A}_{s+i}$.
-			Thus, every active process must execute the second branch.
+			Thus, every active node must execute the second branch.
 			Thus the heredity holds.
 	\end{description}
 \end{proof}
 
 \begin{lemma}\label{lem:k_liv}
-	If $\xi$ is active at round $t$, if $x_\xi(t) = k$ and the predicates $\mathcal{P}_\xi_{reliable}$ and $\mathcal{P}_{\neg-passiv-forever}$ are verified, the liveness is guaranteed.
+	If $\xi$ is active at round $t$, if $\overline{c}_\xi(t) = k$, the liveness is guaranteed.
 \end{lemma}
 \begin{proof}
 	The lemmas \ref{lem:k_mono} and \ref{lem:mono_mono}, the system is 1-monovalent in round $t+i$,
 	thus $i~mod~k$-monovalent in every $t+i$ following rounds.
-	From the predicate $\mathcal{P}_{\neg-passiv-forever}$ we can obtain a round $s_{max}$ in which every process is active.
+	From the predicate $\mathcal{P}_{\neg-passiv-forever}$ we can obtain a round $s_{max}$ in which every node is active.
 	At any round $r$ verifying $r > s_{max}$ and $r = t + i$ and $i~mod~k = 0$, the system is k-monovalent,
-	and every process is active. Thus every process, including $\xi$, will send $k$.
-	Thus, every process will fire.
+	and every node is active. Thus every node, including $\xi$, will send $k$.
+	Thus, every node will fire.
 \end{proof}
 
 \begin{lemma}\label{lem:mono_liv}
-	If $\xi$ is active in round $t$, if the system is monovalent, and the predicates $\mathcal{P}_\xi_{reliable}$ and $\mathcal{P}_{\neg-passiv-forever}$ are verified, the liveness is guaranteed.
+	If $\xi$ is active in round $t$, if the system is monovalent, the liveness is guaranteed.
 \end{lemma}
 \begin{proof}
 	The lemma \ref{lem:mono_mono} guarantees that the system remains monovalent, and that it reaches a
 	k-monovalent state.
-	Thus $x_\xi(t) = k$, and the lemma \ref{lem:k_liv} shows that the liveness is guaranteed.
+	Thus $\overline{c}_\xi(t) = k$, and the lemma \ref{lem:k_liv} shows that the liveness is guaranteed.
 \end{proof}
 
 \begin{lemma}\label{lem:mono_bi}
-	If $t$ satisfies $t > max \{Force(p) < \infty, p \in \Pi\} \cup \{s(p), p \in \Pi\}$, and the predicate $\mathcal{P}_{\xi-reliable}$ is verified,
+	If $t$ satisfies $t > max \{t_{force}(p) < \infty, p \in \Pi\} \cup \{s(p), p \in \Pi\}$,
 	then the system is either monovalent or V-valent in round $t$, where $V = \{1, w\}$.
 \end{lemma}
 \begin{proof}
-	Given any $p \in \mathcal{A}_t$, the process $p$ receives the value $x_\xi(t-1)$ from $\xi$ in round $t$.
+	Given any $p \in \mathcal{A}_t$, the node $p$ receives the value $\overline{c}_\xi(t-1)$ from $\xi$ in round $t$.
 	\begin{itemize}
-		\item If $p$ also receives a value different from $x_\xi(t-1)$ and $\bot$, the process $p$ does not 
-			execute the second branch. It does not execute the third one, either, since $t > Force(p)$.
-			Then, the only possibility is $x_p(t) = 1$.
-		\item Otherwise, $p$ executes the second branch, and adopts $x_\xi(t-1)+1~mod~k$.
+		\item If $p$ also receives a value different from $\overline{c}_\xi(t-1)$ and $\bot$, the node $p$ does not 
+			execute the second branch. It does not execute the third one, either, since $t > t_{force}(p)$.
+			Then, the only possibility is $\overline{c}_p(t) = 1$.
+		\item Otherwise, $p$ executes the second branch, and adopts $\overline{c}_\xi(t-1)+1~mod~k$.
 	\end{itemize}
 \end{proof}
 
 \begin{theorem}
-	The SyncMod algorithm solves the synchronisation modulo $k$ problem if the predicates $\mathcal{P}_{\neg-passiv-forever}$
-	and $\mathcal{P}_{\xi-reliable}$ are satisfied.
+	The SyncMod algorithm solves the synchronisation modulo $k$ problem.
 \end{theorem}
 \begin{proof}
 	\begin{description}
-		\item[Case 1 : ] If $Force(\xi) = \infty$, the process $\xi$ executes once the third branch.
+		\item[Case 1 : ] If $t_{force}(\xi) = \infty$, the node $\xi$ executes once the third branch.
 			Thus, the liveness results from lemma \ref{lem:k_liv}.
 
-		\item[Case 2 :] Otherwise $Force(\xi) \neq \infty$.
-			Let $t$ be a round verifying $t > max \{Force(p) < \infty, p \in \Pi\} \cup \{s(p), p \in \Pi\}$.
+		\item[Case 2 :] Otherwise $t_{force}(\xi) \neq \infty$.
+			Let $t$ be a round verifying $t > max \{t_{force}(p) < \infty, p \in \Pi\} \cup \{s(p), p \in \Pi\}$.
 			The lemma \ref{lem:mono_bi} shows that the system is either monovalent or bivalent in round $t$.
 			\begin{description}
 				\item[Sub-case 2.1] The system is monovalent. The liveness results from lemma \ref{lem:mono_liv}.
-				\item[Sub-case 2.2] The system is V-valent with $V = \{1, w\}$ and $w = x_\xi(t) \neq 1$.
+				\item[Sub-case 2.2] The system is V-valent with $V = \{1, w\}$ and $w = \overline{c}_\xi(t) \neq 1$.
 					\begin{description}
-						\item[Sub-sub-case 2.2.1 : ] In round $t+1$, the process $\xi$ receives at least once
+						\item[Sub-sub-case 2.2.1 : ] In round $t+1$, the node $\xi$ receives at least once
 							the value 1.
-							This case is actually impossible, since we assumed that $Force(\xi) \neq \infty$.
-						\item[Sub-sub-case 2.2.2 : ] In round $t+1$, the process $\xi$ only receives $w$.
-							Hence, $x_\xi(t+1) = w+1$. The system is now either monovalent,
+							This case is actually impossible, since we assumed that $t_{force}(\xi) \neq \infty$.
+						\item[Sub-sub-case 2.2.2 : ] In round $t+1$, the node $\xi$ only receives $w$.
+							Hence, $\overline{c}_\xi(t+1) = w+1$. The system is now either monovalent,
 							or V'-valent, with $V' = \{1, w+1\}$.
 							The sub-case 2.2 happens again in round $t+1$.
-							We can show by recurrence over $i$ that $\xi$ reaches a state where $x_\xi(t+i) = k$.
+							We can show by recurrence over $i$ that $\xi$ reaches a state where $\overline{c}_\xi(t+i) = k$.
 							The liveness results from lemma \ref{lem:k_liv}.
 					\end{description}
-				\item[Subcase 2.3 : ] The system is V-valent with $V = \{1, w\}$ and $w = x_\xi(t) = 1$.
-					In round $t+1$, the process $\xi$ receives its own value : 1.
-					It cannot receives $w$, since we assumed that $Force(\xi) \neq \infty$.
-					Hence, in round $t+1$, we have $x_\xi(t+1) = 2$.
+				\item[Subcase 2.3 : ] The system is V-valent with $V = \{1, w\}$ and $w = \overline{c}_\xi(t) = 1$.
+					In round $t+1$, the node $\xi$ receives its own value : 1.
+					It cannot receives $w$, since we assumed that $t_{force}(\xi) \neq \infty$.
+					Hence, in round $t+1$, we have $\overline{c}_\xi(t+1) = 2$.
 					We are now brought back to sub-case 2.2.
 			\end{description}
 	\end{description}
