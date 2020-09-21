@@ -16,7 +16,7 @@
 \usepackage{biblatex}
 \addbibresource{rapport.bib}
 
-\title{Synchronisation modulo $k$ in distributed system}
+\title{$k$-synchronization in distributed system}
 \date{August 2020}
 \author{Louis Penet de Monterno - Bernadette Charron-Bost}
 
@@ -69,12 +69,12 @@ However, in the case of asynchronous starts, that could result in conflicting ph
 
 To solve this problem, we need to make sure that the starting round of each node are congruent modulo $k$,
 where $k$ is a parameter representing the number of phases of the target algorithm ($k=4$ in the case of Paxos).
-This problem is named \emph{synchronisation modulo $k$ problem}.
+This problem is named \emph{$k$-synchronization problem}.
 The point of this article is to solve this problem.
 
 \subsection{Proposed solution}
 
-The goal of this document is to propose an algorithm that solves the synchronisation modulo $k$ problem.
+The goal of this document is to propose an algorithm that solves the $k$-synchronization problem.
 Such an algorithm could be executed on a distributed system without synchronous starts,
 an at a certain round, each node would "fire".
 That would be a starting signal for the target algorithm.
@@ -208,7 +208,7 @@ the state $\Gamma_p(r)$ of any node $p$ at any round $r$ can be inductively defi
 	                          \end{array} \right.$$ 
 \end{itemize}
 
-\subsection{The synchronisation problem}
+\subsection{The synchronization problem}
 
 \begin{definition}
 	Let $k > 1$ be a parameter. Let us consider an algorithm $A$ and a subset $S_{fire} \subseteq States_p$
@@ -223,19 +223,19 @@ the state $\Gamma_p(r)$ of any node $p$ at any round $r$ can be inductively defi
 \end{definition}
 
 \begin{definition}
-	A given execution of $A$ satisfies safety relative to synchronisation modulo $k$ problem if :
+	A given execution of $A$ satisfies safety relative to $k$-synchronization problem if :
 	$$\exists c \in \mathds{Z}/k\mathds{Z}, \forall p \in \bigcup\limits_{i \in \mathds{N}} \mathcal{A}_i,
 	t_{fire}(p) \neq \infty \Rightarrow t_{fire}(p) \equiv c[k]$$
 \end{definition}
 
 \begin{definition}
-	A given execution of $A$ satisfies liveness relative to synchronisation modulo $k$ problem if :
+	A given execution of $A$ satisfies liveness relative to $k$-synchronization problem if :
 	$$\forall p \in \bigcup\limits_{i \in \mathds{N}} \mathcal{A}_i, t_{fire}(p) \neq \infty$$
 \end{definition}
 
 \section{The \textit{SynchMod} algorithm}
 
-In the SyncMod algorithm, each node maintains a counter in $\mathds{Z}/k\mathds{Z}$. At each round,
+In the SynchMod algorithm, each node maintains a counter in $\mathds{Z}/k\mathds{Z}$. At each round,
 they send their counter to all nodes.
 Then, the transition function is a case disjunction :
 \begin{itemize}
@@ -281,14 +281,14 @@ Then, the transition function is a case disjunction :
 		\IF{every received messages, excluding null and $\bot$, contains the same value $v$}
 			\STATE $\overline{c}_p \leftarrow v+1~mod~k$
 		\ELSIF{$force_p \wedge$ no $k$ has been received}
-			\STATE $force_p \leftarrow false$ ~~~~\COMMENT{try a "forced synchronisation"}
+			\STATE $force_p \leftarrow false$ ~~~~\COMMENT{try a "forced synchronization"}
 			\STATE $\overline{c}_p \leftarrow k$
 		\ELSE
 			\STATE $\overline{c}_p \leftarrow 1$ ~~~~\COMMENT{in particular, if at least one $k$ has been received, adopt 1}
 		\ENDIF
 	\ENDINDENT
 \ENDINDENT 
-\caption{{\em SyncMod} algorithm} \label{algo:R}
+\caption{{\em SynchMod} algorithm} \label{algo:R}
 \end{distribalgo}
 
 \end{algorithm}
@@ -337,7 +337,7 @@ $$t_{force}(p) = \left \{
 \subsection{Safety proof}
 
 \begin{lemma}\label{lem:safety}
-	Any execution of SyncMod is safe relative to the synchronisation modulo $k$ problem.
+	Any execution of SynchMod is safe relative to the $k$-synchronization problem.
 \end{lemma}
 \begin{proof}
 	Let $p$ the first firing node, in round $r$.
@@ -429,7 +429,7 @@ $$t_{force}(p) = \left \{
 \end{proof}
 
 \begin{theorem}
-	The SyncMod algorithm solves the synchronisation modulo $k$ problem.
+	The SynchMod algorithm solves the $k$-synchronization problem.
 \end{theorem}
 \begin{proof}
 	\begin{description}
