@@ -320,6 +320,7 @@ The key point of the algorithm and of its ``forced firing procedure'' lies in th
 
 
 \subsection{Notation and preliminary lemmas}
+<<<<<<< HEAD
 
 In the rest of this section, we fix an execution $\sigma$ of the SynchMod algorithm associated to the activation 
 	schedule~${\cal A}$ and a centered dynamic graph~$\dG \in {\cal G}^c$. % a definir 
@@ -331,6 +332,19 @@ Round~$t$ in~$\sigma$  is said to be \emph{$S$-valent}  if $S$ is the set of the
 	$$ S = \{i  \in \mathds{Z}/k\mathds{Z} : \exists u \in \mathcal{A}_t, \ \overline{c}_u (t) = i \}  . $$
 The system is said to be $i$-\emph{monovalent}  if the system is $\{ i\}$-valent.
 
+=======
+
+In the rest of this section, we fix an execution $\sigma$ of the SynchMod algorithm associated to the activation 
+	schedule~${\cal A}$ and a centered dynamic graph~$\dG \in {\cal G}^c$. % a definir 
+Let $\cent$ denote one center of~$\dG$.	
+
+For the correctness proof of SynchMod, we now introduce some additional definitions.
+Let $S$ be any subset of $ \mathds{Z}/k\mathds{Z}$.
+Round~$t$ in~$\sigma$  is said to be \emph{$S$-valent}  if $S$ is the set of the clock values of active nodes at the end of round~$t$, i.e.,
+	$$ S = \{i  \in \mathds{Z}/k\mathds{Z} : \exists u \in \mathcal{A}_t, \ \overline{c}_u (t) = i \}  . $$
+The system is said to be $i$-\emph{monovalent}  if the system is $\{ i\}$-valent.
+
+>>>>>>> a61f7274d894592680c0523acdfae1f88b827b24
 Similarly to $\tf (u)$, let us define $\try (u)$  as the round number at which the node~$u$ executes line~\ref{line:try} 
 	if any, and $\try (u)= \infty$ otherwise.
 
@@ -472,3 +486,4 @@ The goal is now to prove that any execution contains at least one configuration 
 \printbibliography
 
 \end{document}
+
