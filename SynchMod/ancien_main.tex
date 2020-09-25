@@ -10,11 +10,20 @@
 \usepackage[left=2cm, right=2cm, top=2cm]{geometry}
 \usepackage[utf8]{inputenc}
 
+
+
 \newtheorem{lemma}{Lemma}[section]
 \newtheorem{theorem}{Theoreme}
 \newtheorem{definition}{Definition}
 \usepackage{biblatex}
 \addbibresource{rapport.bib}
+
+\newcommand{\cent}{\gamma}
+\newcommand{\dG}{\mathds{G}}
+\newcommand{\IN}{\mathds{N}}
+\newcommand{\ts}{t_{s}}
+\newcommand{\tf}{t_{f}}
+\newcommand{\try}{t_{t}}
 
 \title{$k$-synchronization in distributed system}
 \date{August 2020}
@@ -184,8 +193,8 @@ $(\mathds{G}, \mathcal{A}, (\sigma^0_u)_{u \in \Pi})$ where :
 		$$\forall r \in \mathds{N}, \mathcal{A}_r \in \{\emptyset, \Pi\}$$
 
 	\item The knowledge of $\mathcal{A}$ is equivalent to the knowledge of a function
-		$t_{start} : \Pi \rightarrow \mathds{N} \cup \{\infty\}$ defined by :
-		$$t_{start}(u) = \left \{ \begin{array}{l ll}
+		$\ts : \Pi \rightarrow \mathds{N} \cup \{\infty\}$ defined by :
+		$$\ts(u) = \left \{ \begin{array}{l ll}
 		  \infty & \mbox{ if  } p \notin \bigcup\limits_{r \in \mathds{N}}  \mathcal{A}_r & 
 			  \mbox { ($u$ remains inactive forever) } \\
 		  r  & \mbox{ if  } p \notin \mathcal{A}_{r-1} \mbox{ et } p \in \mathcal{A}_{r}  &
@@ -217,203 +226,203 @@ the state $\Gamma_u(r)$ of any node $u$ at any round $r$ can be inductively defi
 \begin{definition}
 	Let $k > 1$ be a parameter. Let us consider an algorithm $A$ in which nodes $u$ maintains a boolean $fire_u$, which is initially $False$.
 	The node $u$ fires when this parameter is set to $True$ for the first time.
-	For any execution of $A$, the firing schedule $t_{fire} : \Pi \rightarrow \mathds{N} \cup \{\infty\}$ is defined by :
+	For any execution of $A$, the firing schedule $\tf : \Pi \rightarrow \mathds{N} \cup \{\infty\}$ is defined by 
 
-	$$t_{fire}(u) = \left \{
+	$$\tf(u) = \left \{
 	\begin{array}{l l}
 		\infty & \mbox{if}~\forall r \in \mathds{N}, \neg fire_u(r) \\
 		Min \{r \in \mathds{N}, fire_u(r)\} & \mbox{otherwise}
-	\end{array} $$
+	\end{array} \right.$$
 
-	\textbf{Note :} A node $u$ which never activate verifies $t_{fire}(u) = \infty$.
+	\textbf{Note :} A node $u$ which never activate verifies $\tf(u) = \infty$.
 \end{definition}
 
 \begin{definition}
 	A given execution of $A$ satisfies safety relative to $k$-synchronization problem if :
 	$$\exists c \in \mathds{Z}/k\mathds{Z}, \forall u \in \Pi,
-	t_{fire}(u) \neq \infty \Rightarrow t_{fire}(u) \equiv c[k]$$
+	\tf(u) \neq \infty \Rightarrow \tf(u) \equiv c[k]$$
 \end{definition}
 
 \begin{definition}
 	A given execution of $A$ satisfies liveness relative to $k$-synchronization problem if :
-	$$\forall u \in \Pi, t_{fire}(u) \neq \infty$$
+	$$\forall u \in \Pi, \tf(u) \neq \infty$$
 \end{definition}
+
+%%%%% temporaire %%%%%%%%%%
+\subsection{Required hypothesis}
+
+In order to prove the safety and the liveness of this algorithm, we need to make the following hypothesis :
+there exists a node, called $\cent$, whose messages always reach their destination.
+The communication graph of each round must contain a "star" whose center is always the node $\cent$.
+
+In order to formally express this hypothesis, we write a predicate over the $HO$ function defined in a previous section :
+
+$$\mathcal{P}_{centered} \equiv \exists \cent \in \Pi, \forall u \in \Pi, \forall r \in \mathds{N}, \cent \in HO(u,r)$$
+
+In the predicate above, $\cent \in HO(u,r)$ informally means that $\cent$ belongs to the Heard-Of set of $u$ at round $r$. In other words, $u$ receives the message of $\cent$ at round $r$.
 
 \section{The \textit{SynchMod} algorithm}
 
-In the SynchMod algorithm, each node maintains a counter in $\mathds{Z}/k\mathds{Z}$. At each round,
-they send their counter to all nodes.
-Then, the transition function is a case disjunction :
-\begin{itemize}
-	\item If the received messages are concordant, the node adopts their values, and increments it.
-		\begin{itemize}
-			\item If the received messages are all equal to "k", the node fires.
-		\end{itemize}
-	\item If the received values are discordant, and at least one "k" have been received, adopt 1 (because $k+1~mod~k = 1$).
-	\item If the received values are discordant, and no "k" has been received, the node tries a "forced synchronization". It adopts "k".
-		Thus, in the next round, it will send "k" to all nodes. Those which will receive this "k" will be forced to adopt it (see case above).
-		Each node tries a "forced synchronization" only once.
-	\item Otherwise (if a "forced synchronization" has already been done, and the messages are discordant), the node adopts 1.
-\end{itemize}
+In the SynchMod algorithm, each node  maintains a local clock modulo $k$ with values in $\{ \overline{1}, \dots,  \overline{k} \}$.
+It fires in the first round at which all the local clocks it has just heard of  are all equal to~$\overline{k} $ (line~\ref{line:fire}).
+The first time a node receives discrepant clocks from its neighbors, it tries to force firing  by setting its clock to  $\overline{k} $
+	(lines~\ref{line:try}-\ref{line:try+1});
+	thereafter, that  just leads it to roll back its clock to 1 (line~\ref{line:tried}).
+Otherwise, it receives agreed values with its own clock and then increments it by one modulo $k$ (line~\ref{line:agreed}).
+Let us again stress on the fact that at each round~$t$, every active node receives the value of its local clock.
+The pseudo-code of the local code of the agent~$u$ is given in Algorithm~1.
 
-\noindent This protocol is designed such that :
-\begin{itemize}
-	\item If every node have the same value $v$ at round $t$, only the first case above will be triggered, and all nodes will adopt $v+1~mod~k$.
-		In other words, a monovalent systems remains monovalent at the following rounds (see lemma \ref{lem:mono_mono}).
-	\item If the system becomes monovalent at round $t$, the liveness is guaranteed, since the systems will eventually reach a state where every node is active and sends "k".
-		(see lemma \ref{lem:mono_liv})
-	\item If the node at the center of the star tries a "forced synchronization", every node will adopt 1, then the liveness results from the previous two facts.
-	\item If the node at the center of the star never tries a "forced synchronization", we will show by a non-trivial reasoning that the liveness is still guaranteed.
-\end{itemize}
+As we will see below, the difficult point in the correctness proof of the SynchMod algorithm is liveness.
+However, right now, let us point out some properties of the algorithm that enable liveness.
+First, if all the nodes  agree on the same value for their local clocks 
+	-- in which case the system will be said to be \emph{monovalent} -- and if they are all active, 
+	then the system remains monovalent forever.
+Moreover, the common value of the local clocks is incremented by one at every later round and thus eventually 
+	reaches the value~$\overline{k} $ (cf. Lemma \ref{lem:mono_liv}).
+The key point of the algorithm and of its ``forced firing procedure'' lies in the fact that if all the communication graphs  
+	contain a star centered at~$\cent$, then when  $\cent$ is active, its local clock necessarily becomes equal 
+	to~$\overline{k}$, and every active node will eventually fire. 
 
 % \textbf{Note :} The definition of an execution requires that a passive node always sends null. The algorithm itself requires that, at the round of its activation, a node always sends $\bot$.
 % This is designed such that node just activated does not disturb a monovalent configuration with an initial value in $\mathds{Z}/k\mathds{Z}$.
 
-\begin{algorithm}[htb]
+\begin{algorithm}[htb]\label{algo:code}
 \begin{distribalgo}[1]
 \BLANK \INDENT{\textbf{Initialization:}}
 	\STATE $\overline{c}_u \in \mathds{Z}/k\mathds{Z} \cup \{\bot\}$, initially $\bot$
-	\STATE $force_u \leftarrow true$
-	\STATE $fire_u \leftarrow false$
+	\STATE $tried_u \leftarrow false$
+	\STATE $fired_u \leftarrow false$
 
 \ENDINDENT \BLANK
 
-\INDENT{\textbf{Round $r$:}}
-	\STATE send $\langle \overline{c}_u \rangle$ to all nodes
+\INDENT{\textbf{In each round $t$:}}
+	\STATE send $\langle \overline{c}_u \rangle$ to all 
 	\STATE receive incoming messages
-	\IF{every received message contains $k$}
-		\STATE $fire_u \leftarrow true$
+	\IF{all the received messages are equal to $k$ and $\neg fired_u$ }
+%		\STATE Fire % $fire_u \leftarrow true$
+		\STATE $fired_u \leftarrow true$ \label{line:fire}
 	\ENDIF
-	\IF{every received messages, excluding null and $\bot$, contains the same value $v$}
-		\STATE $\overline{c}_u \leftarrow v+1~mod~k$
-	\ELSIF{$force_u \wedge$ no $k$ has been received}
-		\STATE $force_u \leftarrow false$ ~~~~\COMMENT{try a "forced synchronization"}
-		\STATE $\overline{c}_u \leftarrow k$
-	\ELSE
-		\STATE $\overline{c}_u \leftarrow 1$ ~~~~\COMMENT{in particular, if at least one $k$ has been received, adopt 1}
-	\ENDIF
+	\IF{the received messages other than $null $ and $\bot$ are all equal to $i \in \{ \overline{1}, \dots, \overline{k} \}$ }
+		\STATE $\overline{c}_u \leftarrow \overline{i+1} $ \label{line:agreed}
+	\ELSE \IF{$\neg tried_u $ and no received message is $k$ }
+		\STATE $\overline{c}_u \leftarrow \overline{k} $  \label{line:try}
+		\STATE $tried_u \leftarrow true$   \label{line:try+1}%~~~~\COMMENT{try a "forced synchronization"}
+		\ELSE
+		\STATE $\overline{c}_u \leftarrow \overline{1} $ \label{line:tried}% ~~~~\COMMENT{in particular, if at least one $k$ has been received, adopt 1}
+	  \ENDIF
+	  \ENDIF
 \ENDINDENT 
-\caption{{\em SynchMod} algorithm} \label{algo:R}
+
+\caption{{\em The SynchMod} algorithm} \label{algo:R}
 \end{distribalgo}
 
 \end{algorithm}
 
-\subsection{Required hypothesis}
 
-In order to prove the safety and the liveness of this algorithm, we need to make the following hypothesis :
-there exists a node, called $\xi$, whose messages always reach their destination.
-The communication graph of each round must contain a "star" whose center is always the node $\xi$.
+\subsection{Notation and preliminary lemmas}
 
-In order to formally express this hypothesis, we write a predicate over the $HO$ function defined in a previous section :
+In the rest of this section, we fix an execution $\sigma$ of the SynchMod algorithm associated to the activation 
+	schedule~${\cal A}$ and a centered dynamic graph~$\dG \in {\cal G}^c$. % a definir 
+Let $\cent$ denote one center of~$\dG$.	
 
-$$\mathcal{P}_{centered} \equiv \exists \xi \in \Pi, \forall u \in \Pi, \forall r \in \mathds{N}, \xi \in HO(u,r)$$
+For the correctness proof of SynchMod, we now introduce some additional definitions.
+Let $S$ be any subset of $ \mathds{Z}/k\mathds{Z}$.
+Round~$t$ in~$\sigma$  is said to be \emph{$S$-valent}  if $S$ is the set of the clock values of active nodes at the end of round~$t$, i.e.,
+	$$ S = \{i  \in \mathds{Z}/k\mathds{Z} : \exists u \in \mathcal{A}_t, \ \overline{c}_u (t) = i \}  . $$
+The system is said to be $i$-\emph{monovalent}  if the system is $\{ i\}$-valent.
 
-In the predicate above, $\xi \in HO(u,r)$ informally means that $\xi$ belongs to the Heard-Of set of $u$ at round $r$. In other words, $u$ receives the message of $\xi$ at round $r$.
-
-\subsection{Proof}
-
-In this section, we consider an execution which verifies the predicates $\mathcal{P}_{centered}$ and $\mathcal{P}_{\neg-passiv-forever}$.
-
-\begin{definition}
-	Given $V \subseteq \mathds{Z}/k\mathds{Z}$, the system is said to be V-valent in round $r$ if
-	$$V = \{v \in \mathds{Z}/k\mathds{Z}, \exists p \in \mathcal{A}_r, \overline{c}_u = v\}$$
-\end{definition}
-
-The system is said to be v-monovalent if the system is $\{v\}$-valent.
-
-Similarly to $t_{fire}$, a $t_{force}$ function can be defined.
-
-$$t_{force}(u) = \left \{
-	\begin{array}{l l}
-	\infty & \mbox{if}~\forall r \in \mathds{N}, \neg force_u \\
-		Min \{r \in \mathds{N}, force_u(r)\} & \mbox{otherwise}
-	\end{array} $$
+Similarly to $\tf (u)$, let us define $\try (u)$  as the round number at which the node~$u$ executes line~\ref{line:try} 
+	if any, and $\try (u)= \infty$ otherwise.
 
 \begin{lemma}\label{lem:k_mono}
-	If $\overline{c}_\xi(t) = k$, the system is 1-monovalent in round $t+1$.
+If $\overline{c}_\cent(t) = \overline{k} $, then the round~$t +1$ system is $\overline{1}$-monovalent.
 \end{lemma}
+
 \begin{proof}
-	If $\overline{c}_\xi(t) = k$, the node $\xi$ sends $k$ to all nodes in round $t+1$.
-	Every node receives this message, In any case, they must adopt 1.
+If $\overline{c}_\cent(t) = \overline{k} $, then the node $\cent$ sends $\overline{k}$ to all nodes in round $t+1$.
+Hence, any active node $u$ at round~$t+1$ receives $\overline{k}$ in this round,
+	and so updates its clock $\overline{c}_u$ according to either line~\ref{line:agreed} or line~\ref{line:tried}.
+In both cases, it holds that $\overline{c}_u (t+1) =\overline{1}$.
 \end{proof}
 
 \begin{lemma}\label{lem:mono_mono}
-	If $\xi$ is active in round $s$, and the system is v-monovalent, it must be $v+i$-monovalent in round $s+i$,
-	for any $i \in \mathds{N}$.
+If the center $\cent$ is active in round $t$  and round~$t$ is $i$-monovalent, 
+	then any subsequent round~$ t + s$ is $\overline{i+ s}$-monovalent.
 \end{lemma}
+
 \begin{proof}
-	The proof of this lemma is done by recurrence over $i$.
-	\begin{description}
-		\item[Initialization :] Trivial.
-		\item[Heredity :] We assume that
-			$$\forall u \in \mathcal{A}_{s+i}, \overline{c}_u(s+i) = v+i~mod~k$$
-			We have to show that 
-			$$\forall u \in \mathcal{A}_{s+i+1}, \overline{c}_u(s+i+1) = v+i+1~mod~k$$
-			In round $s+i+1$, nodes in $\mathcal{A}_{s+i}$ send $v+i~mod~k$, whereas nodes 
-			in $\mathcal{A}_{s+i+1} \setminus \mathcal{A}_{s+i}$ send $\bot$.
-			Moreover $\xi$ belongs to $\mathcal{A}_{s+i}$.
-			Thus, every active node receives a concordant multi-set of messages.
-			Thus, all of them adopt $v+i+1~mod~k$, and the heredity holds.
-	\end{description}
+The proof is by induction on $s \in \IN$.
+\begin{enumerate}
+		\item The base case $s=0$ corresponds to the assumption in the lemma.
+		\item Induction step:  assume that the round $t+s$ is $j$-monovalent with $j = \overline{i+s} $,
+			 and let~$u$ be  any active node in round~$t+s+1$.
+			The center $\cent$ is active in round $t +s$, and thus sends the value $\overline{i+s}$ to~$u$
+				in round~$ t+s+1$.
+			Therefore, the node~$u$ can receive only this value or $\bot$, and thus updates
+				$\overline{c}_u$ according to line~\ref{line:agreed}. 
+			It follows that $ \overline{c}_u(t+s+1) = \overline{i+s +1}$ as required.
+\end{enumerate}
 \end{proof}
 
 \begin{lemma}\label{lem:k_liv}
-	If $\xi$ is active at round $t$, if $\overline{c}_\xi(t) = k$, the liveness is guaranteed.
+	If $\cent$ is active at round $t$, if $\overline{c}_\cent(t) = k$, the liveness is guaranteed.
 \end{lemma}
 \begin{proof}
 	The lemmas \ref{lem:k_mono} and \ref{lem:mono_mono}, the system is 1-monovalent in round $t+i$,
 	thus $i~mod~k$-monovalent in every $t+i$ following rounds.
 	From the predicate $\mathcal{P}_{\neg-passiv-forever}$ we can obtain a round $s_{max}$ in which every node is active.
 	At any round $r$ verifying $r > s_{max}$ and $r = t + i$ and $i~mod~k = 0$, the system is k-monovalent,
-	and every node is active. Thus every node, including $\xi$, will send $k$.
+	and every node is active. Thus every node, including $\cent$, will send $k$.
 	Thus, every node will fire.
 \end{proof}
-
+ %%%%%%%%% je me suis arretee ici.
+ 
 \begin{lemma}\label{lem:mono_liv}
-	If $\xi$ is active in round $t$, if the system is monovalent, the liveness is guaranteed.
+	If $\cent$ is active in round $t$, if the system is monovalent, the liveness is guaranteed.
 \end{lemma}
 \begin{proof}
 	The lemma \ref{lem:mono_mono} guarantees that the system remains monovalent, and that it reaches a
 	k-monovalent state.
-	Thus $\overline{c}_\xi(t) = k$, and the lemma \ref{lem:k_liv} shows that the liveness is guaranteed.
+	Thus $\overline{c}_\cent(t) = k$, and the lemma \ref{lem:k_liv} shows that the liveness is guaranteed.
 \end{proof}
 
 \noindent At this point, we have already proven that the liveness is guaranteed if :
 \begin{itemize}
-	\item the counter of $\xi$ reaches $k$.
+	\item the counter of $\cent$ reaches $k$.
 	\item the system reaches a monovalent state.
 \end{itemize}
 
 We can summarize the state of the system at a given round in a given execution by the tuple
-$$C(t) = (\overline{c}_\xi(t), \{\overline{c}_u(t), u \in \mathcal{A}_{t-1}\})$$
-Hence, $C(t) = (v, V)$ means that in the current execution, the system is V-valent in round $t$, and the value of $\xi$ is $v$.
-We note $\mathcal{F}$ this set of favorable configurations (namely configurations where $v = 1$ or $|V| = 1$).
+$$C(t) = (\overline{c}_\cent(t), \{\overline{c}_u(t), u \in \mathcal{A}_{t-1}\})$$
+Hence, $C(t) = (v, S)$ means that in the current execution, the system is $S$-valent in round $t$, and the value of $\cent$ is $v$.
+We note $\mathcal{F}$ this set of favorable configurations (namely configurations where $v = 1$ or $| S | = 1$).
 The goal is now to prove that any execution contains at least one configuration in $\mathcal{F}$.
 
 \begin{lemma}\label{lem:mono_bi}
-	If $t$ satisfies $t > max \{t_{force}(u) < \infty, p \in \Pi\} \cup \{t_{start}(u), u \in \Pi\}$,
-	then the system is either monovalent or V-valent in round $t$, where $V = \{1, w\}$.
+	If $t$ satisfies $t > max \{\try(u) < \infty, p \in \Pi\} \cup \{\ts(u), u \in \Pi\}$,
+	then the system is either monovalent or V-valent in round $t$, where $S = \{1, w\}$.
 \end{lemma}
 \begin{proof}
-	Given any $p \in \mathcal{A}_t$, the node $u$ receives the value $\overline{c}_\xi(t-1)$ from $\xi$ in round $t$.
+	Given any $p \in \mathcal{A}_t$, the node $u$ receives the value $\overline{c}_\cent(t-1)$ from $\cent$ in round $t$.
 	\begin{itemize}
-		\item If $u$ also receives a value different from $\overline{c}_\xi(t-1)$ and $\bot$.
-			It cannot try a forced synchronization, since $t > t_{force}(u)$.
+		\item If $u$ also receives a value different from $\overline{c}_\cent(t-1)$ and $\bot$.
+			It cannot try a forced synchronization, since $t > \try(u)$.
 			Then, the only possibility is $\overline{c}_u(t) = 1$.
-		\item Otherwise, $u$ receives concordant messages, and adopts $\overline{c}_\xi(t-1)+1~mod~k$.
+		\item Otherwise, $u$ receives concordant messages, and adopts $\overline{c}_\cent(t-1)+1~mod~k$.
 	\end{itemize}
 \end{proof}
 
+\subsection{Correctness proof}
 \begin{lemma}\label{lem:safety}
 	Any execution of SynchMod is safe relative to the $k$-synchronization problem.
 \end{lemma}
 \begin{proof}
-	Let $u$ be the first firing node, in round $t_{fire}(u)$.
-	Since $\xi \in HO(u,t_{fire}(u))$, the value sent by $\xi$ is necessarily $k$.
-	The lemma \ref{lem:k_mono} guarantees that the system is 1-monovalent in round $t_{fire}(u)$.
-	The lemma \ref{lem:mono_mono} guarantees that for every $i > 0$, the system is $i~mod~k$-monovalent in round $t_{fire}(u)+i$.
-	Thus, if a node $v$ fires in a later round $t_{fire}(v) > t_{fire}(u)$, the system must have been $k$-monovalent in round $t_{fire}(v)-1$,
-	and 1-monovalent in round $t_{fire}(v)$. Thus $t_{fire}(u)$ and $t_{fire}(v)$ are congruent modulo $k$.
+	Let $u$ be the first firing node, in round $\tf(u)$.
+	Since $\cent \in HO(u,\tf(u))$, the value sent by $\cent$ is necessarily $k$.
+	The lemma \ref{lem:k_mono} guarantees that the system is 1-monovalent in round $\tf(u)$.
+	The lemma \ref{lem:mono_mono} guarantees that for every $i > 0$, the system is $i~mod~k$-monovalent in round $\tf(u)+i$.
+	Thus, if a node $v$ fires in a later round $\tf(v) > \tf(u)$, the system must have been $k$-monovalent in round $\tf(v)-1$,
+	and 1-monovalent in round $\tf(v)$. Thus $\tf(u)$ and $\tf(v)$ are congruent modulo $k$.
 	That proves the safety.
 \end{proof}
 
@@ -422,33 +431,33 @@ The goal is now to prove that any execution contains at least one configuration 
 \end{theorem}
 \begin{proof}
 	\begin{description}
-		\item[Case 1 : ] If $t_{force}(\xi) \neq \infty$, the node $\xi$ tries once a forced synchronization, and adopts $k$.
+		\item[Case 1 : ] If $\try(\cent) \neq \infty$, the node $\cent$ tries once a forced synchronization, and adopts $k$.
 			Thus, the liveness results from lemma \ref{lem:k_liv}.
 
-		\item[Case 2 :] Otherwise $t_{force}(\xi) = \infty$.
-			Let $t$ be a round verifying $t > max \{t_{force}(u) < \infty, u \in \Pi\} \cup \{t_{start}(u), u \in \Pi\}$.
+		\item[Case 2 :] Otherwise $\try(\cent) = \infty$.
+			Let $t$ be a round verifying $t > max \{\try(u) < \infty, u \in \Pi\} \cup \{\ts(u), u \in \Pi\}$.
 			The lemma \ref{lem:mono_bi} shows that the system is either monovalent or bivalent in round $t$.
 			\begin{description}
 				\item[Sub-case 2.1] The system is monovalent. The liveness results from lemma \ref{lem:mono_liv}.
 				\item[Sub-case 2.2] The current configuration is $C(t) = (w, \{1, w\})$.
 					\begin{description}
-						\item[Sub-sub-case 2.2.1 : ] In round $t+1$, the node $\xi$ receives at least once
+						\item[Sub-sub-case 2.2.1 : ] In round $t+1$, the node $\cent$ receives at least once
 							the value 1.
-							Since we assumed that $t_{force}(\xi) \neq \infty$, the only possible value for $w$ is $k$.
+							Since we assumed that $\try(\cent) \neq \infty$, the only possible value for $w$ is $k$.
 							Hence $C(t) \in \mathcal{F}$, the liveness results from \ref{lem:k_liv}.
-						\item[Sub-sub-case 2.2.2 : ] In round $t+1$, the node $\xi$ only receives $w$.
-							Hence, $\overline{c}_\xi(t+1) = w+1$.
+						\item[Sub-sub-case 2.2.2 : ] In round $t+1$, the node $\cent$ only receives $w$.
+							Hence, $\overline{c}_\cent(t+1) = w+1$.
 							The next configuration is either $C(t+1) = (w+1, \{w+1\}) \in \mathcal{F}$ or $C(t+1) = (w+1, \{1, w+1\})$.
 							Since the first case is favorable, we now focus on the second one.
 							We can notice that the sub-case 2.2 happens again in round $t+1$.
-							We can show by recurrence over $i$ that $\xi$ reaches a configuration $C(t+i) = (k, \{1, k\})$ or $C(t+i) = (k, \{k\})$ which are both favorable.
+							We can show by recurrence over $i$ that $\cent$ reaches a configuration $C(t+i) = (k, \{1, k\})$ or $C(t+i) = (k, \{k\})$ which are both favorable.
 							The liveness results from lemma \ref{lem:k_liv}.
 					\end{description}
 				\item[Subcase 2.3 : ] The current configuration is $C(t) = (1, \{1, w\})$.
-					In round $t+1$, the node $\xi$ receives its own value : 1.
+					In round $t+1$, the node $\cent$ receives its own value : 1.
 					\begin{description}
 						\item[Sub-sub-case 2.3.1 : ] It also receives $w$.
-							Since we assumed that $t_{force}(\xi) \neq \infty$, the only possible value for $w$ is $k$.
+							Since we assumed that $\try(\cent) \neq \infty$, the only possible value for $w$ is $k$.
 							Thus, the possible two configurations at round $t+1$ are $C(t+1) = (1, \{1\})$ and $C(t+1) = (1, \{1, 2\})$.
 							The first one belongs to $\mathcal{F}$. The second one is tackled in sub-sub-case 2.3.2.
 						\item[Sub-sub-case 2.3.2 : ] It only receives 1.
