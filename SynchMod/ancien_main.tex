@@ -325,7 +325,7 @@ Similarly to $t_{fire}$, a $t_{force}$ function can be defined.
 
 $$t_{force}(u) = \left \{
 	\begin{array}{l l}
-	\infty & \mbox{if}~\forall r \in \mathds{N}, \neg force_u \\
+		\infty & \mbox{if}~\forall r \in \mathds{N}, \neg force_u(r) \\
 		Min \{r \in \mathds{N}, force_u(r)\} & \mbox{otherwise}
 	\end{array} $$
 
@@ -384,7 +384,7 @@ $$t_{force}(u) = \left \{
 	\item the system reaches a monovalent state.
 \end{itemize}
 
-We can summarize the state of the system at a given round in a given execution by the tuple
+\noindent We can summarize the state of the system at a given round in a given execution by the tuple :
 $$C(t) = (\overline{c}_\xi(t), \{\overline{c}_u(t), u \in \mathcal{A}_{t-1}\})$$
 Hence, $C(t) = (v, V)$ means that in the current execution, the system is V-valent in round $t$, and the value of $\xi$ is $v$.
 We note $\mathcal{F}$ this set of favorable configurations (namely configurations where $v = 1$ or $|V| = 1$).
