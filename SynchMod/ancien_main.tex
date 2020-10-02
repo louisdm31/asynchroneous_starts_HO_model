@@ -166,7 +166,7 @@ The Heard-Of model is round based. At any round $r$, any active node $u$ run the
 \end{itemize}
 
 A passive node always emits null, and remains in the $sleep_u$ state.
-It can spontaneously be activated. In that case, its state moves from $sleep_u$ to $\sigma^0_u \in Init_u$.
+It can spontaneously become active. In that case, its state moves from $sleep_u$ to $\sigma^0_u \in Init_u$.
 The function $HO$ can also be viewed as a series of graph $\mathds{G}_r = (\Pi, E_r)$ where
 
 $$(u, v) \in E_r \Leftrightarrow u \in HO(v, r)$$
@@ -198,27 +198,9 @@ $(\mathds{G}, \mathcal{A}, (\sigma^0_u)_{u \in \Pi})$ where :
 		  \infty & \mbox{ if  } p \notin \bigcup\limits_{r \in \mathds{N}}  \mathcal{A}_r & 
 			  \mbox { ($u$ remains inactive forever) } \\
 		  r  & \mbox{ if  } p \notin \mathcal{A}_{r-1} \mbox{ et } p \in \mathcal{A}_{r}  &
-			  \mbox{ ($u$ is activated in round $r$)}.
+			  \mbox{ ($u$ becomes active in round $r$)}.
 		  \end{array} \right.$$
 
-\end{itemize}
-
-For any given execution $(\mathds{G}, \mathcal{A}, (\sigma^0_u)_{u \in \Pi})$,
-the state $\Gamma_u(r)$ of any node $u$ at any round $r$ can be inductively defined :
-
-\begin{itemize}
-	\item $\forall r \in \mathds{N}, \forall u \in \Pi \setminus \mathcal{A}_{r+1}, \Gamma_u(r) = sleep_u$
-	\item $\forall r \in \mathds{N}, \forall u \in \mathcal{A}_{r+1} \setminus \mathcal{A}_r,
-		\Gamma_u(r) = \sigma^0_u$
-	\item $\forall r \in \mathds{N}, \forall u \in \mathcal{A}_r, \Gamma_u(r+1) = T_u(\Gamma_u(r), M_u^{r+1})$
-		where $M_u^r$ is the \textit{reception function} of $u$ at round $r$.
-		Its type is $\mathcal{X}_\Pi^{\mathcal{M}}$.
-		It is defined by
-			$$ M_u^r(v) = \left \{ \begin{array}{l l}
-				\mbox{null}  & \mbox{ if  } q \in (\Pi \setminus \mathcal{A}_r  ) \cap  HO(u,r)  \\
-				S_q (\Gamma_q(r-1), p)  & \mbox{ if  }   q \in \mathcal{A}_r  \cap  HO(u,r) \\
-				\mbox{undefined} & \mbox{ if  }   q \notin  HO(u,r) .
-				\end{array} \right.$$ 
 \end{itemize}
 
 \subsection{The synchronization problem}
@@ -234,17 +216,17 @@ the state $\Gamma_u(r)$ of any node $u$ at any round $r$ can be inductively defi
 		Min \{r \in \mathds{N}, fire_u(r)\} & \mbox{otherwise}
 	\end{array} \right.$$
 
-	\textbf{Note :} A node $u$ which never activate verifies $\tf(u) = \infty$.
+	 A node $u$ which stays passive forever verifies $\tf(u) = \infty$.
 \end{definition}
 
 \begin{definition}
-	A given execution of $A$ satisfies safety relative to $k$-synchronization problem if :
+	A given execution of $A$ satisfies safety relative to $k$-synchronization problem if
 	$$\exists c \in \mathds{Z}/k\mathds{Z}, \forall u \in \Pi,
 	\tf(u) \neq \infty \Rightarrow \tf(u) \equiv c[k]$$
 \end{definition}
 
 \begin{definition}
-	A given execution of $A$ satisfies liveness relative to $k$-synchronization problem if :
+	A given execution of $A$ satisfies liveness relative to $k$-synchronization problem if
 	$$\forall u \in \Pi, \tf(u) \neq \infty$$
 \end{definition}
 
@@ -298,13 +280,13 @@ The key point of the algorithm and of its ``forced firing procedure'' lies in th
 \INDENT{\textbf{In each round $t$:}}
 	\STATE send $\langle \overline{c}_u \rangle$ to all 
 	\STATE receive incoming messages
-	\IF{all the received messages are equal to $k$ and $\neg fired_u$ }
+	\IF{all the received messages are equal to $\overline{k}$ and $\neg fired_u$ }
 %		\STATE Fire % $fire_u \leftarrow true$
 		\STATE $fired_u \leftarrow true$ \label{line:fire}
 	\ENDIF
 	\IF{the received messages other than $null $ and $\bot$ are all equal to $i \in \{ \overline{1}, \dots, \overline{k} \}$ }
 		\STATE $\overline{c}_u \leftarrow \overline{i+1} $ \label{line:agreed}
-	\ELSE \IF{$\neg tried_u $ and no received message is $k$ }
+	\ELSE \IF{$\neg tried_u $ and no received message is $\overline{k}$ }
 		\STATE $\overline{c}_u \leftarrow \overline{k} $  \label{line:try}
 		\STATE $tried_u \leftarrow true$   \label{line:try+1}%~~~~\COMMENT{try a "forced synchronization"}
 		\ELSE
@@ -327,9 +309,9 @@ Let $\cent$ denote one center of~$\dG$.
 
 For the correctness proof of SynchMod, we now introduce some additional definitions.
 Let $S$ be any subset of $ \mathds{Z}/k\mathds{Z}$.
-Round~$t$ in~$\sigma$  is said to be \emph{$S$-valent}  if $S$ is the set of the clock values of active nodes at the end of round~$t$, i.e.,
+Round~$t$ in~$\sigma$  is said to be \emph{$\overline{S}$-valent}  if $S$ is the set of the clock values of active nodes at the end of round~$t$, i.e.,
 	$$ S = \{i  \in \mathds{Z}/k\mathds{Z} : \exists u \in \mathcal{A}_t, \ \overline{c}_u (t) = i \}  . $$
-The system is said to be $i$-\emph{monovalent}  if the system is $\{ i\}$-valent.
+The system is said to be $\overline{i}$-\emph{monovalent}  if the system is $\{ \overline{i}\}$-valent.
 
 Similarly to $\tf (u)$, let us define $\try (u)$  as the round number at which the node~$u$ executes line~\ref{line:try} 
 	if any, and $\try (u)= \infty$ otherwise.
@@ -346,7 +328,7 @@ In both cases, it holds that $\overline{c}_u (t+1) =\overline{1}$.
 \end{proof}
 
 \begin{lemma}\label{lem:mono_mono}
-If the center $\cent$ is active in round $t$  and round~$t$ is $i$-monovalent, 
+	If the center $\cent$ is active in round $t$  and round~$t$ is $\overline{i}$-monovalent, 
 	then any subsequent round~$ t + s$ is $\overline{i+ s}$-monovalent.
 \end{lemma}
 
@@ -365,15 +347,18 @@ The proof is by induction on $s \in \IN$.
 \end{proof}
 
 \begin{lemma}\label{lem:k_liv}
-	If $\cent$ is active at round $t$, if $\overline{c}_\cent(t) = k$, the liveness is guaranteed.
+	If $\cent$ is active at round $t$, and $\overline{c}_\cent(t) = k$, then every node fire before the round $max(t, (t_s(u))_{u \in \Pi})+k$.
 \end{lemma}
 \begin{proof}
-	The lemmas \ref{lem:k_mono} and \ref{lem:mono_mono}, the system is 1-monovalent in round $t+i$,
-	thus $i~mod~k$-monovalent in every $t+i$ following rounds.
-	From the predicate $\mathcal{P}_{\neg-passiv-forever}$ we can obtain a round $s_{max}$ in which every node is active.
-	At any round $r$ verifying $r > s_{max}$ and $r = t + i$ and $i~mod~k = 0$, the system is k-monovalent,
-	and every node is active. Thus every node, including $\cent$, will send $k$.
-	Thus, every node will fire.
+	The lemmas \ref{lem:k_mono} and \ref{lem:mono_mono}, the system is $\overline{1}$-monovalent in round $t+i$,
+	thus $\overline{i}$-monovalent in every $t+i$ following rounds.
+
+	From the round $max \{t_s(u), u \in \Pi\})$, every node is active.
+
+	From the two previous facts, we obtain that, between the round $max(t, (t_s(u))_{u \in \Pi})$ and $max(t, (t_s(u))_{u \in \Pi})+k$, there is a round $t_{mon-k}$
+	such that the system is $\overline{k}$-monovalent, and every node is active.
+	Then, in round $t_{mon-k}$, every node, including $\cent$, eventually send $k$.
+	At the next round, according to line 9, every node must have fired.
 \end{proof}
  %%%%%%%%% je me suis arretee ici.
  
@@ -382,56 +367,96 @@ The proof is by induction on $s \in \IN$.
 \end{lemma}
 \begin{proof}
 	The lemma \ref{lem:mono_mono} guarantees that the system remains monovalent, and that it reaches a
-	k-monovalent state.
-	Thus $\overline{c}_\cent(t) = k$, and the lemma \ref{lem:k_liv} shows that the liveness is guaranteed.
+	$\overline{k}$-monovalent state.
+	Thus $\overline{c}_\cent(t) = \overline{k}$, and the lemma \ref{lem:k_liv} shows that the liveness is guaranteed.
 \end{proof}
 
-\noindent At this point, we have already proven that the liveness is guaranteed if :
+\noindent At this point, we have already proven that the liveness is guaranteed if
 \begin{itemize}
-	\item the counter of $\cent$ reaches $k$.
+	\item the counter of $\cent$ reaches $\overline{k}$.
 	\item the system reaches a monovalent state.
 \end{itemize}
 
-We can summarize the state of the system at a given round in a given execution by the tuple
+\noindent We can summarize the state of the system at a given round in a given execution by the tuple : 
 $$C(t) = (\overline{c}_\cent(t), \{\overline{c}_u(t), u \in \mathcal{A}_{t-1}\})$$
-Hence, $C(t) = (v, S)$ means that in the current execution, the system is $S$-valent in round $t$, and the value of $\cent$ is $v$.
-We note $\mathcal{F}$ this set of favorable configurations (namely configurations where $v = 1$ or $| S | = 1$).
+Hence, $C(t) = (\overline{v}, S)$ means that in the current execution, the system is $\overline{S}$-valent in round $t$, and the value of $\cent$ is $\overline{v}$.
+We note $\mathcal{F}$ this set of favorable configurations (namely configurations where $\overline{v} = 1$ or $| S | = 1$).
 The goal is now to prove that any execution contains at least one configuration in $\mathcal{F}$.
 
 \begin{lemma}\label{lem:mono_bi}
 	If $t$ satisfies $t > max \{\try(u) < \infty, p \in \Pi\} \cup \{\ts(u), u \in \Pi\}$,
-	then the system is either monovalent or V-valent in round $t$, where $S = \{1, w\}$.
+	then the system is either monovalent or $\overline{S}$-valent in round $t$, where $S = \{1, \overline{w}\}$.
 \end{lemma}
 \begin{proof}
 	Given any $p \in \mathcal{A}_t$, the node $u$ receives the value $\overline{c}_\cent(t-1)$ from $\cent$ in round $t$.
 	\begin{itemize}
 		\item If $u$ also receives a value different from $\overline{c}_\cent(t-1)$ and $\bot$.
 			It cannot try a forced synchronization, since $t > \try(u)$.
-			Then, the only possibility is $\overline{c}_u(t) = 1$.
-		\item Otherwise, $u$ receives concordant messages, and adopts $\overline{c}_\cent(t-1)+1~mod~k$.
+			Then, according to line 17, the only possibility is $\overline{c}_u(t) = \overline{1}$.
+		\item Otherwise, $u$ receives concordant messages, and adopts $\overline{c}_\cent(t-1)+\overline{1}$, according to line 11.
 	\end{itemize}
 \end{proof}
 
+\begin{lemma}\label{lem:mono_bi}
+	If $t$ satisfies $t > max \{\try(u) < \infty, p \in \Pi\} \cup \{\ts(u), u \in \Pi\}+1$,
+	then the two possible configuration of the system in round $t$ are $C(t) = (\overline{w}, \{\overline{w}\})$ and $C(t) = (\overline{w}, \{\overline{1}, \overline{w}\})$.
+\end{lemma}
+
 \subsection{Correctness proof}
-\begin{lemma}\label{lem:safety}
+\begin{lemma}\label{lem:saf}
 	Any execution of SynchMod is safe relative to the $k$-synchronization problem.
 \end{lemma}
 \begin{proof}
 	Let $u$ be the first firing node, in round $\tf(u)$.
-	Since $\cent \in HO(u,\tf(u))$, the value sent by $\cent$ is necessarily $k$.
-	The lemma \ref{lem:k_mono} guarantees that the system is 1-monovalent in round $\tf(u)$.
-	The lemma \ref{lem:mono_mono} guarantees that for every $i > 0$, the system is $i~mod~k$-monovalent in round $\tf(u)+i$.
-	Thus, if a node $v$ fires in a later round $\tf(v) > \tf(u)$, the system must have been $k$-monovalent in round $\tf(v)-1$,
-	and 1-monovalent in round $\tf(v)$. Thus $\tf(u)$ and $\tf(v)$ are congruent modulo $k$.
+	Since $\cent \in HO(u,\tf(u))$, the value sent by $\cent$ is necessarily $\overline{k}$.
+	The lemma \ref{lem:k_mono} guarantees that the system is $\overline{1}$-monovalent in round $\tf(u)$.
+	The lemma \ref{lem:mono_mono} guarantees that for every $i > 0$, the system is $\overline{i}$-monovalent in round $\tf(u)+i$.
+	Thus, if a node $v$ fires in a later round $\tf(v) > \tf(u)$, the system must have been $\overline{k}$-monovalent in round $\tf(v)-1$ (see line 8),
+	and $\overline{1}$-monovalent in round $\tf(v)$. Thus $\tf(u)$ and $\tf(v)$ are congruent modulo $k$.
 	That proves the safety.
 \end{proof}
 
-\begin{theorem}
-	The SynchMod algorithm solves the $k$-synchronization problem.
-\end{theorem}
+\begin{lemma}
+	If, in round $t$, the following hypothesis apply :
+	\begin{itemize}
+		\item every node is active,
+		\item no node will ever try a forced synchronization at round $t$ or later,
+		\item the node $\gamma$ never tries a forced synchronization in all the execution.
+	\end{itemize}
+	then every node fires before round $t+2k$.
+\end{lemma}
+\begin{proof}
+	We note $\overline{c}_\gamma(t)$ as $w$.
+	First, we prove by induction over $i$ that $\forall i \in \mathds{N}, \overline{c}_\gamma(t+i) = \overline{w+i} \wedge C(t+i) \neq (\overline{1}, \{\overline{1}, \overline{k}\})$.
+	(The configuration $C(t+i) = (\overline{1}, \{\overline{1}, \overline{k}\})$ is a border-line case which has to be excluded along the induction).
+	\begin{itemize}
+		\item The first part of the base case results from the definition of $w$.
+		\item For the second part of the base case, let's assume that $C(t) = (\overline{1}, \{\overline{1}, \overline{k}\})$.
+			We necessarily have $\overline{c}_\gamma(t-1) = k-1$, otherwise, no node would have adopted $k$ in round $t$.
+			Then $C(t-1) \neq (\overline{1}, \{\overline{1}, \overline{k}\})$. We get a contradiction using the induction case below.
+		\item For the first part of the induction case, we assume that $\overline{c}_\gamma(t+i) = \overline{w+i}$ and $C(t+i) \neq (\overline{1}, \{\overline{1}, \overline{k}\})$.
+			We have to prove that $\overline{c}_\gamma(t+i+1) = \overline{w+i+1}$ and $C(t+i+1) \neq (\overline{1}, \{\overline{1}, \overline{k}\})$.
+
+			\begin{itemize}
+				\item If, in round $t+i+1$, every messages received by $\gamma$ are consistent, it executes line 11, that proves the first part of the induction case.
+				\item Otherwise, we know from the third hypothesis that $\gamma$ does never try a forced synchronization (i.e. line 14 will not be executed and $tried_\gamma(t+i+1)$ is false).
+					That means that $\gamma$ has received a $k$. From the lemma \ref{lem:mono-bi}, we obtain that the system is $\{\overline{1}, \overline{k}\}$-valent in round $t+i$.
+					Since $C(t+i) \neq (\overline{1}, \{\overline{1}, \overline{k}\})$, we obtain that the only possible value for $\overline{c}_\gamma(t+i)$ is $\overline{k}$.
+					Since the node $\gamma$ can only execute line 17, we obtain that $\overline{c}_\gamma(t+i+1) = \overline{1} = \overline{w+i+1}$.
+			\end{itemize}
+
+			To prove that $C(t+i+1) \neq (\overline{1}, \{\overline{1}, \overline{k}\})$, we assume the opposite.
+			That would mean that $w+i = \overline{k}$. Then a contradiction results from lemma \ref{lem:k_mono}.
+	\end{itemize}
+	Then, the system eventually reaches a configuration where $\overline{c}_\gamma(t+i) = \overline{k}$. The lemma \ref{lem:k_liv} terminates this proof.
+\end{proof}
+
+\begin{lemma}\label{lem:liv}
+	Any execution of SynchMod is live relative to the $k$-synchronization problem.
+\end{lemma}
 \begin{proof}
 	\begin{description}
-		\item[Case 1 : ] If $\try(\cent) \neq \infty$, the node $\cent$ tries once a forced synchronization, and adopts $k$.
+		\item[Case 1 : ] If $\try(\cent) \neq \infty$, the node $\cent$ tries once a forced synchronization, and adopts $\overline{k}$.
 			Thus, the liveness results from lemma \ref{lem:k_liv}.
 
 		\item[Case 2 :] Otherwise $\try(\cent) = \infty$.
@@ -439,36 +464,42 @@ The goal is now to prove that any execution contains at least one configuration 
 			The lemma \ref{lem:mono_bi} shows that the system is either monovalent or bivalent in round $t$.
 			\begin{description}
 				\item[Sub-case 2.1] The system is monovalent. The liveness results from lemma \ref{lem:mono_liv}.
-				\item[Sub-case 2.2] The current configuration is $C(t) = (w, \{1, w\})$.
+				\item[Sub-case 2.2] The current configuration is $C(t) = (\overline{w}, \{\overline{1}, \overline{w}\})$.
 					\begin{description}
 						\item[Sub-sub-case 2.2.1 : ] In round $t+1$, the node $\cent$ receives at least once
-							the value 1.
-							Since we assumed that $\try(\cent) \neq \infty$, the only possible value for $w$ is $k$.
+							the value $\overline{1}$.
+							Since we assumed that $\try(\cent) = \infty$, the only possible value for $\overline{w}$ is $\overline{k}$, otherwise the condition line 10 would be true.
 							Hence $C(t) \in \mathcal{F}$, the liveness results from \ref{lem:k_liv}.
-						\item[Sub-sub-case 2.2.2 : ] In round $t+1$, the node $\cent$ only receives $w$.
-							Hence, $\overline{c}_\cent(t+1) = w+1$.
-							The next configuration is either $C(t+1) = (w+1, \{w+1\}) \in \mathcal{F}$ or $C(t+1) = (w+1, \{1, w+1\})$.
+						\item[Sub-sub-case 2.2.2 : ] In round $t+1$, the node $\cent$ only receives $\overline{w}$.
+							Hence, $\overline{c}_\cent(t+1) = \overline{w+1}$, according to line 11.
+							The next configuration is either $C(t+1) = (\overline{w}+1, \{\overline{w}+1\}) \in \mathcal{F}$ or $C(t+1) = (\overline{w+1}, \{\overline{1}, \overline{w+1}\})$.
 							Since the first case is favorable, we now focus on the second one.
 							We can notice that the sub-case 2.2 happens again in round $t+1$.
-							We can show by recurrence over $i$ that $\cent$ reaches a configuration $C(t+i) = (k, \{1, k\})$ or $C(t+i) = (k, \{k\})$ which are both favorable.
+							We can show by recurrence over $i$ that $\cent$ reaches a configuration $C(t+i) = (\overline{k}, \{\overline{1}, \overline{k}\})$
+							or $C(t+i) = (\overline{k}, \{\overline{k}\})$ which are both favorable.
 							The liveness results from lemma \ref{lem:k_liv}.
 					\end{description}
-				\item[Subcase 2.3 : ] The current configuration is $C(t) = (1, \{1, w\})$.
-					In round $t+1$, the node $\cent$ receives its own value : 1.
+				\item[Subcase 2.3 : ] The current configuration is $C(t) = (\overline{1}, \{\overline{1}, \overline{w}\})$.
+					In round $t+1$, the node $\cent$ receives its own value : $\overline{1}$.
 					\begin{description}
-						\item[Sub-sub-case 2.3.1 : ] It also receives $w$.
-							Since we assumed that $\try(\cent) \neq \infty$, the only possible value for $w$ is $k$.
-							Thus, the possible two configurations at round $t+1$ are $C(t+1) = (1, \{1\})$ and $C(t+1) = (1, \{1, 2\})$.
+						\item[Sub-sub-case 2.3.1 : ] It also receives $\overline{w}$.
+							Since we assumed that $\try(\cent) \neq \infty$, the only possible value for $\overline{w}$ is $\overline{k}$, otherwise the condition line 10 would be true.
+							Thus, the possible two configurations at round $t+1$ are $C(t+1) = (\overline{1}, \{\overline{1}\})$ and $C(t+1) = (\overline{1}, \{\overline{1}, \overline{2}\})$.
 							The first one belongs to $\mathcal{F}$. The second one is tackled in sub-sub-case 2.3.2.
-						\item[Sub-sub-case 2.3.2 : ] It only receives 1.
-							The only possible configuration at round $t+1$ is $C(t+1) = (2, \{1, 2\})$.
+						\item[Sub-sub-case 2.3.2 : ] It only receives $\overline{1}$.
+							The only possible configuration at round $t+1$ is $C(t+1) = (\overline{2}, \{\overline{1}, \overline{2}\})$.
 							This case is tackled in case 2.2.
 					\end{description}
 			\end{description}
 	\end{description}
-	The liveness is now proved, and the safety results from lemma \ref{lem:safety}.
 \end{proof}
 
+\begin{theorem}
+	The SynchMod algorithm solves the $k$-synchronization problem.
+\end{theorem}
+\begin{proof}
+	The correctness of the SynchMod algorithm results from lemma \ref{lem:liv} and \ref{lem:saf}.
+\end{proof}
 \printbibliography
 
 \end{document}
