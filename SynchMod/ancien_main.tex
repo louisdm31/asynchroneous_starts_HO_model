@@ -13,7 +13,7 @@
 
 
 \newtheorem{lemma}{Lemma}[section]
-\newtheorem{theorem}{Theoreme}
+\newtheorem{theorem}{Theorem}
 \newtheorem{definition}{Definition}
 \usepackage{biblatex}
 \addbibresource{rapport.bib}
@@ -24,6 +24,7 @@
 \newcommand{\ts}{t_{s}}
 \newcommand{\tf}{t_{f}}
 \newcommand{\try}{t_{t}}
+\newcommand{\SM}{{\em SynchMod}$_{\,k}$ }
 
 \title{$k$-synchronization in distributed system}
 \date{August 2020}
@@ -200,6 +201,8 @@ $(\mathds{G}, \mathcal{A}, (\sigma^0_u)_{u \in \Pi})$ where :
 		  \end{array} \right.$$
 
 \end{itemize}
+The activation schedule $\mathcal{A} $ is said to be \emph{complete} if all the nodes are eventually active,
+	i.e., $ \bigcup\limits_{r \in \mathds{N}}  \mathcal{A}_r  = \Pi$.
 
 \subsection{The synchronization problem}
 
@@ -235,9 +238,9 @@ $$\exists \cent \in \Pi, \forall u \in \Pi, \forall r \in \mathds{N}, \cent \in 
 
 In the predicate above, $\cent \in HO(u,r)$ informally means that $\cent$ belongs to the Heard-Of set of $u$ at round $r$. In other words, $u$ receives the message of $\cent$ at round $r$.
 
-\section{The \textit{SynchMod} algorithm}
+\section{The \SM algorithm}
 
-In the SynchMod algorithm, each node  maintains a local clock modulo $k$ with values in $\{ \overline{1}, \dots,  \overline{k} \}$.
+In the \SM algorithm, each node  maintains a local clock modulo $k$ with values in $\{ \overline{1}, \dots,  \overline{k} \}$.
 It fires in the first round at which all the local clocks it has just heard of  are all equal to~$\overline{k} $ (line~\ref{line:fire}).
 The first time a node receives discrepant clocks from its neighbors, it tries to force firing  by setting its clock to  $\overline{k} $
 	(lines~\ref{line:try}-\ref{line:try+1});
@@ -246,7 +249,7 @@ Otherwise, it receives agreed values with its own clock and then increments it b
 Let us again stress on the fact that at each round~$t$, every active node receives the value of its local clock.
 The pseudo-code of the local code of the agent~$u$ is given in Algorithm~1.
 
-As we will see below, the difficult point in the correctness proof of the SynchMod algorithm is liveness.
+As we will see below, the difficult point in the correctness proof of the \SM algorithm is liveness.
 However, right now, let us point out some properties of the algorithm that enable liveness.
 First, if all the nodes  agree on the same value for their local clocks 
 	-- in which case the system will be said to be \emph{monovalent} -- and if they are all active, 
@@ -287,7 +290,7 @@ The key point of the algorithm and of its ``forced firing procedure'' lies in th
 	  \ENDIF
 \ENDINDENT 
 
-\caption{{\em The SynchMod} algorithm} \label{algo:R}
+\caption{The \SM algorithm} \label{algo:R}
 \end{distribalgo}
 
 \end{algorithm}
@@ -295,21 +298,25 @@ The key point of the algorithm and of its ``forced firing procedure'' lies in th
 
 \subsection{Notation and preliminary lemmas}
 
-In the rest of this section, we fix an execution $\sigma$ of the SynchMod algorithm associated to the activation 
+In the rest of this section, we fix an execution $\sigma$ of the \SM algorithm associated to a complete activation 
 	schedule~${\cal A}$ and a centered dynamic graph~$\dG \in {\cal G}^c$. % a definir 
-Let $\cent$ denote one center of~$\dG$.	
+Let $t_s^{\max} = \max_{u \in \Pi}  t_s(u) < \infty$ and let~$\cent$ denote one center of~$\dG$.	
 
-For the correctness proof of SynchMod, we now introduce some additional definitions.
+
+For the correctness proof of \SM, we now introduce some additional definitions.
 Let $S$ be any subset of $ \mathds{Z}/k\mathds{Z}$.
-Round~$t$ in~$\sigma$  is said to be \emph{$\overline{S}$-valent}  if $S$ is the set of the clock values of active nodes at the end of round~$t$, i.e.,
-	$$ S = \{i  \in \mathds{Z}/k\mathds{Z} : \exists u \in \mathcal{A}_t, \ \overline{c}_u (t) = i \}  . $$
+Round~$t$ in~$\sigma$  is said to be \emph{$S$-valent}  if $S$ is the set of the clock values of active nodes 
+	at the end of round~$t$, i.e.,
+	$$ S = \{ \overline{i}  \in \mathds{Z}/k\mathds{Z} : \exists u \in \mathcal{A}_t, \ \overline{c}_u (t) = \overline{ i }\,  \}  . $$
 The system is said to be $\overline{i}$-\emph{monovalent}  if the system is $\{ \overline{i}\}$-valent.
 
-Similarly to $\tf (u)$, let us define $\try (u)$  as the round number at which the node~$u$ executes line~\ref{line:try} 
-	if any, and $\try (u)= \infty$ otherwise.
+Similarly to $\tf (u)$, let us define $\try (u)$ to be  the round number at which the node~$u$ tries to force firing
+	(line~\ref{line:try}) if any, and let $\try (u)= 0$ otherwise.
+It follows that $\try^{\max} =  \max_{u \in \Pi}  \try(u) < \infty$.
+
 
 \begin{lemma}\label{lem:k_mono}
-If $\overline{c}_\cent(t) = \overline{k} $, then the round~$t +1$ system is $\overline{1}$-monovalent.
+If $\overline{c}_\cent(t) = \overline{k} $, then the round~$t +1$  is $\overline{1}$-monovalent.
 \end{lemma}
 
 \begin{proof}
@@ -339,135 +346,112 @@ The proof is by induction on $s \in \IN$.
 \end{proof}
 
 \begin{lemma}\label{lem:k_liv}
-	If $\cent$ is active at round $t$, and $\overline{c}_\cent(t) = k$, then every node fires before the round $max(t, (t_s(u))_{u \in \Pi})+k$.
+If the center $\cent$ is active at round $t$  and $\overline{c}_\cent(t) = \overline{k} $, 
+	then every node fires no later than round $\max(t, t_s^{\max}) + k $.
 \end{lemma}
 \begin{proof}
-	The lemmas \ref{lem:k_mono} and \ref{lem:mono_mono} show that the system is $\overline{1}$-monovalent in round $t+i$,
-	thus $\overline{i}$-monovalent in every $t+i$ following rounds.
-
-	From the round $max \{t_s(u), u \in \Pi\}$, every node is active.
-
-	From the two previous facts, we obtain that, between the round $max(t, (t_s(u))_{u \in \Pi})$ and $max(t, (t_s(u))_{u \in \Pi})+k$, there is a round $t_{mon-k}$
-	such that the system is $\overline{k}$-monovalent, and every node is active.
-	Then, in round $t_{mon-k}$, every node, including $\cent$, sends $k$.
-	At the next round, according to line 9, every node must have fired.
+Lemmas \ref{lem:k_mono} and \ref{lem:mono_mono} show that the system is $\overline{1}$-monovalent in round $t+1$
+	and $\overline{i}$-monovalent in every  following round~$t+i$.
+It follows that there is a round $ s $, with $ s \in [ \max ( t, t_s^{\max} )  , \max (t , t_s^{\max} ) + k  - 1] $,
+	that  is $\overline{k}$-monovalent and at which every node is active.
+In round $ s $, every node, including $\cent$, sends $ \overline{k} $.
+According to line~\ref{line:fire}, every node fires no later than round~$s+1$.
 \end{proof}
  
 \begin{lemma}\label{lem:mono_liv}
-	If $\cent$ is active in round $t$, and the system is monovalent, then every node fires before the round $max(t, (t_s(u))_{u \in \Pi})+k$.
+If  round $t$ is a monovalent round in which the center $\cent$ is active, then 
+	every node fires before round $max( t, t_s^{\max} )+k + 1$.
 \end{lemma}
 \begin{proof}
-	The lemma \ref{lem:mono_mono} guarantees that the system remains monovalent in later rounds.
-	Between round $max(t, (t_s(u))_{u \in \Pi})$ and $max(t, (t_s(u))_{u \in \Pi})+k$, it must reach a $\overline{k}$-monovalent state.
-	In this round, every node, including $\cent$, sends $k$.
-	At the next round, according to line 9, every node must have fired.
+Lemma \ref{lem:mono_mono} guarantees that for every non negative integer~$i$,
+	the round~$t +i$ is monovalent.   
+Hence, there exists some round~$s$, with $ s \in [ max( t, t_s^{\max} ) , max( t, t_s^{\max} )+ k - 1 ] $ 
+	that is  $\overline{k}$-monovalent.
+In this round, every node, including $\cent$, sends $\overline{k}$.
+According to line~\ref{line:fire}, every node fires no later than round~$s+1$.
 \end{proof}
 
-\noindent At this point, we have already proven that the liveness is guaranteed if
-\begin{itemize}
-	\item the counter of $\cent$ reaches $\overline{k}$.
-	\item the system reaches a monovalent state.
-\end{itemize}
-
-\noindent We can summarize the state of the system at a given round in a given execution by the tuple : 
-$$C(t) = (\overline{c}_\cent(t), \{\overline{c}_u(t), u \in \mathcal{A}_{t-1}\})$$
-Hence, $C(t) = (\overline{v}, S)$ means that in the current execution, the system is $\overline{S}$-valent in round $t$, and the value of $\cent$ is $\overline{v}$.
-%We note $\mathcal{F}$ this set of favorable configurations (namely configurations where $\overline{v} = 1$ or $| S | = 1$).
-%The goal is now to prove that any execution contains at least one configuration in $\mathcal{F}$.
 
 \begin{lemma}\label{lem:mono_bi}
-	If $t$ satisfies $t > max \{\try(u) < \infty, p \in \Pi\} \cup \{\ts(u), u \in \Pi\}$,
-	then the system is either monovalent or $\overline{S}$-valent in round $t$, where $S = \{1, \overline{w}\}$.
+Any round $t > \max (t_s(\cent), \try^{\max}) + 1$  is either monovalent or 
+	$S$-valent with  $S = \{1, \overline{i} \, \}$.
 \end{lemma}
 \begin{proof}
-	Given any $p \in \mathcal{A}_t$, the node $u$ receives the value $\overline{c}_\cent(t-1)$ from $\cent$ in round $t$.
-	\begin{itemize}
-		\item If $u$ also receives a value different from $\overline{c}_\cent(t-1)$, null and $\bot$.
-			It cannot try a forced synchronization, since $t > \try(u)$.
-			Then, according to line 17, the only possibility is $\overline{c}_u(t) = \overline{1}$.
-		\item Otherwise, $u$ receives consistent messages, and adopts $\overline{c}_\cent(t-1)+\overline{1}$, according to line 11.
-	\end{itemize}
-\end{proof}
-
-\begin{lemma}\label{lem:liv_main}
-	If, in round $t$, the following hypothesis apply :
-	\begin{itemize}
-		\item every node is active,
-		\item no node will ever try a forced synchronization at round $t$ or later,
-		\item the node $\gamma$ never tries a forced synchronization in all the execution.
-	\end{itemize}
-	then every node fires before round $t+2k$.
-\end{lemma}
-\begin{proof}
-	We note $\overline{c}_\gamma(t)$ as $\overline{w}$.
-	First, we prove by induction over $i$ that
-
-	$$\forall i \in \mathds{N}, \overline{c}_\gamma(t+i) = \overline{w+i} \wedge C(t+i) \neq (\overline{1}, \{\overline{1}, \overline{k}\}).$$
-
-	The configuration $C(t+i) = (\overline{1}, \{\overline{1}, \overline{k}\})$ is a border-line case which has to be excluded along the induction.
-	\begin{itemize}
-		\item The first part of the base case results from the definition of $\overline{w}$.
-		\item For the second part of the base case, let's assume that $C(t) = (\overline{1}, \{\overline{1}, \overline{k}\})$.
-			We necessarily have $\overline{c}_\gamma(t-1) = \overline{k-1}$, otherwise, no node would have adopted $\overline{k}$ in round $t$.
-			Then $C(t-1) \neq (\overline{1}, \{\overline{1}, \overline{k}\})$. We get a contradiction using the induction case below.
-		\item For the first part of the induction case, we assume that $\overline{c}_\gamma(t+i) = \overline{w+i}$ and $C(t+i) \neq (\overline{1}, \{\overline{1}, \overline{k}\})$.
-			We have to prove that $\overline{c}_\gamma(t+i+1) = \overline{w+i+1}$ and $C(t+i+1) \neq (\overline{1}, \{\overline{1}, \overline{k}\})$.
-
-			\begin{itemize}
-				\item If, in round $t+i+1$, every messages received by $\gamma$ is consistent, $\gamma$ executes line 11, that proves the first part of the induction case.
-				\item Otherwise, we know from the third hypothesis that $\gamma$ does never try a forced synchronization.
-					Then $tried_\gamma(t+i+1)$ is false. Moreover the condition line 13 must be false.
-					That means that $\gamma$ has received a $k$. Moreover, the messages received by $\gamma$ are not consistent.
-					From the lemma \ref{lem:mono_bi}, we obtain that the system is $\{\overline{1}, \overline{k}\}$-valent in round $t+i$.
-					Since $C(t+i) \neq (\overline{1}, \{\overline{1}, \overline{k}\})$, we obtain that the only possible value for $\overline{c}_\gamma(t+i)$ is $\overline{k}$.
-					Since the node $\gamma$ can only execute line 17, we obtain that $\overline{c}_\gamma(t+i+1) = \overline{1} = \overline{w+i+1}$.
-			\end{itemize}
-
-		\item Then, to prove that $C(t+i+1) \neq (\overline{1}, \{\overline{1}, \overline{k}\})$, we assume the opposite.
-			That would mean that $w+i = \overline{k}$. Then a contradiction results from lemma \ref{lem:k_mono}.
-	\end{itemize}
-	Then, the system eventually reaches a configuration where $\overline{c}_\gamma(t+i) = \overline{k}$. The lemma \ref{lem:k_liv} terminates this proof.
+Let $t \geq \max (t_s(\cent), \try^{\max}) + 1$, and let $u$ be an active node at round~$t$.
+Since $t \geq t_s(\cent) +1$, we have $ \overline{c}_\cent(t - 1) = \overline{i -1 } \in \mathds{Z}/k\mathds{Z} $,
+	and the node~$u$ receives the value $ \overline{i - 1}$ at round~$t$.
+There are two cases to consider.
+\begin{enumerate}
+\item The node $u$ receives no value else than $\overline{i -1}$ and $\bot$ at round~$t$.
+ Then $u$ executes line~\ref{line:agreed}, and $\overline{c}_u(t) = \overline{ i }$, i.e.,
+ 	round~$t$ is $ \overline{ i }$-monovalent.
+\item Otherwise, $u$ executes line~\ref{line:tried} since it has already tried to force firing ($t > \try(u)$).
+Therefore, $\overline{c}_u(t) = \overline{1}$, which shows that round~$t$ is $\{1, \overline{ i } \, \}$-valent.
+\end{enumerate}
 \end{proof}
 
 \subsection{Correctness proof}
 
-\begin{lemma}\label{lem:saf}
-	The execution $\sigma$ verifies the safety property of the $k$-synchronization problem.
-\end{lemma}
-\begin{proof}
-	Let $u$ be the first firing node, in round $\tf(u)$.
-	Since $\cent \in HO(u,\tf(u))$, the value sent by $\cent$ is necessarily $\overline{k}$.
-	The lemma \ref{lem:k_mono} guarantees that the system is $\overline{1}$-monovalent in round $\tf(u)$.
-	The lemma \ref{lem:mono_mono} guarantees that for every $i > 0$, the system is $\overline{i}$-monovalent in round $\tf(u)+i$.
-	Thus, if a node $v$ fires in a later round $\tf(v) > \tf(u)$, the system must have been $\overline{k}$-monovalent in round $\tf(v)-1$ (see line 8),
-	and $\overline{1}$-monovalent in round $\tf(v)$. Thus $\tf(u)$ and $\tf(v)$ are congruent modulo $k$.
-	That proves the safety.
-\end{proof}
-
-In order to prove the liveness, we have to assume that every node becomes active in finite time.
-Then, we assume that the starting schedule of the execution $\sigma$ belongs to the family of starting schedules $\mathcal{A}_\Pi$ (notation à changer) verifying
-
-$$\exists r \in \mathds{N}, \mathcal{A}_r = \Pi.$$
-
-\begin{lemma}\label{lem:liv}
-	The execution $\sigma$ verifies the liveness property of the $k$-synchronization problem.
-\end{lemma}
-\begin{proof}
-	If $\try(\cent) \neq \infty$, the node $\cent$ tries once a forced synchronization, and adopts $\overline{k}$.
-	Thus, the liveness results from lemma \ref{lem:k_liv}.
-
-	Otherwise $\try(\cent) = \infty$.
-	Let $t$ be a round verifying $t > max \{\try(u) < \infty, u \in \Pi\} \cup \{\ts(u), u \in \Pi\}$.
-	The liveness results from lemma \ref{lem:liv_main}.
-\end{proof}
+We are now in position to prove the correctness of the \SM algorithm for any integer~$k$ greater than 2
+	under the conditions of a complete activation schedule and a  centered dynamic graph.
+The safety property is a direct consequence of the above lemmas.
+For the liveness property, Lemmas~\ref{lem:k_liv} and~\ref{lem:mono_liv} lead us to define the notion 
+	of a \emph{good round}  as either a monovalent round or a round in which  the  counter of any 
+	center reaches  the value $\overline{k}$:
+	liveness is then enforced by the existence of a good round.
 
 \begin{theorem}
-	The SynchMod algorithm solves the $k$-synchronization problem if the communication graphs belongs to $\mathcal{G}_\mathcal{C}$ and the starting schedule to $\mathcal{A}_\Pi$.
+Under the conditions of complete activation schedules and centered dynamic graphs,
+	the \SM algorithm solves the $k$-synchronization problem for any integer~$k$ greater than 2.
 \end{theorem}
+
 \begin{proof}
-	The correctness of the SynchMod algorithm results from lemma \ref{lem:liv} and \ref{lem:saf}.
+Let $\alpha$ be an execution of the \SM algorithm with a dynamic graph centered at~$\cent$ 
+	and a complete activation schedule.
+	
+For the safety property, let us assume that some nodes fire in $\alpha$, and let~$u$ be the first node that fires in round $\tf(u)$.
+Since $\cent $ is an incoming neighbor of~$u$, the firing rule (line~\ref{line:fire}) implies that $\cent$ is active
+	and has sent the value  $\overline{k}$ in round $\tf(u)$.
+By Lemma \ref{lem:k_mono},   round $\tf(u)$ is $\overline{1}$-monovalent, and
+	Lemma \ref{lem:mono_mono} shows that for every round $\tf(u)+i$ is $\overline{i}$-monovalent.
+If a node $v$ fires in a later round $\tf(v) > \tf(u)$, the round $\tf(v)-1$  is $\overline{k}$-monovalent (line~\ref{line:fire}).
+	and thus $\tf(u)$ and $\tf(v)$ are congruent modulo $k$.
+		
+For the liveness property, it suffices to prove that  $\alpha$ contains a good round.
+Let us first observe that if $\cent$ tries to force firing (line~\ref{line:try+1}) at round~$t$,
+	 then $ \overline{c}_{\cent}(t) = \overline{k}$ and round $t$ is a good round.
+Thus let us assume  $\try(\cent) = 0$, and  let $t \geq \max (t_s(\cent) , \try^{\max}) +1$.
+Lemma~\ref{lem:mono_bi}  shows that either (1) round~$t$ is monovalent, 
+	or (2) $ \overline{c}_{\cent}(t) = \overline{i} \neq  \overline{1} $ and round~$t$ is $ \{\overline{1}, \overline{i} \, \}$-valent,
+	or (3) $ \overline{c}_{\cent}(t) = \overline{1}$ and round~$t$ is $ \{\overline{1}, \overline{i} \, \}$-valent.
+\begin{enumerate}
+\item In case (1), round~$t$ is a good round.
+
+\item In case (2), the center~$\cent$ only receives the value $ \overline{c}_{\cent}(t) = \overline{i}$ at round~$t+1$ 
+since it never tries to force firing.
+Hence, we have $ \overline{c}_{\cent}(t + 1)  = \overline{i +1} $ , and round~$t+1 $ is $ \{\overline{1}, \overline{i+1} \, \}$-valent.
+Repeating this argument yields $ \overline{c}_{\cent}(t + k-i )  = \overline{ k } $.
+Hence, round~$t +k-i$ is a good round.
+
+\item For case (3),  we consider the following two subcases:
+\begin{enumerate}
+\item Node~$\cent$ does not receive the value~$ \overline{i} $ at round~$t+1$, and so $ \overline{c}_{\cent}(t + 1)  = \overline{ 2 } $.
+Since  $t> \try^{\max} $, we have $  \overline{c}_{u}(t + 1)  = \overline{ 1 } $ or $  \overline{c}_{u}(t + 1)  = \overline{ 2 } $ 
+	for every node~$u$.
+Moreover, round~$t+1$ is $ \{\overline{1} , \overline{2} \, \}$-valent and meets the above case (b).
+It follows that round~$t +k-1$ is a good round.
+\item Node~$\cent$ receives the value~$ \overline{i} $ at round~$t+1$.
+Since $\try(\cent)= 0$, this case may occur only if $ \overline{i } = \overline{ k }$.
+In this case, $  \overline{c}_{u}(t + 1)  = \overline{ 1 } $, and round~$t+1$ is either 
+	$ \{\overline{1}\}$-monovalent or  $ \{\overline{1} , \overline{2} \, \}$-valent.
+In the latter situation,  round~$t+1$ meets case (3) with $\overline{i}  =\overline{2} $, and hence case (3.a) when  $k>2$.
+Therefore, either round~$t+1$ or round~$t+k$ is a good round.
+\end{enumerate}
+\end{enumerate}
+It follows that if $k>2$, then the execution $\alpha$ contains a good round, and
+	Lemmas~\ref{lem:k_liv} and~\ref{lem:mono_liv} imply the liveness property of the \SM algorithm.
 \end{proof}
+
 \printbibliography
 
 \end{document}
-
