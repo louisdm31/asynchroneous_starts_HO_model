@@ -382,7 +382,7 @@ Hence, $C(t) = (\overline{v}, S)$ means that in the current execution, the syste
 \begin{proof}
 	Given any $p \in \mathcal{A}_t$, the node $u$ receives the value $\overline{c}_\cent(t-1)$ from $\cent$ in round $t$.
 	\begin{itemize}
-		\item If $u$ also receives a value different from $\overline{c}_\cent(t-1)$ and $\bot$.
+		\item If $u$ also receives a value different from $\overline{c}_\cent(t-1)$, null and $\bot$.
 			It cannot try a forced synchronization, since $t > \try(u)$.
 			Then, according to line 17, the only possibility is $\overline{c}_u(t) = \overline{1}$.
 		\item Otherwise, $u$ receives consistent messages, and adopts $\overline{c}_\cent(t-1)+\overline{1}$, according to line 11.
