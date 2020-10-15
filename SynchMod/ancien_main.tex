@@ -9,7 +9,7 @@
 \usepackage{stmaryrd}
 \usepackage[left=2cm, right=2cm, top=2cm]{geometry}
 \usepackage[utf8]{inputenc}
-
+\usepackage{graphicx}
 
 
 \newtheorem{lemma}{Lemma}[section]
@@ -41,7 +41,7 @@ Lots of today's digital services relies on distributed systems to improve the re
 A typical problem in distributed computing consists in emulating a data structure (stack, dictionary ...), or an algorithm (consensus ...) on a distributed
 set of machines, such that the correctness of the considered algorithm is unaffected by the failures of some components.
 
-There are two major frameworks in this field : synchronous and asynchronous systems (the exact definition of these terms may vary).
+There are two major frameworks in this field: synchronous and asynchronous systems (the exact definition of these terms may vary).
 In an \emph{asynchronous system}, the model considers each machine as an individual state machine, which may progress independently from the others,
 just like people working from home and communicating by email.
 % They can send messages and check  to other machines whenever they want.
@@ -65,9 +65,24 @@ For example, let's assume that a system needs to execute several tasks in series
 When a node ends a task, he has to start the next one, however it does not know if others nodes have finished the previous task and are ready to go on.
 If each task is computed with an asynchronous-starts-tolerant algorithm, that is no longer an issue.
 
+In a system with \textit{asynchronous starts}, we suppose that initially, the nodes are not ready to execute a given algorithm. They stay passive with regard to the target algorithm, 
+and signal their non-readiness by sending a special message noted null. Each node may eventually get ready in an unpredictable round of the execution.
+Then, they stop sending null, and instead interact according to the code of algorithm they are executing.
+
+\subsection{A previous proposition, and its shortcomings}
+
+In the literature, an algorithm has been designed to simulate synchronous starts in an asynchronous-starts context.
+This algorithm, named "firing squad" algorithm, can be started asynchronously in a distributed system.
+Each node executing this algorithm is guaranteed to eventually raise a flag (i.e. this node is said to \textit{fire}, hence the name of the algorithm), and every node will fire in the same round.
+This firing can be used as a starting signal for any subsequent non-asynchronous-starts tolerant algorithm.
+
+However, one of the main result of this work shows that this is only doable when the communication graph is strongly connected in every round.
+This required hypothesis is not compatible with crash-failures, since a crashed node must be unable to send any message.
+The goal of this article is to find a solution compatible with a wider notion of fault-tolerance.
+
 \subsection{Approach of this article}
 
-The main issue that makes existing algorithms non-asynchronous-start-resilient lies in their structure :
+The main issue that makes existing algorithms non-asynchronous-start-resilient lies in their structure:
 they are composed of several alternating phases.
 For example, the well-known Paxos \cite{paxos} algorithm is structured as a rotation of four phases, (named prepare,
 promise, accept, accepted).
@@ -86,12 +101,12 @@ The point of this article is to solve this problem.
 
 The goal of this document is to propose an algorithm that solves the $k$-synchronization problem.
 Such an algorithm could be executed on a distributed system without synchronous starts,
-an at a certain round, each node would "fire".
-That would be a starting signal for the target algorithm.
-The starting signals will have to satisfy the following properties :
+an at a certain round, each node would fire.
+That would be a starting signal for the subsequent algorithm.
+The starting signals will have to satisfy the following properties:
 \begin{description}
-	\item[Safety :] The starting round of each node are congruent modulo $k$.
-	\item[Liveness :] Every node eventually fires.
+	\item[Safety:] The starting round of each node are congruent modulo $k$.
+	\item[Liveness:] Every node eventually fires.
 \end{description}
 
 \subsection{Validity domain}
@@ -101,24 +116,27 @@ In the literature, the fault-tolerance is often expressed by the maximum number 
 Hence, a $t$-resilient system is correct if at most $t$ nodes stop working.
 In the Heard-Of model \cite{model_ho} which we use, the crash-failures are not defined as a "first-class" notion.
 Instead, they they can be encapsulated inside the communication assumptions.
-In this article, we will consider scenarios where at least one node is able to communicate with every other node.
+In this article, we will consider scenarios where at least one node is able to communicate with every other node (including itself, which is an obvious but important assumption).
 This assumption is compliant with a failure of $n-1$ nodes, where $n$ is the total number of nodes.
 Thus, this work is hopefully useful for real-life system.
 
 \section{Heard-Of model}
 
 Among the different synchronous models, we chose to work with the Heard-Of model.
-One of the most important differentiating factor between distributed models is the way the fault-tolerance is handled.
-In the literature, various possibilities have been considered : crash-failures, loss of message, messages swapped, malicious attack ...
-In the Heard-Of model, the failures are supposed to happen during the communication.
-The nodes are modeled by state machines (formal definition below).
+This model differs from the model traditionally used in distributed computing.
+In these classic models, the system is often supposed asynchronous. It has a fixed communication graph, and the node may crash at any moment.
+In opposition, the Heard-Of model suppose that the system is synchronous. Instead of having crashing nodes, the communication graph is supposed dynamic.
+In particular, in the Heard-Of model, a crashing node is a node which becomes a sink in the communication graph.
 
-At each round, each node :
-\begin{itemize}
-	\item Send a message according to its current state.
-	\item Receives a subset of the messages that were destined to itself. The non-received messages are lost.
-	\item Compute a new state, according to its previous state, and the messages it received.
-\end{itemize}
+% One of the most important differentiating factor between distributed models is the way the fault-tolerance is handled.
+% In the literature, various possibilities have been considered: crash-failures, loss of message, messages swapped, malicious attack ...
+% In the Heard-Of model, the failures are supposed to happen during the communication.
+% The nodes are modeled by state machines (formal definition below).
+
+% At each round, each node sends a message according to its current state,
+% receives a subset of the messages that were destined to itself. The non-received messages are lost.
+% Then, it computes a new state, according to its previous state, and the messages it received.
+% Using these rules, any execution (see formal definition below) determines a sequence $(\Gamma_u^r)_{u \in \Pi, r \in \mathds{N}}$ which returns the state of any node $u$ in any round $r$.
 
 \subsection{Modeling of asynchronous starts}
 
@@ -129,7 +147,7 @@ A non-ready node remains passive relative to the considered algorithm, and signa
 In this document, we will make the assumption that no node can remain inactive forever.
 To formally write this hypothesis, we introduce the series $(\mathcal{A}_r)_{r \in \mathds{N}}$, where, for a given execution (see the formal definition below), $\mathcal{A}_r \subseteq \Pi$ 
 represents the set of active nodes at round $r$.
-The "non inactive forever" hypothesis can now be written as
+The "non passive forever" hypothesis can now be written as
 
 $$\exists r \in \mathds{N}, \mathcal{A}_r = \Pi.$$
 
@@ -137,13 +155,13 @@ Here $\Pi$ is the set of nodes.
 
 \subsection{Definition of an algorithm}
 
-Let $\Pi$ be a set of cardinality $n$. For each element of $\Pi$, a node is defined by the following entries :
+Let $\Pi$ be a set of cardinality $n$. For each element of $\Pi$, a node is defined by the following entries:
 
 \begin{itemize}
 	\item A non-empty $States_u$ set, and an element $sleep_u \notin States_u$.
 	\item A subset $Init_u \subseteq States_u$.
-	\item A sending function $S_u : States_u \times \Pi \rightarrow \mathcal{M}$.
-	\item A transition function $T_u : States_u \times \mathcal{X}_\Pi^{\mathcal{M}} \rightarrow States_u$,
+	\item A sending function $S_u: States_u \times \Pi \rightarrow \mathcal{M}$.
+	\item A transition function $T_u: States_u \times \mathcal{X}_\Pi^{\mathcal{M}} \rightarrow States_u$,
 		where $\mathcal{X}_\Pi^{\mathcal{M}}$ is the type of a partial function
 		of type $\Pi \rightarrow \mathcal{M} \uplus \{null\}$.
 \end{itemize}
@@ -155,7 +173,7 @@ An \textit{algorithm} is a tuple $(States_u, Init_u, S_u, T_u)$ for each element
 
 \subsection{Definition of an execution}
 
-The Heard-Of model is round based. At any round $r$, any active node $u$ run the following steps :
+The Heard-Of model is round based. At any round $r$, any active node $u$ run the following steps:
 
 \begin{itemize}
 	\item It emits a messages determined by its current state and the sending function.
@@ -175,7 +193,7 @@ The absence of communication may mean a failure has occurred, either in the send
 This topic is out of the scope of this article, though.
 
 An execution of an algorithm $(States_u, Init_u, S_u, T_u)$ is defined by a tuple
-$(\mathds{G}, \mathcal{A}, (\sigma^0_u)_{u \in \Pi})$ where :
+$(\mathds{G}, \mathcal{A}, (\sigma^0_u)_{u \in \Pi})$ where:
 
 \begin{itemize}
 	\item $\mathds{G}$ is a series of communication graph. Since a node should always be able to communicate 
@@ -185,14 +203,14 @@ $(\mathds{G}, \mathcal{A}, (\sigma^0_u)_{u \in \Pi})$ where :
 	\item $(\sigma^0_u)_{u \in \Pi}$ is the family of initial states for every node.
 \end{itemize}
 
-\textbf{Remarks :}
+\textbf{Remarks:}
 
 \begin{itemize}
-	\item With synchronous starts, every node starts during the same round : 
+	\item With synchronous starts, every node starts during the same round: 
 		$$\forall r \in \mathds{N}, \mathcal{A}_r \in \{\emptyset, \Pi\}$$
 
 	\item The knowledge of $\mathcal{A}$ is equivalent to the knowledge of a function
-		$\ts : \Pi \rightarrow \mathds{N} \cup \{\infty\}$ defined by :
+		$\ts: \Pi \rightarrow \mathds{N} \cup \{\infty\}$ defined by:
 		$$\ts(u) = \left \{ \begin{array}{l ll}
 		  \infty & \mbox{ if  } p \notin \bigcup\limits_{r \in \mathds{N}}  \mathcal{A}_r & 
 			  \mbox { ($u$ remains inactive forever) } \\
@@ -208,7 +226,7 @@ The activation schedule $\mathcal{A} $ is said to be \emph{complete} if all the 
 
 	Let $k > 1$ be a parameter. Let us consider an algorithm $A$ in which nodes $u$ maintains a boolean $fire_u$, which is initially $False$.
 	The node $u$ fires when this parameter is set to $True$ for the first time.
-	For any execution of $A$, the firing schedule $\tf : \Pi \rightarrow \mathds{N} \cup \{\infty\}$ is defined by 
+	For any execution of $A$, the firing schedule $\tf: \Pi \rightarrow \mathds{N} \cup \{\infty\}$ is defined by 
 
 	$$\tf(u) = \left \{
 	\begin{array}{l l}
@@ -229,7 +247,7 @@ The activation schedule $\mathcal{A} $ is said to be \emph{complete} if all the 
 %%%%% temporaire %%%%%%%%%%
 \subsection{Required hypothesis}
 
-In order to prove the safety and the liveness of this algorithm, we need to make the following hypothesis :
+In order to prove the safety and the liveness of this algorithm, we need to make the following hypothesis:
 there exists a node, called $\cent$, whose messages always reach their destination.
 The communication graph of each round must contain a "star" whose center is always the node $\cent$.
 From this point, we will only consider executions whose communication graphs $\mathds{G}$ belongs to the family of graphs $\mathcal{G}_\mathcal{C}$ which verifies
@@ -260,7 +278,7 @@ The key point of the algorithm and of its ``forced firing procedure'' lies in th
 	contain a star centered at~$\cent$, then when  $\cent$ is active, its local clock necessarily becomes equal 
 	to~$\overline{k}$, and every active node will eventually fire. 
 
-% \textbf{Note :} The definition of an execution requires that a passive node always sends null. The algorithm itself requires that, at the round of its activation, a node always sends $\bot$.
+% \textbf{Note:} The definition of an execution requires that a passive node always sends null. The algorithm itself requires that, at the round of its activation, a node always sends $\bot$.
 % This is designed such that node just activated does not disturb a monovalent configuration with an initial value in $\mathds{Z}/k\mathds{Z}$.
 
 \begin{algorithm}[htb]\label{algo:code}
@@ -314,6 +332,8 @@ Similarly to $\tf (u)$, let us define $\try (u)$ to be  the round number at whic
 	(line~\ref{line:try}) if any, and let $\try (u)= 0$ otherwise.
 It follows that $\try^{\max} =  \max_{u \in \Pi}  \try(u) < \infty$.
 
+In the \SM algorithm, the state of each node $u$ is composed of three variables named $\overline{c}_u$, $fired_u$ and $tried_u$.
+For any round $r$, we denote $\overline{c}_u(r)$, $fired_u(r)$ and $tried_u(r)$ respectively the values of these variables in the execution $\sigma$.
 
 \begin{lemma}\label{lem:k_mono}
 If $\overline{c}_\cent(t) = \overline{k} $, then the round~$t +1$  is $\overline{1}$-monovalent.
@@ -438,7 +458,7 @@ Hence, round~$t +k-i$ is a good round.
 \item Node~$\cent$ does not receive the value~$ \overline{i} $ at round~$t+1$, and so $ \overline{c}_{\cent}(t + 1)  = \overline{ 2 } $.
 Since  $t> \try^{\max} $, we have $  \overline{c}_{u}(t + 1)  = \overline{ 1 } $ or $  \overline{c}_{u}(t + 1)  = \overline{ 2 } $ 
 	for every node~$u$.
-Moreover, round~$t+1$ is $ \{\overline{1} , \overline{2} \, \}$-valent and meets the above case (b).
+Moreover, round~$t+1$ is $ \{\overline{1} , \overline{2} \, \}$-valent and meets the above case (2).
 It follows that round~$t +k-1$ is a good round.
 \item Node~$\cent$ receives the value~$ \overline{i} $ at round~$t+1$.
 Since $\try(\cent)= 0$, this case may occur only if $ \overline{i } = \overline{ k }$.
@@ -451,6 +471,26 @@ Therefore, either round~$t+1$ or round~$t+k$ is a good round.
 It follows that if $k>2$, then the execution $\alpha$ contains a good round, and
 	Lemmas~\ref{lem:k_liv} and~\ref{lem:mono_liv} imply the liveness property of the \SM algorithm.
 \end{proof}
+
+\section{Conclusion and future work}
+
+Since the proof of correctness of the \SM algorithm uses a lot of combinatorial reasoning, the risk of mistake is high.
+That's why the Isabelle proof assistant has been used to formally verify the liveness part of the proof, which is the most challenging.
+The construction of \SM algorithm and its formally verified proof paves the way for the implementation of algorithms like Paxos on real-life systems.
+However, the case $k=2$ has been excluded until now. The \SM algorithm is not correct in this context.
+You can see below a counter-example, in which the system cycles between two configurations without ever firing.
+
+\begin{figure}[h]
+	\includegraphics[width=\textwidth]{contre_exemple_k_2}
+\end{figure}
+
+Fortunately, the 2-synchronization problem is solved by any algorithm solving 4-synchronization problem (or 6-synchronization, or "whatever even number"-synchronization problem).
+Thus, {\em SynchMod}$_{\,4}$ do the job.
+
+In this article, the complexity of the \SM algorithm has not been tacked. The \SM algorithm may have room for optimization. That could be the topic of a future study.
+Moreover, the fault-tolerance of this result could be further improved by weakening the hypothesis of the existence of the star.
+Instead of that, we could assume the existence of a spanning tree in the communication graph. 
+This would set new challenges, especially relative to the safety. This could also be the topic of a future article.
 
 \printbibliography
 
