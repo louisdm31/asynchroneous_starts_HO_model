@@ -42,27 +42,22 @@ An incorrect node $u \in \Pi \setminus S$ which crashes in rount $t$ must :
 \BLANK \INDENT{\textbf{Initialization:}}
 	% \STATE $correct_u \leftarrow \Pi$
 	\STATE $ready_u \leftarrow false$
-	\STATE $starting_u \leftarrow true$
 	\STATE $passiv_u \leftarrow \Pi$
 
 \ENDINDENT \BLANK
 
 \INDENT{\textbf{In each round $t$:}}
 	\INDENT{$S_u^t$}
-		\IF{$starting_u$}
+		\IF{$passiv_u = \Pi$}
 			\STATE send $\bot$ to all
 		\ELSE
 			\STATE send $\langle ready_u \rangle$ to all
 		\ENDIF
 	\ENDINDENT \BLANK
 	\INDENT{$T_u^t$}
-		\STATE $ready_u \leftarrow passiv_u \subseteq HO(u, t)$
+		\STATE $ready_u \leftarrow passiv_u \subsetneq HO(u, t)$
 		\IF{no null, no $\bot$ received and $ready_u$ and $\forall v \in HO(u, t), ready_v(t-1)$}
 			\STATE fire 
-		\ENDIF
-		\IF{$passiv_u \neq \Pi \wedge starting_u$}
-			\STATE $starting_u \leftarrow false$ 
-			\STATE $ready_u \leftarrow false$ 
 		\ENDIF
 		\STATE $passiv_u \leftarrow $ set of node which sent null or $\bot$
 	\ENDINDENT 
@@ -86,7 +81,7 @@ An incorrect node $u \in \Pi \setminus S$ which crashes in rount $t$ must :
 			Then $ready_u(t)$ is false and $u$ could not have fired.
 		\item $v$ witnessed the crash of a node $w$ in round $t$.
 			If $u$ witnessed that crash, too, $u$ could not have fired.
-			Otherwise, $u$ received null, $\bot$ or $\langle false \rangle$ from $w$.
+			Otherwise, $u$ received null or $\bot$.
 			In any case, $u$ could not have fired.
 		\item $v$ received a $\langle false \rangle$ message.
 		\begin{itemize}
