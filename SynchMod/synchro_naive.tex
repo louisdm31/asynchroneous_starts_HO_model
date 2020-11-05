@@ -1,0 +1,111 @@
+
+\documentclass{article}
+\usepackage{amsmath}
+\usepackage[noend]{libHO/distribalgo}
+\usepackage{algorithm}
+\usepackage{amssymb}
+\usepackage{listings}
+\usepackage{amsthm}
+\usepackage{dsfont}
+\usepackage{stmaryrd}
+\usepackage[left=2cm, right=2cm, top=2cm]{geometry}
+\usepackage[utf8]{inputenc}
+
+
+\newtheorem{lemma}{Lemma}[section]
+\newtheorem{theorem}{Theorem}
+\newtheorem{definition}{Definition}
+\usepackage{biblatex}
+\addbibresource{rapport.bib}
+
+\title{Naive synchronization algorithm}
+\date{August 2020}
+\author{Louis Penet de Monterno - Bernadette Charron-Bost}
+
+\begin{document}
+
+Our goal is to solve the non-uniform synchronization problem, defined below.
+We consider a system composed of a set of $\Pi$ nodes.
+A subset $S \subseteq \Pi$ is the subset of correct nodes.
+A correct node never crash, and any messages sent by $u \in S$ always reach their destination.
+An incorrect node $u \in \Pi \setminus S$ which crashes in rount $t$ must :
+\begin{itemize}
+	\item be correct until round $t-1$. All of its outgoing messages reach their destination.
+	\item fail in round $t$ : only a subset of its outgoing messages reach their destination.
+	\item be quiet in round $t+1$ and later.
+\end{itemize}
+
+
+
+\begin{algorithm}[htb]\label{algo:code}
+\begin{distribalgo}[1]
+\BLANK \INDENT{\textbf{Initialization:}}
+	% \STATE $correct_u \leftarrow \Pi$
+	\STATE $ready_u \leftarrow false$
+	\STATE $starting_u \leftarrow true$
+	\STATE $passiv_u \leftarrow \Pi$
+
+\ENDINDENT \BLANK
+
+\INDENT{\textbf{In each round $t$:}}
+	\INDENT{$S_u^t$}
+		\IF{$starting_u$}
+			\STATE send $\bot$ to all
+		\ELSE
+			\STATE send $\langle ready_u \rangle$ to all
+		\ENDIF
+	\ENDINDENT \BLANK
+	\INDENT{$T_u^t$}
+		\STATE $ready_u \leftarrow passiv_u \subseteq HO(u, t)$
+		\IF{no null, no $\bot$ received and $ready_u$ and $\forall v \in HO(u, t), ready_v(t-1)$}
+			\STATE fire 
+		\ENDIF
+		\IF{$passiv_u \neq \Pi \wedge starting_u$}
+			\STATE $starting_u \leftarrow false$ 
+			\STATE $ready_u \leftarrow false$ 
+		\ENDIF
+		\STATE $passiv_u \leftarrow $ set of node which sent null or $\bot$
+	\ENDINDENT 
+\ENDINDENT 
+
+\caption{The non-uniform firing-squad algorithm} \label{algo:R}
+\end{distribalgo}
+
+\end{algorithm}
+
+\begin{theorem}
+	The non-uniform firing-squad algorithm solves non-uniform synchronization problem.
+\end{theorem}
+\begin{proof}
+	We first prove safety. We assume that a correct node $u$ fires in round $t$.
+	By contradiction, we assume that a correct node $v$ does not fire in rount $t$.
+	Then, one of the following cases apply :
+	\begin{itemize}
+		\item $v$ received a null (or a $\bot$) from a node $w$.
+			Since $u$ fired, $u$ must not have received a null (or a $\bot$) from $w$. That means that $w$ crashed in round $t$, and $w \in passiv_u(t-1) \setminus HO(u, t)$.
+			Then $ready_u(t)$ is false and $u$ could not have fired.
+		\item $v$ witnessed the crash of a node $w$ in round $t$.
+			If $u$ witnessed that crash, too, $u$ could not have fired.
+			Otherwise, $u$ received null, $\bot$ or $\langle false \rangle$ from $w$.
+			In any case, $u$ could not have fired.
+		\item $v$ received a $\langle false \rangle$ message.
+		\begin{itemize}
+			\item This message may come from a node $w$ which has become active at round $t-1$, and $u$ received that message too.
+				In that case, $u$ could not have fire.
+			\item This message may come from a node $w$ which has become active at round $t-1$, but $u$ does not receive that message.
+				In that case $w \in passiv_u(t-1) \setminus HO(u,t)$.
+				Then $ready_u(t)$ is false and $u$ could not have fired.
+			\item This message is the report of a crash of a node $w$ which happened in round $t-1$.
+			\begin{itemize}
+				\item In round $t-1$, $w$ managed to send its message to $u$ and $v$.
+
+			\end{itemize}
+		\end{itemize}
+		\item $v$ heart about the crash of a node $w$ which happened in round $t-1$.
+	\end{itemize}
+	That means that there exist a node $w$ which sent a null in round $t-1$.
+
+\end{proof}
+
+
+\end{document}

@@ -505,9 +505,18 @@ Since the $\mathrm{mod}\,2$-synchronization is reducible to $\mathrm{mod}\,4$-sy
 	 in the class of  dynamic  graphs with a fixed center.
 This class of dynamic graphs plays a crucial role regarding benign failures as it captures 
 	the general model of at most $n-1$ faulty senders, including the one of at most $n-1$ crashes.
-In the widerl context of dynamic graphs, a natural question is whether the problem is still solvable 
+In the wider context of dynamic graphs, a natural question is whether the problem is still solvable 
 	under weaker connectivity assumptions, in particular, in the class of dynamic graphs with a fixed root, 
 	i.e., with a time-varying spanning tree at each round rooted at a fixed node.
+
+In \cite{model_ho}, a simple algorithm is proposed to construct a centered system from a rooted system.
+It consists in grouping each sequence of $\mathcal{N}$ rounds into \textit{macro-rounds}.
+If the depth of the spanning tree is bounded by $\mathcal{N}$, the root of the spanning tree is able to reach any node within each macro-round.
+Hence, these macro-rounds can be used to emulate a centered communication graph.
+Unfortunately, this construction -- which is useful in a variety of contexts -- would require a $\mathrm{mod}\,\mathcal{N}$-synchronization,
+which is precisely the problem we are trying to solve.
+We need either a asynchronous-starts-tolerant algorithm to turn a rooted system into a centered system, or an upgrade of \SM which works in a rooted system.
+That could be the topic of a future article.
 
 \printbibliography
 
