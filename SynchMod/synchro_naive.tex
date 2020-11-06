@@ -12,17 +12,21 @@
 \usepackage[utf8]{inputenc}
 
 
-\newtheorem{lemma}{Lemma}[section]
+\newtheorem{lemma}{Lemma}
 \newtheorem{theorem}{Theorem}
 \newtheorem{definition}{Definition}
-\usepackage{biblatex}
-\addbibresource{rapport.bib}
+% \usepackage{biblatex}
+% \addbibresource{rapport.bib}
 
 \title{Naive synchronization algorithm}
 \date{August 2020}
 \author{Louis Penet de Monterno - Bernadette Charron-Bost}
 
 \begin{document}
+
+\maketitle
+
+\section{Problem}
 
 Our goal is to solve the non-uniform synchronization problem, defined below.
 We consider a system composed of a set of $\Pi$ nodes.
@@ -35,14 +39,16 @@ An incorrect node $u \in \Pi \setminus S$ which crashes in rount $t$ must :
 	\item be quiet in round $t+1$ and later.
 \end{itemize}
 
-
+\section{Algorithm}
 
 \begin{algorithm}[htb]\label{algo:code}
 \begin{distribalgo}[1]
 \BLANK \INDENT{\textbf{Initialization:}}
 	% \STATE $correct_u \leftarrow \Pi$
 	\STATE $crashed_u \leftarrow \emptyset$
+	\STATE $oldcrash_u \leftarrow \emptyset$
 	\STATE $passiv_u \leftarrow \Pi$
+	\STATE $activating_u \leftarrow false$
 
 \ENDINDENT \BLANK
 
@@ -55,11 +61,13 @@ An incorrect node $u \in \Pi \setminus S$ which crashes in rount $t$ must :
 		\ENDIF
 	\ENDINDENT \BLANK
 	\INDENT{$T_u^t$}
-		\STATE $crashed_u \leftarrow passiv_u \setminus HO(u, t) \setminus \bigcup\limits_{v \in HO(u,t)} crashed_v(t-1)$ \label{line:detect}
-		\IF{no null, no $\bot$ received and $crashed_u = \emptyset$ and $\bigcup\limits_{v \in HO(u,t)} crashed_v(t-1) = \emptyset$}
+		\STATE let $justcrashed = \bigcup\limits_{v \in HO(u,t)} crashed_v(t-1) \setminus oldcrash_u$  \label{line:detected-before}
+		\STATE $crashed_u \leftarrow passiv_u \setminus HO(u, t) \setminus justcrashed$ \label{line:detect}
+		\IF{no null, no $\bot$ received and $crashed_u = \emptyset$ and $justcrashed = \emptyset$ and $\neg activating_u$}
 			\STATE fire 
 		\ENDIF
 		\STATE $passiv_u \leftarrow $ set of node which sent null
+		\STATE $activating_u \leftarrow $ exists a node which sent $\bot$
 	\ENDINDENT 
 \ENDINDENT 
 
@@ -68,37 +76,98 @@ An incorrect node $u \in \Pi \setminus S$ which crashes in rount $t$ must :
 
 \end{algorithm}
 
+\section{Proof}
+
+\begin{lemma} \label{lem:passiv-wait}
+	If a node is passive and still correct in round $t$, no node can fire in round $t+1$ or earlier.
+\end{lemma}
+\begin{proof}
+	In round earlier than $t+1$, every node receives a null, and must refrain from firing.
+
+	If $w$ is passive and correct until round $t$, then at least a subset $I \subseteq \Pi$ receives null or $\bot$ in round $t+1$.
+	Those nodes cannot fire at round $t+1$.
+
+	Other nodes received null from $w$ in round $t$ and do not receive any message from $w$ in round $t+1$.
+	They must include $w$ in their $crashed$ variable. In round $t+1$, they will receive their own message containing $w$, and will refrain from firing.
+\end{proof}
+
+\begin{lemma} \label{lem:split}
+	If a passive node $w$ crashes in round $t$, then:
+	\begin{itemize}
+		\item In round $t$, a subset $I_1 \subseteq \Pi$ will detect that failure, and will include $w$ into their $crashed$ variable.
+			In the next round, those nodes will send to all a message containing $w$.
+		\item In round $t+1$, the subset $\Pi \setminus I_1$ will detect that failure. This set of nodes will be partitioned into two subset $I_2$ and $\overline{I}_2$.
+		\begin{itemize}
+			\item The nodes in $I_2$ will receive a message containing $w$ sent by a node in $I_1$. Those nodes will not include $w$ in their $crashed$ variable
+				(see lines \ref{line:detected-before} and \ref{line:detect}).
+				They will not send a message containing $w$ in round $t+2$ either.
+			\item The nodes in $\overline{I}_2$ will not receive a message containing $w$ sent by a node in $I_1$. Those nodes will include $w$ in their $crashed$ variable
+				(see lines \ref{line:detected-before} and \ref{line:detect}).
+				They will also send a message containing $w$ in round $t+2$.
+		\end{itemize}
+	\end{itemize}
+\end{lemma}
+
+\begin{lemma} \label{lem:no-fire}
+	If a passive node $w$ crashes in round $t$, no node can fire in round $t+1$.
+\end{lemma}
+\begin{proof}
+	The previous lemma splits the systems into three subsets relative to the failure of $w$.
+	\begin{itemize}
+		\item The nodes in $I_1$ cannot fire because in round $t+1$. Indeed in round $t$, they will send a message containing $w$.
+			Hence, in round $t+1$, they will receive their own message, and their variable $justcrashed$ will contain $w$ (see line \ref{line:detected-before}).
+		\item The nodes in $I_2$ cannot fire because in round $t+1$ because they will receive a message containing $w$,
+			then $w$ will belong to their $justcrashed$ variable (see line \ref{line:detected-before}).
+		\item The nodes in $\overline{I}_2$ cannot fire because in round $t+1$ because $w$ will belong to their $crashed$ variable (see line \ref{line:detect}).
+	\end{itemize}
+\end{proof}
+
+\begin{lemma} \label{lem:no-fire-activating}
+	If a node $w$ crashes in round $t$ while it was getting activated, no node can fire in round $t+1$.
+\end{lemma}
+\begin{proof}
+	The system can be partitioned into two subset $I$ and $\overline{I}$:
+	\begin{itemize}
+		\item The nodes in $\overline{I}$ receive the $\bot$ message sent by $w$. They set their $activating$ variable to $true$, and do not fire in round $t+1$.
+		\item The nodes in $I$ do not receive the $\bot$ message sent by $w$. They instead add $w$ to their $crashed$ variable, and send it to all.
+			In round $t+1$, they must receive their own message containing $w$. They add $w$ to their $justcrashed$ variable, and refrain from firing.
+	\end{itemize}
+\end{proof}
+
 \begin{theorem}
 	The non-uniform firing-squad algorithm solves non-uniform synchronization problem.
 \end{theorem}
 \begin{proof}
 	We first prove safety. We assume that a correct node $u$ fires in round $t$.
-	By contradiction, we assume that a correct node $v$ does not fire in rount $t$.
-	Then, one of the following cases apply :
+	By contradiction, we assume that a correct node $v$ does not fire in round $t$.
+	Then, one of the following cases apply:
 	\begin{itemize}
 		\item $v$ received a null (or a $\bot$) from a node $w$.
-			Since $u$ fired, $u$ must not have received a null (or a $\bot$) from $w$. That means that $w$ crashed in round $t$, and $w \in passiv_u(t-1) \setminus HO(u, t)$.
-			Then $crashed_u(t) \neq \emptyset$ and $u$ could not have fired.
-		\item $v$ witnessed the crash of a node $w$ in round $t$.
-			If $u$ witnessed that crash, too, $u$ could not have fired.
-			Otherwise, $u$ received null or $\bot$.
-			In any case, $u$ could not have fired.
-		\item $v$ received a non-empty message from $z$ containing $w$. 
-			That means that :
-			\begin{itemize}
-				\item $z$ received a null from $w$ in round $t-2$ but not in round $t-1$. Then $w$ crashed either in round $t-2$ or in round $t-1$.
-				\item $z$ did not receive in round $t-1$ a message containing $w$. See~\ref{line:detect}.
-			\end{itemize}
-		\begin{itemize}
-			\item In round $t-1$, $w$ managed to send its null message to $u$, then $w \in passiv_u(t-1)$ and $w \in crashed_u(t)$.
-				That contradict the fact that $u$ fired in round $t$.
-			\item Otherwise $u$ did not receive null from $w$ in round $t-1$. Then $w \in crashed_u(t-1)$. 
-
-			\end{itemize}
-		\end{itemize}
-		\item $v$ heart about the crash of a node $w$ which happened in round $t-1$.
+			The lemma \ref{lem:passiv-wait} contradict the fact that $u$ fired.
+		\item $crashed_v(t)$ contains a node $w$. This node crashed either in round $t-1$ or in round $t$.
+			In the first case, the lemma \ref{lem:no-fire} or \ref{lem:no-fire-activating} contradict the fact that $u$ fired.
+			In the second case, the lemma \ref{lem:passiv-wait} contradict the fact that $u$ fired.
+		\item The variable $justcrashed_v(t)$ is not empty. Then $v$ received a non-empty message from $z$ containing $w$ in round $t$. 
+			This must result from a crash of node $w$ at round $t-1$ or $t-2$.
+			In the first case, the lemma \ref{lem:no-fire} or \ref{lem:no-fire-activating} contradict the fact that $u$ fired.
+			The second case is tricky. We derive a contradiction from a series of claims:
+			\begin{enumerate}
+				\item $w$ was passive in round $t-2$.
+					Indeed, if we assume that $w$ was activating in round $t$, the proof of lemma \ref{lem:no-fire-activating} splits the system into $I$ and $\overline{I}$.
+					However, neither a node from $I$, nor a node from $\overline{I}$ would have sent a message containing $w$ in round $t$.
+				\item The lemma \ref{lem:split} shows that $z$ belongs to $\overline{I}_2$.
+				\item Since $\overline{I}_2$ is non-empty, no correct node can belong to $I_1$.
+				\item No correct node can belong to $\overline{I}_2$ either. Otherwise, it would have sent to $v$ in round $t-1$ a message containing $w$.
+					Then the $oldcrash_v(t)$ would contain $w$, and $w$ would not be included in the variable $justcrashed_v(t)$.
+				\item Then $v$ must belong to $I_2$. That means that $v$ received a message containing $w$ in round $t-1$.
+					Then the $oldcrash_v(t)$ contain $w$, and that contradicts the fact that $w$ is included in the variable $justcrashed_v(t)$.
+			\end{enumerate}
+		\item The variable $activating_v(t)$ is true.
+			In that case, the lemma \ref{lem:no-fire-activating} contradict the fact that $u$ fired.
 	\end{itemize}
-	That means that there exist a node $w$ which sent a null in round $t-1$.
+
+
+
 
 \end{proof}
 
