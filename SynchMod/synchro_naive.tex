@@ -41,7 +41,7 @@ An incorrect node $u \in \Pi \setminus S$ which crashes in rount $t$ must :
 \begin{distribalgo}[1]
 \BLANK \INDENT{\textbf{Initialization:}}
 	% \STATE $correct_u \leftarrow \Pi$
-	\STATE $ready_u \leftarrow false$
+	\STATE $crashed_u \leftarrow \emptyset$
 	\STATE $passiv_u \leftarrow \Pi$
 
 \ENDINDENT \BLANK
@@ -51,15 +51,15 @@ An incorrect node $u \in \Pi \setminus S$ which crashes in rount $t$ must :
 		\IF{$passiv_u = \Pi$}
 			\STATE send $\bot$ to all
 		\ELSE
-			\STATE send $\langle ready_u \rangle$ to all
+			\STATE send $\langle crashed_u \rangle$ to all
 		\ENDIF
 	\ENDINDENT \BLANK
 	\INDENT{$T_u^t$}
-		\STATE $ready_u \leftarrow passiv_u \subsetneq HO(u, t)$
-		\IF{no null, no $\bot$ received and $ready_u$ and $\forall v \in HO(u, t), ready_v(t-1)$}
+		\STATE $crashed_u \leftarrow passiv_u \setminus HO(u, t) \setminus \bigcup\limits_{v \in HO(u,t)} crashed_v(t-1)$ \label{line:detect}
+		\IF{no null, no $\bot$ received and $crashed_u = \emptyset$ and $\bigcup\limits_{v \in HO(u,t)} crashed_v(t-1) = \emptyset$}
 			\STATE fire 
 		\ENDIF
-		\STATE $passiv_u \leftarrow $ set of node which sent null or $\bot$
+		\STATE $passiv_u \leftarrow $ set of node which sent null
 	\ENDINDENT 
 \ENDINDENT 
 
@@ -78,21 +78,21 @@ An incorrect node $u \in \Pi \setminus S$ which crashes in rount $t$ must :
 	\begin{itemize}
 		\item $v$ received a null (or a $\bot$) from a node $w$.
 			Since $u$ fired, $u$ must not have received a null (or a $\bot$) from $w$. That means that $w$ crashed in round $t$, and $w \in passiv_u(t-1) \setminus HO(u, t)$.
-			Then $ready_u(t)$ is false and $u$ could not have fired.
+			Then $crashed_u(t) \neq \emptyset$ and $u$ could not have fired.
 		\item $v$ witnessed the crash of a node $w$ in round $t$.
 			If $u$ witnessed that crash, too, $u$ could not have fired.
 			Otherwise, $u$ received null or $\bot$.
 			In any case, $u$ could not have fired.
-		\item $v$ received a $\langle false \rangle$ message.
-		\begin{itemize}
-			\item This message may come from a node $w$ which has become active at round $t-1$, and $u$ received that message too.
-				In that case, $u$ could not have fire.
-			\item This message may come from a node $w$ which has become active at round $t-1$, but $u$ does not receive that message.
-				In that case $w \in passiv_u(t-1) \setminus HO(u,t)$.
-				Then $ready_u(t)$ is false and $u$ could not have fired.
-			\item This message is the report of a crash of a node $w$ which happened in round $t-1$.
+		\item $v$ received a non-empty message from $z$ containing $w$. 
+			That means that :
 			\begin{itemize}
-				\item In round $t-1$, $w$ managed to send its message to $u$ and $v$.
+				\item $z$ received a null from $w$ in round $t-2$ but not in round $t-1$. Then $w$ crashed either in round $t-2$ or in round $t-1$.
+				\item $z$ did not receive in round $t-1$ a message containing $w$. See~\ref{line:detect}.
+			\end{itemize}
+		\begin{itemize}
+			\item In round $t-1$, $w$ managed to send its null message to $u$, then $w \in passiv_u(t-1)$ and $w \in crashed_u(t)$.
+				That contradict the fact that $u$ fired in round $t$.
+			\item Otherwise $u$ did not receive null from $w$ in round $t-1$. Then $w \in crashed_u(t-1)$. 
 
 			\end{itemize}
 		\end{itemize}
