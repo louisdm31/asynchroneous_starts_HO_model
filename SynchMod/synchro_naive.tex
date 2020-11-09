@@ -30,16 +30,40 @@
 
 Our goal is to solve the non-uniform synchronization problem, defined below.
 We consider a system composed of a set of $\Pi$ nodes.
-A subset $S \subseteq \Pi$ is the subset of correct nodes.
+The starts are asynchronous.  A subset $S \subseteq \Pi$ is the subset of correct nodes.
 A correct node never crash, and any messages sent by $u \in S$ always reach their destination.
-An incorrect node $u \in \Pi \setminus S$ which crashes in rount $t$ must :
+An incorrect node $u \in \Pi \setminus S$ which crashes in round $t$ must :
 \begin{itemize}
 	\item be correct until round $t-1$. All of its outgoing messages reach their destination.
 	\item fail in round $t$ : only a subset of its outgoing messages reach their destination.
 	\item be quiet in round $t+1$ and later.
 \end{itemize}
 
+We define the non-uniform synchronization problem as the conjunction of two properties:
+\begin{description}
+	\item[Safety:] If a correct node fires in round $t$, every correct node do so.
+	\item[Liveness:] At least one correct node fires.
+\end{description}
+
 \section{Algorithm}
+
+The algorithm below is designed to solve this problem when the following assumptions are verified:
+\begin{itemize}
+	\item No node remains passive forever.	
+	\item Every node knows a unique identifier.
+\end{itemize}
+
+The general idea is the following: in order to fire, a node waits that every node is active. Any received null prevents a node from firing.
+Moreover, when a passive node crashes, this crash may be detected by correct nodes within a range of two rounds (this detection is possible using the $passiv$ variable,
+which tracks the set of heard-of passive nodes at each rounds).
+The crash of an active node does not matter.
+When a node detects a crash, it appends this node to its $crashed$ variable.
+In the next round, it sends its $crashed$ variable to all.
+Using the received values, a node can can construct a variable $justcrashed$ representing the set of nodes which crashed during the previous round.
+They can determine whether a detected crash just happened, or happened during the previous round.
+As soon as every passive node has become active, and no crash happened during the two last rounds, every node can fire.
+
+The $activating$ variable prevents a firing while a node is activating, as that could cause safety issues.
 
 \begin{algorithm}[htb]\label{algo:code}
 \begin{distribalgo}[1]
@@ -61,10 +85,10 @@ An incorrect node $u \in \Pi \setminus S$ which crashes in rount $t$ must :
 		\ENDIF
 	\ENDINDENT \BLANK
 	\INDENT{$T_u^t$}
-		\STATE let $justcrashed = \bigcup\limits_{v \in HO(u,t)} crashed_v(t-1) \setminus oldcrash_u$  \label{line:detected-before}
+		\STATE \textbf{let} $justcrashed = \bigcup\limits_{v \in HO(u,t)} crashed_v(t-1) \setminus oldcrash_u$  \label{line:detected-before}
 		\STATE $crashed_u \leftarrow passiv_u \setminus HO(u, t) \setminus justcrashed$ \label{line:detect}
-		\IF{no null, no $\bot$ received and $crashed_u = \emptyset$ and $justcrashed = \emptyset$ and $\neg activating_u$}
-			\STATE fire 
+		\IF{no null, no $\bot$ received and $\neg activating_u$ and $crashed_u = \emptyset$ and $justcrashed = \emptyset$}
+			\STATE fire and exit
 		\ENDIF
 		\STATE $passiv_u \leftarrow $ set of node which sent null
 		\STATE $activating_u \leftarrow $ exists a node which sent $\bot$
@@ -144,6 +168,8 @@ An incorrect node $u \in \Pi \setminus S$ which crashes in rount $t$ must :
 	\begin{itemize}
 		\item $v$ received a null (or a $\bot$) from a node $w$.
 			The lemma \ref{lem:passiv-wait} contradict the fact that $u$ fired.
+		\item The variable $activating_v(t)$ is true.
+			In that case, the lemma \ref{lem:no-fire-activating} contradict the fact that $u$ fired.
 		\item $crashed_v(t)$ contains a node $w$. This node crashed either in round $t-1$ or in round $t$.
 			In the first case, the lemma \ref{lem:no-fire} or \ref{lem:no-fire-activating} contradict the fact that $u$ fired.
 			In the second case, the lemma \ref{lem:passiv-wait} contradict the fact that $u$ fired.
@@ -162,14 +188,15 @@ An incorrect node $u \in \Pi \setminus S$ which crashes in rount $t$ must :
 				\item Then $v$ must belong to $I_2$. That means that $v$ received a message containing $w$ in round $t-1$.
 					Then the $oldcrash_v(t)$ contain $w$, and that contradicts the fact that $w$ is included in the variable $justcrashed_v(t)$.
 			\end{enumerate}
-		\item The variable $activating_v(t)$ is true.
-			In that case, the lemma \ref{lem:no-fire-activating} contradict the fact that $u$ fired.
 	\end{itemize}
 
-
-
-
+	The proof of liveness is straightforward. As soon as every node correct node has become active, the $passiv$ variable of each node becomes empty forever.
+	In the next round, the $activating$ variable becomes false forever, and the $crashed$ variable becomes empty forever.
+	In the next round, the sent messages can only be empty, and so becomes the $justcrashed$ variable. At this point, no node can refrain from firing.
 \end{proof}
 
+\section{Conclusion}
+
+This algorithm can be used to solve the non-uniform consensus problem in an asynchronous-starts system, using the FloodSet algorithm.
 
 \end{document}
