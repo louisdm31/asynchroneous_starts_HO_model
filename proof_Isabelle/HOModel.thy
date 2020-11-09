@@ -2,13 +2,13 @@ theory HOModel
 imports Main
 begin
 
-declare if_split_asm [split] \<comment> `perform default perform case splitting on conditionals`
+declare if_split_asm [split] 
 
-section `Heard-Of Algorithms`
+section "Heard-Of Algorithms"
 
-subsection `The Consensus Problem`
+subsection "The Consensus Problem"
 
-text `
+text \<open>
   We are interested in the verification of fault-tolerant distributed algorithms.
   The Consensus problem is paradigmatic in this area. Stated
   informally, it assumes that all processes participating in the algorithm
@@ -37,10 +37,7 @@ text `
   nothing can be required of a faulty process.
   The Heard-Of model does not attribute faults to processes, and therefore the
   above formulation is appropriate in this framework.
-`
-
-
-
+\<close>
 
 datatype 'msg message = Content "'msg" | Bot | Void
 datatype 'pst proc_state = Active "'pst" | Aslept
@@ -57,13 +54,13 @@ where
    & (ALL m n p q v w sp sq. rho m p = Active sp --> dec sp = Some v --> rho n q = Active sq --> dec sq = Some w --> v = w)
    & (ALL p m. rho m p ~= Aslept --> (EX n s. rho n p = Active s & dec s ~= None))"
 
-text `
+text \<open>
   A variant of the Consensus problem replaces the Integrity requirement by
   \begin{description}
   \item[Validity.] If all processes initially propose the same value `v`
     then every process may only decide `v`.
   \end{description}
-`
+\<close>
 
 definition weak_consensus where
   "weak_consensus vals dec rho ==
@@ -71,21 +68,21 @@ definition weak_consensus where
    & (ALL m n p q v w sp sq. rho m p = Active sp --> dec sp = Some v --> rho n q = Active sq --> dec sq = Some w --> v = w)
    & (ALL p m. rho m p ~= Aslept --> (EX n s. rho n p = Active s & dec s ~= None))"
 
-text `
+text \<open>
   Clearly, `consensus` implies `weak_consensus`.
-`
+\<close>
 
 (*lemma consensus_then_weak_consensus:
   assumes "consensus vals dec rho"
   shows "weak_consensus vals dec rho"
   using assms by sorry*)
 
-text `
+text \<open>
   Over Boolean values (``binary Consensus''), `weak_consensus`
   implies `consensus`, hence the two problems are equivalent.
   In fact, this theorem holds more generally whenever at most two
   different values are proposed initially (i.e., `card (range vals) \<le> 2`).
-`
+\<close>
 
 (*lemma binary_weak_consensus_then_consensus:
   assumes bc: "weak_consensus (vals::'proc => bool) dec rho"
@@ -110,15 +107,15 @@ proof -
     unfolding consensus_def weak_consensus_def by (auto elim!: integrity)
 qed*)
 
-text `
+text \<open>
   The algorithms that we are going to verify solve the Consensus or weak Consensus
   problem, under different hypotheses about the kinds and number of faults.
-`
+\<close>
 
 
-subsection `A Generic Representation of Heard-Of Algorithms`
+subsection "A Generic Representation of Heard-Of Algorithms"
 
-text `
+text \<open>
   Charron-Bost and Schiper~\cite{charron:heardof} introduce
   the Heard-Of (HO) model for representing fault-tolerant
   distributed algorithms. In this model, algorithms execute in communication-closed
@@ -185,7 +182,7 @@ text `
   of the message sending function `sendMsg`.
 
   We represent an algorithm by a record as follows.
-`
+\<close>
 
 
 record ('proc, 'pst, 'msg) CHOAlgorithm =
@@ -193,11 +190,11 @@ record ('proc, 'pst, 'msg) CHOAlgorithm =
   sendMsg ::   "'proc => 'proc => 'pst => 'msg"
   CnextState :: "'proc => 'pst => ('proc => 'msg message) => 'proc => 'pst => bool"
 
-text `
+text \<open>
   For non-coordinated HO algorithms, the coordinator argument of functions
   `CinitState` and `CnextState` is irrelevant, and we
   define utility functions that omit that argument.
-`
+\<close>
 
 definition isNCAlgorithm where
   "isNCAlgorithm alg == 
@@ -211,14 +208,14 @@ definition initState where
 definition nextState where
   "nextState alg p st msgs st' == CnextState alg p st msgs undefined st'"
 
-text `
+text \<open>
   A \emph{heard-of assignment} associates a set of processes with each
   process. The following type is used to represent the collections $HO(p,r)$
   and $SHO(p,r)$ for fixed round $r$.
 %
   Similarly, a \emph{coordinator assignment} associates a process (its coordinator)
   to each process.
-`
+\<close>
 
 type_synonym
   'proc HO = "'proc => 'proc set"
@@ -226,7 +223,7 @@ type_synonym
 type_synonym
   'proc coord = "'proc => 'proc"
 
-text `
+text \<open>
   An execution of an HO algorithm is defined with respect to HO and SHO
   assignments that indicate, for every round `r` and every process `p`,
   from which sender processes `p` receives messages (resp., uncorrupted
@@ -250,9 +247,9 @@ text `
   The predicate `CSHOinitConfig` describes the possible initial configurations
   for algorithm `A` (remember that a configuration is a function that assigns
   local states to every process).
-`
+\<close>
 
-text `
+text \<open>
   Given the current configuration `cfg` and the HO and SHO sets `HOp`
   and `SHOp` for process `p` at round `r`, the function
   `SHOmsgVectors` computes the set of possible vectors of messages that
@@ -261,14 +258,14 @@ text `
   `q : SHOp`, `p` receives the message that `q` computed
   according to the `sendMsg` function of the algorithm. For the remaining
   processes `q : HOp - SHOp`, `p` may receive some arbitrary value.
-`
+\<close>
 
-text `
+text \<open>
   Predicate `CSHOnextConfig` uses the preceding function and the algorithm's
   `CnextState` function to characterize the possible successor configurations
   in a coarse-grained step, and predicate `CSHORun` defines (coarse-grained)
   executions `rho` of an HO algorithm.
-`
+\<close>
 
 fun HOrcvMsgs_q :: "'proc => ('proc, 'pst, 'msg) CHOAlgorithm  => 'proc =>
                          'pst proc_state => 'msg message" where
@@ -308,11 +305,11 @@ next
     using assms CHORun_def CHORun_def CHOnextConfig_def by (metis add.commute add_Suc_right)
 qed
 
-text `
+text \<open>
   For non-coordinated algorithms. the `coord` arguments of the above functions
   are irrelevant. We define similar functions that omit that argument, and relate
   them to the above utility functions for these algorithms.
-`
+\<close>
 definition HOinitConfig where
   "HOinitConfig A cfg == CHOinitConfig A cfg (%n. %q. undefined)"
 
@@ -364,7 +361,7 @@ lemma CHORun_induct:
 using run unfolding CHORun_eq by (induct n, auto elim: init step)
 *)
 
-text `
+text \<open>
   Because algorithms will not operate for arbitrary HO, SHO, and coordinator
   assignments, these are constrained by a \emph{communication predicate}.
   For convenience, we split this predicate into a \emph{per Round} part that
@@ -374,7 +371,7 @@ text `
   In the parlance of~\cite{charron:heardof}, a \emph{HO machine} is an HO algorithm
   augmented with a communication predicate. We therefore define (C)(S)HO machines as
   the corresponding extensions of the record defining an HO algorithm.
-`
+\<close>
 
 fun Schedule :: "(nat => 'proc => 'pst proc_state) => nat => 'proc set" where
 "Schedule rho n = {p. rho n p ~= Aslept}"
@@ -389,4 +386,4 @@ record ('proc, 'pst, 'msg) CHOMachine = "('proc, 'pst, 'msg) CHOAlgorithm" +
   CHOcommGlobal::"(nat => 'proc HO) => (nat => 'proc coord) => bool"
 
 
-end \<comment> `theory HOModel`
+end 

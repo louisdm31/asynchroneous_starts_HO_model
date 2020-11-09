@@ -76,7 +76,7 @@ definition liveness where
 
 definition safety where
 "safety rho == EX c. ALL p rf ss sf. rho rf p = Active ss -->
-                (~ fire ss) --> rho (Suc rf) p = Active sf --> fire sf --> (rf + c) mod k = 0"
+                (~ fire ss) --> rho (Suc rf) p = Active sf --> fire sf --> rf mod k = c"
 
 end
 end

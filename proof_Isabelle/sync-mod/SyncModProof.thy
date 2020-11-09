@@ -595,6 +595,79 @@ proof -
     qed
 qed
                                             
+lemma SyncMod_safety : assumes "k_mod.xi_nek HO xi"
+and run:"HORun (HOMachine_to_Algorithm (k_mod.SyncMod_HOMachine k)) rho HO" (is "HORun ?A _ _")
+and "k > 2"
+assumes commS:"HOcommSchedule (k_mod.SyncMod_HOMachine k) (Schedule rho)"
+shows "k_mod.safety k rho"
+proof -
+    have monov:"ALL p r s ss. rho r p = Active s --> rho (Suc r) p = Active ss --> fire ss --> ~ fire s --> monovalent rho 0 r & rho r xi ~= Aslept"
+    proof (rule+)
+        fix p r s ss
+        assume s:"rho r p = Active s" and ss:"rho (Suc r) p = Active ss" and "fire ss" and "~ fire s" 
+        show "monovalent rho 0 r" and "rho r xi ~= Aslept"
+        proof -
+            let ?msgs = "%q. HOrcvdMsgs ?A p (HO (Suc r) p) (rho r) q"
+            have "k_mod.SyncMod_nextState k p s ?msgs ss"
+                using transition[of rho r p s ss k] assms s ss by auto
+            hence "k_mod.ready_fire k ?msgs" using k_mod.SyncMod_nextState_def `fire ss` `~ fire s` by auto
+            hence "?msgs xi = Content (Val (k-1))" using k_mod.xi_nek_def `k_mod.xi_nek HO xi` k_mod.ready_fire_def HOrcvdMsgs_def
+                by (metis HOrcvMsgs_q.elims message.distinct(3) message.distinct(5))
+            hence "rho r xi ~= Aslept" using HOrcvdMsgs_def[of ?A p "HO (Suc r) p" "rho r"] assms by auto
+            have "r ~= 0"
+            proof
+                assume "r = 0"
+                then obtain sz where sz:"rho 0 xi = Active sz" using `rho r xi ~= Aslept` by (cases "rho 0 xi") auto
+                hence "?msgs xi = (if xi \<in> HO (Suc 0) p then Content Nope else Void)" using stating[of 0 rho xi k HO sz] s assms `r = 0` by auto
+                thus "False" using `?msgs xi = Content (Val (k-1))` by auto
+            qed
+            then obtain sx sxx where "rho (r-1) xi = Active sx" and "rho r xi = Active sxx" and "x sxx = k-1"
+                using `?msgs xi = Content (Val (k-1))` sending[of k rho HO p "r-1" xi "k-1"] run by auto
+            thus "monovalent rho 0 r" and "rho r xi ~= Aslept" using A2[of HO xi k rho r sxx] assms by auto
+        qed
+    qed
+    show ?thesis
+    proof (cases "EX p r s ss. rho r p = Active s & rho (Suc r) p = Active ss & fire ss & ~ fire s")
+        case False
+        hence "ALL p rf ss sf. rho rf p = Active ss -->
+                    (~ fire ss) --> rho (Suc rf) p = Active sf --> fire sf --> rf mod k = 0" by blast
+        hence "EX c. ALL p rf ss sf. rho rf p = Active ss -->
+                    (~ fire ss) --> rho (Suc rf) p = Active sf --> fire sf --> rf mod k = c" by auto
+        thus ?thesis by (simp add:k_mod.safety_def)
+    next
+        case True
+        then obtain p r s ss where s:"rho r p = Active s" and ss:"rho (Suc r) p = Active ss" and "fire ss" and "~ fire s" by auto
+        hence "monovalent rho 0 r" and "rho r xi ~= Aslept" using monov by auto
+        then obtain sx where "rho r xi = Active sx" by (cases "rho r xi") auto
+        have "ALL p rf ss sf. rho rf p = Active ss -->
+                    (~ fire ss) --> rho (Suc rf) p = Active sf --> fire sf --> rf mod k = r mod k"
+        proof (rule+)
+            fix q rq sq sqq
+            assume sq:"rho rq q = Active sq" and sqq:"rho (Suc rq) q = Active sqq" and "~ fire sq" and "fire sqq"
+            hence "monovalent rho 0 rq" and "rho rq xi ~= Aslept" using monov by auto
+            then obtain sxq where "rho rq xi = Active sxq" by (cases "rho rq xi") auto
+            show "rq mod k = r mod k" 
+            proof (cases "rq > r")
+                case True
+                hence "monovalent rho ((rq-r) mod k) rq" using A3[of HO xi k rho r sx 0 "rq-r"] assms `monovalent rho 0 r` `rho r xi = Active sx` by auto
+                hence "x sqq = (rq-r) mod k" using monovalent_def[of rho "(rq-r) mod k" rq] sq sqq by auto
+                moreover have "x sqq = 0" using monovalent_def[of rho 0 rq] `monovalent rho 0 rq` sq sqq by auto
+                ultimately show ?thesis by (metis True mod_eq_dvd_iff_nat mod_greater_zero_iff_not_dvd nat_less_le)
+            next
+                case False
+                hence "monovalent rho ((r-rq) mod k) r" using A3[of HO xi k rho rq sxq 0 "r-rq"] assms `monovalent rho 0 rq` `rho rq xi = Active sxq` by auto
+                hence "x ss = (r-rq) mod k" using monovalent_def[of rho "(r-rq) mod k" r] s ss by auto
+                moreover have "x ss = 0" using monovalent_def[of rho 0 r] `monovalent rho 0 r` s ss by auto
+                ultimately show ?thesis by (metis False less_numeral_extra(3) linorder_not_less mod_eq_dvd_iff_nat mod_greater_zero_iff_not_dvd)
+            qed
+        qed
+        hence "EX c. ALL p rf ss sf. rho rf p = Active ss -->
+                    (~ fire ss) --> rho (Suc rf) p = Active sf --> fire sf --> rf mod k = c" by auto
+        thus ?thesis using k_mod.safety_def by auto
+    qed
+qed
+
+
 lemma SyncMod_liveness : assumes "k_mod.xi_nek HO xi"
 and run:"HORun (HOMachine_to_Algorithm (k_mod.SyncMod_HOMachine k)) rho HO" (is "HORun ?A _ _")
 and "k > 2"
