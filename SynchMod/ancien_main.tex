@@ -254,11 +254,14 @@ The key point of the algorithm and of its ``forced firing procedure'' lies in th
 	\IF{all the received messages are equal to $\overline{k}$ and $\neg fired_u$ }
 		\STATE $fired_u \leftarrow true$ \label{line:fire}
 	\ENDIF
-	\IF{$\neg tried_u $ and two messages (other than null and $\bot$) have conflicting values and no received message is $\overline{k}$ }
+	\IF{the received messages other than $null $ and $\bot$ are all equal to $i \in \{ \overline{1}, \dots, \overline{k} \}$ }
+		\STATE $\overline{c}_u \leftarrow \overline{i+1} $ \label{line:agreed}
+	\ELSE \IF{$\neg tried_u $ and no received message is $\overline{k}$ }
 		\STATE $\overline{c}_u \leftarrow \overline{k} $  \label{line:try}
 		\STATE $tried_u \leftarrow true$   \label{line:try+1}
 	\ELSE
-		\STATE $\overline{c}_u \leftarrow min \{\overline{v}+1, \overline{v} \in V\}$ where $V$ is the set of non null and non $\bot$ received values \label{line:min}
+		\STATE $\overline{c}_u \leftarrow \overline{1}$ \label{line:tried}
+	\ENDIF
 	\ENDIF
 \ENDINDENT 
 
@@ -293,12 +296,11 @@ For any round $r$, we denote $\overline{c}_u(r)$, $fired_u(r)$ and $tried_u(r)$ 
 \begin{lemma}\label{lem:k_mono}
 If $\overline{c}_\cent(t) = \overline{k} $, then the round~$t +1$  is $\overline{1}$-monovalent.
 \end{lemma}
-
 \begin{proof}
 If $\overline{c}_\cent(t) = \overline{k} $, then the node $\cent$ sends $\overline{k}$ to all nodes in round $t+1$.
 Hence, any active node $u$ at round~$t+1$ receives $\overline{k}$ in this round,
-	and so updates its clock $\overline{c}_u$ according to line~\ref{line:min}.
-It holds that $\overline{c}_u (t+1) =\overline{1}$.
+	and so updates its clock $\overline{c}_u$ according either to line~\ref{line:agreed} of to line \ref{line:tried}.
+In both cases, it holds that $\overline{c}_u (t+1) =\overline{1}$.
 \end{proof}
 
 \begin{lemma}\label{lem:mono_mono}
@@ -315,7 +317,7 @@ The proof is by induction on $h \in \mathds{N}$.
 			The center $\cent$ is active in round $t +h$, and thus sends the value $\overline{i+h}$ to~$u$
 				in round~$ t+h+1$.
 			Therefore, the node~$u$ can receive only this value (in addition of null and $\bot$), and thus updates
-				$\overline{c}_u$ according to line~\ref{line:min}. 
+				$\overline{c}_u$ according to line~\ref{line:agreed}. 
 			It follows that $ \overline{c}_u(t+h+1) = \overline{i+h+1}$ as required.
 \end{enumerate}
 \end{proof}
@@ -348,8 +350,8 @@ According to line~\ref{line:fire}, every node fires no later than round~$r+1$.
 
 
 \begin{lemma}\label{lem:mono_bi}
-	Any round $t > \max (s(\cent), \try^{\max}) + 1$ verifying $\overline{c}_\cent(t-1) < \overline{k}$ is 
-	$S$-valent with  $S \subseteq \{1, \dots, \overline{c}_\cent(t-1)+\overline{1} \, \}$.
+	Any round $t > \max (s(\cent), \try^{\max}) + 1$  is either monovalent or
+	$S$-valent with  $S = \{1, \overline{i} \, \}$.
 \end{lemma}
 \begin{proof}
 Let $t \geq \max (t_s(\cent), \try^{\max}) + 1$, and let $u$ be an active node at round~$t$.
@@ -517,7 +519,6 @@ However, the upper bond on the number of crash, and the sharing of counter value
 		\STATE fire
 	\ENDIF
 \ENDINDENT
-
 \caption{The firing-squad algorithm} \label{algo:R}
 \end{distribalgo}
 
