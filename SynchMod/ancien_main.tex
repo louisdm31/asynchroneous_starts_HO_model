@@ -19,12 +19,16 @@
 \addbibresource{rapport.bib}
 
 \newcommand{\cent}{\gamma}
+
 \newcommand{\dG}{\mathds{G}}
 \newcommand{\IN}{\mathds{N}}
-\newcommand{\ts}{t_{s}}
-\newcommand{\tf}{t_{f}}
-\newcommand{\try}{t_{t}}
-\newcommand{\SM}{{\em SynchMod}$_{\,k}$ }
+\newcommand{\IS}{\mathds{S}}
+
+\newcommand{\In}{\mathrm{In}}
+\newcommand{\ts}{s}
+\newcommand{\tf}{\phi}
+\newcommand{\try}{\tau}
+\newcommand{\SM}{{\em SynchMod}$_{\,k}\ $}
 
 \title{The $\mathrm{mod}\,k$-synchronization Problem}
 \date{August 2020}
@@ -75,10 +79,24 @@ In the literature, an algorithm has been designed to simulate synchronous starts
 This algorithm, named "firing squad" algorithm, can be started asynchronously in a distributed system.
 Each node executing this algorithm is guaranteed to eventually raise a flag (i.e. this node is said to \textit{fire}, hence the name of the algorithm), and every node must fire in the same round.
 This firing can be used as a starting signal for any subsequent non-asynchronous-starts tolerant algorithm.
+This algorithm is said to solve the \textit{synchronization problem}.
 
 However, one of the main result of this work shows that this is only doable when the communication graph is strongly connected in every round.
 This required hypothesis is not compatible with crash-failures, since a crashed node must be unable to send any message.
 The goal of this article is to find a solution compatible with a wider notion of fault-tolerance.
+
+\subsection{Synchronization, consensus and failures}
+
+The idea to solve this problem consist in weakening the specification of the synchronization problem.
+During this work, we considered the following modification:
+instead of requiring that every node eventually fire during the same round, we consider the subset of \textit{correct nodes}, which never crash, and whose outgoing messages are never lost.
+Every node, in this subset only, is now required to fire.
+In this context, the firing squad algorithm can solve the synchronization problem in spite of an arbitrary number of failures.
+This adaptation of the firing squad algorithm is presented in the appendix.
+However, we thought that this solution was not satisfactory. In this framework, simple send omissions have to be considered as definitive crash failure.
+We want a solution which can smartly handle all kind of failures.
+We tried to figure out a other way to weaken the synchronization problem.
+In the next section, we describe the approach we actually chose.
 
 \subsection{Approach of this article}
 
@@ -114,147 +132,87 @@ The starting signals will have to satisfy the following properties:
 We would like to maximize the fault-tolerance of our systems.
 In the literature, the fault-tolerance is often expressed by the maximum number of crash-failure that are expected to happen.
 Hence, a $t$-resilient system is correct if at most $t$ nodes stop working.
-In the Heard-Of model \cite{model_ho} which we use, the crash-failures are not defined as a "first-class" notion.
+In the Heard-Of model \cite{CBS09} which we use, the crash-failures are not defined as a "first-class" notion.
 Instead, they they can be encapsulated inside the communication assumptions.
 In this article, we will consider scenarios where at least one node is able to communicate with every other node (including with itself, which is an obvious but important assumption).
 This assumption is compliant with a failure of $n-1$ nodes, where $n$ is the total number of nodes.
 Thus, this work is hopefully useful for real-life system.
 
-\section{Heard-Of model}
+\section{ Preliminaries}\label{sec:model}
+ 
+\subsection{The computational model}
+	
+We consider a networked system with a {\em fixed} set $V$ of $n$ nodes.
+We assume a round-based computational model  in the spirit of the Heard-Of model~\cite{CBS09}, 
+	in which point-to-point communications are organized into \emph{synchronized rounds}: 
+	each node can send messages  to all nodes and can receive messages sent  by some of the nodes.
+Rounds are communication closed in the sense that no node receives messages in round~$t$ that are sent 
+	in a round different from~$t$. 
+The collection of \emph{possible} communications (which nodes can communicate to which nodes) at each round $t$
+	is modelled by a directed graph (digraph, for short) with a set of nodes equal to~$V$.
+The digraph at round~$t$ is  denoted $\dG(t)=(V,E_t)$, and is called the \emph{communication graph at round}~$t$. 
+The set of $u$'s incoming neighbors in the digraph $\dG(t)$ is denoted by $\In_u(t)$.
 
-Among the different synchronous models, we chose to work with the Heard-Of model.
-This model differs from the model traditionally used in distributed computing.
-In these classic models, the system is often supposed asynchronous. It has a fixed communication graph, and the node may crash at any moment.
-In opposition, the Heard-Of model suppose that the system is synchronous. Instead of having crashing nodes, the communication graph is supposed dynamic.
-In particular, in the Heard-Of model, a crashing node is a node which becomes a sink in the communication graph.
+We assume a self-loop at each node in all these digraphs  since every node can communicate with 
+	itself instantaneously.	
+The sequence of such digraphs~$\dG=\left (\dG(t) \right )_{t\in\IN}$ is called a {\em dynamic graph}~\cite{CFQS12:TVG}. 
 
-% One of the most important differentiating factor between distributed models is the way the fault-tolerance is handled.
-% In the literature, various possibilities have been considered: crash-failures, loss of message, messages swapped, malicious attack ...
-% In the Heard-Of model, the failures are supposed to happen during the communication.
-% The nodes are modeled by state machines (formal definition below).
+In round $t$ ($t = 1, 2 , \ldots $), each node~$ u $ successively
+	(a) broadcasts  messages determined by its state at the beginning of round~$ t $
+	(b) receives \emph{some} of the messages sent to it,
+	and finally (c) undergoes an internal transition to a new state.
+A  \emph{local algorithm} for a node corresponds to a pair of
+	a \emph{sending function} that determines the messages to be sent in step~(a)
+	and a \emph{transition function} for state updates in step (c).
+An \emph{algorithm} for the set of nodes~$V$ is a collection of local algorithms, one per node.
 
-% At each round, each node sends a message according to its current state,
-% receives a subset of the messages that were destined to itself. The non-received messages are lost.
-% Then, it computes a new state, according to its previous state, and the messages it received.
-% Using these rules, any execution (see formal definition below) determines a sequence $(\Gamma_u^r)_{u \in \Pi, r \in \mathds{N}}$ which returns the state of any node $u$ in any round $r$.
+We also introduce the notion of  \emph{start schedules}
+	that are collections~$\IS= \left (s_u \right )_{u \in V}$,
+	where each~$s_u$ is  a positive integer or is equal to $\infty$.
 
-\subsection{Modeling of asynchronous starts}
+	
+The execution of the algorithm $ A $  with the dynamic graph $\dG$ and the start schedule $\IS$ then proceeds
+	as follows:
+Each node~$u$ is initially  \emph{passive}. 
+If $s_u = \infty$, then  the node~$u$ remains passive forever.
+Otherwise, $s_u $ is a positive integer, and $u$ becomes {\em active} 
+	at the beginning of round~$s_u$, sets up its local variables.
+In  round~$t$ $(t = 1,2\dots)$, a passive  node
+	sends only heartbeats, corresponding to  \emph{null} messages,  and  cannot change its state. 	
+An active node 	applies its sending function in~$A$ to its current state to generate the message to be sent to all nodes,
+	then it receives the messages sent by its incoming neighbors in the directed graph~$\dG(t)$, and finally 
+	applies its transition function ${\cal T}_u$ in~$A$ to its current state and the list of messages it has just received,
+	(including the null messages from passive nodes) to go to  a next state. 
+Since each local algorithm is deterministic, an execution of the algorithm~$A$  is entirely determined 
+	by the initial state of the network,  the dynamic graph $\dG$,
+	and  the  start schedule~$\IS$.
+	
+The states ``passive'' and ``active'' do not refer to any physical notion, and are relative to the algorithm under consideration:
+	as an example, if two algorithms $A$ and $B$ are sequentially executed according to the order ``$A$ followed by $B$'',
+	then at some round, a node may be active w.r.t. $A$ while it is passive w.r.t. $B$.
+In such a situation, the node  is integrally part of the system and can send messages, but  these messages are empty 
+	with respect to the semantics of~$B$.
+	
+\subsection{Network model and start model}
 
-A system with asynchronous starts is not an open system where nodes can join at any moment.
-We rather consider that every node belongs to the system from the beginning, but may not be ready yet.
-A non-ready node remains passive relative to the considered algorithm, and signals its non-readiness by sending at each round, to each node a special message null.
+A \emph{network model} is any non-empty set of dynamic graphs with a permanent self-loop at each node.
+We will focus on the specific network model of \emph{centered} dynamic graphs~$\dG$ defined as follows: 
+	there exists some node~$\cent$ in $V$ such that every digraph $\dG(t)$ has a spanning star centered 
+	at~$\cent$, i.e., 
+	$$\exists \cent \in V, \, \forall u \in V, \, \forall t \in \mathds{N}, \ \cent \in \In_u(t) .$$
+Note that there may be several fixed centers for~$\dG$.
 
-In this document, we will make the assumption that no node can remain inactive forever.
-To formally write this hypothesis, we introduce the series $(\mathcal{A}_r)_{r \in \mathds{N}}$, where, for a given execution (see the formal definition below), $\mathcal{A}_r \subseteq \Pi$ 
-represents the set of active nodes at round $r$.
-The "non passive forever" hypothesis can now be written as
+As demonstrated in~\cite{CBS09}, centered dynamic graphs in the Heard-Of model captures the
+	classical model of synchronous systems with a (fixed) complete communication graph and 
+	 at most $n-1$ faulty senders, including the case of crashes.
 
-$$\exists r \in \mathds{N}, \mathcal{A}_r = \Pi.$$
-
-Here $\Pi$ is the set of nodes.
-
-\subsection{Definition of an algorithm}
-
-Let $\Pi$ be a set of cardinality $n$. For each element of $\Pi$, a node is defined by the following entries:
-
-\begin{itemize}
-	\item A non-empty $States_u$ set, and an element $sleep_u \notin States_u$.
-	\item A subset $Init_u \subseteq States_u$.
-	\item A sending function $S_u: States_u \times \Pi \rightarrow \mathcal{M}$.
-	\item A transition function $T_u: States_u \times \mathcal{X}_\Pi^{\mathcal{M}} \rightarrow States_u$,
-		where $\mathcal{X}_\Pi^{\mathcal{M}}$ is the type of a partial function
-		of type $\Pi \rightarrow \mathcal{M} \uplus \{null\}$.
-\end{itemize}
-
-The elements of $States_u$ are the states of $u$, and those of $Init_u$ are the possible initial values.
-
-An \textit{algorithm} is a tuple $(States_u, Init_u, S_u, T_u)$ for each element $u \in \Pi$.
-
-
-\subsection{Definition of an execution}
-
-The Heard-Of model is round based. At any round $r$, any active node $u$ run the following steps:
-
-\begin{itemize}
-	\item It emits a messages determined by its current state and the sending function.
-	\item It receives a subset $HO(u,r)$ from the set of messages that were addressed to him
-		\textit{during the same round}.
-	\item It updates its state, according to the transition function, taking into account $HO(u,r)$.
-\end{itemize}
-
-A passive node always emits null, and remains in the $sleep_u$ state.
-It can spontaneously become active. In that case, its state moves from $sleep_u$ to $\sigma^0_u \in Init_u$.
-The function $HO$ can also be viewed as a series of graph $\mathds{G}_r = (\Pi, E_r)$ where
-
-$$(u, v) \in E_r \Leftrightarrow u \in HO(v, r)$$
-
-The graph $\mathds{G}_r$ represents the possibilities of communications between any pair of node.
-The absence of communication may mean a failure has occurred, either in the sending node, or in the connection.
-This topic is out of the scope of this article, though.
-
-An execution of an algorithm $(States_u, Init_u, S_u, T_u)$ is defined by a tuple
-$(\mathds{G}, \mathcal{A}, (\sigma^0_u)_{u \in \Pi})$ where:
-
-\begin{itemize}
-	\item $\mathds{G}$ is a series of communication graph. Since a node should always be able to communicate 
-		with itself, the communication graphs should always contain self-loops.
-	\item $\mathcal{A}$ is the activation schedule. $\mathcal{A}_r$ is the set of active node in round $r$.
-		It must be an increasing series, verifying $\mathcal{A}_0 = \emptyset$.
-	\item $(\sigma^0_u)_{u \in \Pi}$ is the family of initial states for every node.
-\end{itemize}
-
-\textbf{Remarks:}
-
-\begin{itemize}
-	\item With synchronous starts, every node starts during the same round: 
-		$$\forall r \in \mathds{N}, \mathcal{A}_r \in \{\emptyset, \Pi\}$$
-
-	\item The knowledge of $\mathcal{A}$ is equivalent to the knowledge of a function
-		$\ts: \Pi \rightarrow \mathds{N} \cup \{\infty\}$ defined by:
-		$$\ts(u) = \left \{ \begin{array}{l ll}
-		  \infty & \mbox{ if  } p \notin \bigcup\limits_{r \in \mathds{N}}  \mathcal{A}_r & 
-			  \mbox { ($u$ remains inactive forever) } \\
-		  r  & \mbox{ if  } p \notin \mathcal{A}_{r-1} \mbox{ et } p \in \mathcal{A}_{r}  &
-			  \mbox{ ($u$ becomes active in round $r$)}.
-		  \end{array} \right.$$
-
-\end{itemize}
-The activation schedule $\mathcal{A} $ is said to be \emph{complete} if all the nodes are eventually active,
-	i.e., $ \bigcup\limits_{r \in \mathds{N}}  \mathcal{A}_r  = \Pi$.
-
-\subsection{The $\mathrm{mod}\,k$-synchronization problem}
-
-	Let $k > 1$ be a parameter. Let us consider an algorithm $A$ in which nodes $u$ maintains a boolean $fire_u$, which is initially $False$.
-	The node $u$ fires when this parameter is set to $True$ for the first time.
-	For any execution of $A$, the firing schedule $\tf: \Pi \rightarrow \mathds{N} \cup \{\infty\}$ is defined by 
-
-	$$\tf(u) = \left \{
-	\begin{array}{l l}
-		\infty & \mbox{if}~\forall r \in \mathds{N}, \neg fire_u(r) \\
-		Min \{r \in \mathds{N}, fire_u(r)\} & \mbox{otherwise}
-	\end{array} \right.$$
-
-	 A node $u$ which stays passive forever verifies $\tf(u) = \infty$.
-
-	A given execution of $A$ satisfies \textit{safety} relative to $\mathrm{mod}\,k$-synchronization problem if every firing node fires in rounds congruent modulo $k$, i.e.
-
-	$$\exists c \in \mathds{Z}/k\mathds{Z}, \forall u \in \Pi, \tf(u) \neq \infty \Rightarrow \tf(u) \equiv c[k]$$
-
-	A given execution of $A$ satisfies \textit{liveness} relative to $\mathrm{mod}\,k$-synchronization problem if every non-passive-forever node, eventually fires, i.e.
-
-	$$\forall u \in \bigcup\limits_{i \in \mathds{N}} \mathcal{A}_i, \tf(u) \neq \infty$$
-
-%%%%% temporaire %%%%%%%%%%
-\subsection{Required hypothesis}
-
-In order to prove the safety and the liveness of this algorithm, we need to make the following hypothesis:
-there exists a node, called $\cent$, whose messages always reach their destination.
-The communication graph of each round must contain a "star" whose center is always the node $\cent$.
-From this point, we will only consider executions whose communication graphs $\mathds{G}$ belongs to the family of graphs $\mathcal{G}_\mathcal{C}$ which verifies
-
-$$\exists \cent \in \Pi, \forall u \in \Pi, \forall r \in \mathds{N}, \cent \in HO(u,r)$$
-
-In the predicate above, $\cent \in HO(u,r)$ informally means that $\cent$ belongs to the Heard-Of set of $u$ at round $r$. In other words, $u$ receives the message of $\cent$ at round $r$.
+Similarly, we define a \emph{start model} as a non-empty set of start schedules.
+A start schedule $\IS = (s_u)_{u\in V}$ is \emph{complete} if every $s_u$ is finite, i.e.,
+	no node is passive forever, yielding the model of complete start schedules.
+Synchronous starts correspond to complete start schedules $\IS = (s_u)_{u\in V}$ with
+	equal start rounds.	
+The property of synchronous starts can be relaxed into \emph{$\mathrm{mod}\,k$-synchronous starts},
+	where $k$ is any positive integer: for every pair of nodes~$u$ and $v$, it holds that $s_u \equiv s_v \!\mod k$.
 
 \section{The \SM algorithm}
 
@@ -294,18 +252,14 @@ The key point of the algorithm and of its ``forced firing procedure'' lies in th
 	\STATE send $\langle \overline{c}_u \rangle$ to all 
 	\STATE receive incoming messages
 	\IF{all the received messages are equal to $\overline{k}$ and $\neg fired_u$ }
-%		\STATE Fire % $fire_u \leftarrow true$
 		\STATE $fired_u \leftarrow true$ \label{line:fire}
 	\ENDIF
-	\IF{the received messages other than $null $ and $\bot$ are all equal to $i \in \{ \overline{1}, \dots, \overline{k} \}$ }
-		\STATE $\overline{c}_u \leftarrow \overline{i+1} $ \label{line:agreed}
-	\ELSE \IF{$\neg tried_u $ and no received message is $\overline{k}$ }
+	\IF{$\neg tried_u $ and two messages (other than null and $\bot$) have conflicting values and no received message is $\overline{k}$ }
 		\STATE $\overline{c}_u \leftarrow \overline{k} $  \label{line:try}
-		\STATE $tried_u \leftarrow true$   \label{line:try+1}%~~~~\COMMENT{try a "forced synchronization"}
-		\ELSE
-		\STATE $\overline{c}_u \leftarrow \overline{1} $ \label{line:tried}% ~~~~\COMMENT{in particular, if at least one $k$ has been received, adopt 1}
-	  \ENDIF
-	  \ENDIF
+		\STATE $tried_u \leftarrow true$   \label{line:try+1}
+	\ELSE
+		\STATE $\overline{c}_u \leftarrow min \{\overline{v}+1, \overline{v} \in V\}$ where $V$ is the set of non null and non $\bot$ received values \label{line:min}
+	\ENDIF
 \ENDINDENT 
 
 \caption{The \SM algorithm} \label{algo:R}
@@ -318,7 +272,7 @@ The key point of the algorithm and of its ``forced firing procedure'' lies in th
 
 In the rest of this section, we fix an execution $\sigma$ of the \SM algorithm associated to a complete activation 
 	schedule~${\cal A}$ and a centered dynamic graph~$\dG \in {\cal G}^c$. % a definir 
-Let $t_s^{\max} = \max_{u \in \Pi}  t_s(u) < \infty$ and let~$\cent$ denote one center of~$\dG$.	
+Let $s^{\max} = \max_{u \in \Pi} s(u) < \infty$ and let~$\cent$ denote one center of~$\dG$.	
 
 
 For the correctness proof of \SM, we now introduce some additional definitions.
@@ -328,7 +282,8 @@ Round~$t$ in~$\sigma$  is said to be \emph{$S$-valent}  if $S$ is the set of the
 	$$ S = \{ \overline{i}  \in \mathds{Z}/k\mathds{Z} : \exists u \in \mathcal{A}_t, \ \overline{c}_u (t) = \overline{ i }\,  \}  . $$
 The system is said to be $\overline{i}$-\emph{monovalent}  if the system is $\{ \overline{i}\}$-valent.
 
-Similarly to $\tf (u)$, let us define $\try (u)$ to be  the round number at which the node~$u$ tries to force firing
+Let us define $\tf (u)$ to be the round number at which the node~$u$ fires, if any, and let $\tf(u) = \infty$ otherwise.
+Similarly, let us define $\try (u)$ to be  the round number at which the node~$u$ tries to force firing
 	(line~\ref{line:try}) if any, and let $\try (u)= 0$ otherwise.
 It follows that $\try^{\max} =  \max_{u \in \Pi}  \try(u) < \infty$.
 
@@ -342,63 +297,63 @@ If $\overline{c}_\cent(t) = \overline{k} $, then the round~$t +1$  is $\overline
 \begin{proof}
 If $\overline{c}_\cent(t) = \overline{k} $, then the node $\cent$ sends $\overline{k}$ to all nodes in round $t+1$.
 Hence, any active node $u$ at round~$t+1$ receives $\overline{k}$ in this round,
-	and so updates its clock $\overline{c}_u$ according to either line~\ref{line:agreed} or line~\ref{line:tried}.
-In both cases, it holds that $\overline{c}_u (t+1) =\overline{1}$.
+	and so updates its clock $\overline{c}_u$ according to line~\ref{line:min}.
+It holds that $\overline{c}_u (t+1) =\overline{1}$.
 \end{proof}
 
 \begin{lemma}\label{lem:mono_mono}
 	If the center $\cent$ is active in round $t$  and round~$t$ is $\overline{i}$-monovalent, 
-	then any subsequent round~$ t + s$ is $\overline{i+ s}$-monovalent.
+	then any subsequent round~$ t + h$ is $\overline{i+ h}$-monovalent.
 \end{lemma}
 
 \begin{proof}
-The proof is by induction on $s \in \IN$.
+The proof is by induction on $h \in \mathds{N}$.
 \begin{enumerate}
-		\item The base case $s=0$ corresponds to the assumption in the lemma.
-		\item Induction step:  assume that the round $t+s$ is $\overline{i+s}$-monovalent,
-			 and let~$u$ be  any active node in round~$t+s+1$.
-			The center $\cent$ is active in round $t +s$, and thus sends the value $\overline{i+s}$ to~$u$
-				in round~$ t+s+1$.
+	\item The base case $s=0$ corresponds to the assumption in the lemma.
+	\item Induction step:  assume that the round $t+h$ is $\overline{i+h}$-monovalent,
+			 and let~$u$ be  any active node in round~$t+h+1$.
+			The center $\cent$ is active in round $t +h$, and thus sends the value $\overline{i+h}$ to~$u$
+				in round~$ t+h+1$.
 			Therefore, the node~$u$ can receive only this value (in addition of null and $\bot$), and thus updates
-				$\overline{c}_u$ according to line~\ref{line:agreed}. 
-			It follows that $ \overline{c}_u(t+s+1) = \overline{i+s +1}$ as required.
+				$\overline{c}_u$ according to line~\ref{line:min}. 
+			It follows that $ \overline{c}_u(t+h+1) = \overline{i+h+1}$ as required.
 \end{enumerate}
 \end{proof}
 
 \begin{lemma}\label{lem:k_liv}
 If the center $\cent$ is active at round $t$  and $\overline{c}_\cent(t) = \overline{k} $, 
-	then every node fires no later than round $\max(t, t_s^{\max}) + k $.
+	then every node fires no later than round $\max(t, s^{\max}) + k $.
 \end{lemma}
 \begin{proof}
 Lemmas \ref{lem:k_mono} and \ref{lem:mono_mono} show that the system is $\overline{1}$-monovalent in round $t+1$
 	and $\overline{i}$-monovalent in every  following round~$t+i$.
-It follows that there is a round $ s $, with $ s \in [ \max ( t, t_s^{\max} )  , \max (t , t_s^{\max} ) + k  - 1] $,
+It follows that there is a round $r$, with $r \in [ \max ( t, s^{\max} )  , \max (t , s^{\max} ) + k  - 1] $,
 	that  is $\overline{k}$-monovalent and at which every node is active.
-In round $ s $, every node, including $\cent$, sends $ \overline{k} $.
-According to line~\ref{line:fire}, every node fires no later than round~$s+1$.
+In round $r$, every node, including $\cent$, sends $ \overline{k} $.
+According to line~\ref{line:fire}, every node fires no later than round~$r+1$.
 \end{proof}
  
 \begin{lemma}\label{lem:mono_liv}
 If  round $t$ is a monovalent round in which the center $\cent$ is active, then 
-	every node fires before round $max( t, t_s^{\max} )+k + 1$.
+	every node fires before round $max( t, s^{\max} )+k + 1$.
 \end{lemma}
 \begin{proof}
 Lemma \ref{lem:mono_mono} guarantees that for every non negative integer~$i$,
 	the round~$t +i$ is monovalent.   
-Hence, there exists some round~$s$, with $ s \in [ max( t, t_s^{\max} ) , max( t, t_s^{\max} )+ k - 1 ] $ 
+Hence, there exists some round~$r$, with $r \in [ max( t, s^{\max} ) , max( t, s^{\max} )+ k - 1 ] $ 
 	that is  $\overline{k}$-monovalent.
 In this round, every node, including $\cent$, sends $\overline{k}$.
-According to line~\ref{line:fire}, every node fires no later than round~$s+1$.
+According to line~\ref{line:fire}, every node fires no later than round~$r+1$.
 \end{proof}
 
 
 \begin{lemma}\label{lem:mono_bi}
-Any round $t > \max (t_s(\cent), \try^{\max}) + 1$  is either monovalent or 
-	$S$-valent with  $S = \{1, \overline{i} \, \}$.
+	Any round $t > \max (s(\cent), \try^{\max}) + 1$ verifying $\overline{c}_\cent(t-1) < \overline{k}$ is 
+	$S$-valent with  $S \subseteq \{1, \dots, \overline{c}_\cent(t-1)+\overline{1} \, \}$.
 \end{lemma}
 \begin{proof}
 Let $t \geq \max (t_s(\cent), \try^{\max}) + 1$, and let $u$ be an active node at round~$t$.
-Since $t \geq t_s(\cent) +1$, we have $ \overline{c}_\cent(t - 1) = \overline{i -1 } \in \mathds{Z}/k\mathds{Z} $,
+Since $t \geq s(\cent)+1$, we have $ \overline{c}_\cent(t - 1) = \overline{i -1 } \in \mathds{Z}/k\mathds{Z} $,
 	and the node~$u$ receives the value $ \overline{i - 1}$ at round~$t$.
 There are two cases to consider.
 \begin{enumerate}
@@ -434,13 +389,13 @@ Since $\cent $ is an incoming neighbor of~$u$, the firing rule (line~\ref{line:f
 	and has sent the value  $\overline{k}$ in round $\tf(u)$.
 By Lemma \ref{lem:k_mono},   round $\tf(u)$ is $\overline{1}$-monovalent, and
 	Lemma \ref{lem:mono_mono} shows that for every round $\tf(u)+i$ is $\overline{i}$-monovalent.
-If a node $v$ fires in a later round $\tf(v) > \tf(u)$, the round $\tf(v)-1$  is $\overline{k}$-monovalent (line~\ref{line:fire}).
+If a node $v$ fires in a later round $\tf(v) > \tf(u)$, the round $\tf(v)-1$  is $\overline{k}$-monovalent (line~\ref{line:fire});
 	and thus $\tf(u)$ and $\tf(v)$ are congruent modulo $k$.
 		
 For the liveness property, it suffices to prove that  $\alpha$ contains a good round.
 Let us first observe that if $\cent$ tries to force firing (line~\ref{line:try+1}) at round~$t$,
 	 then $ \overline{c}_{\cent}(t) = \overline{k}$ and round $t$ is a good round.
-Thus let us assume  $\try(\cent) = 0$, and  let $t \geq \max (t_s(\cent) , \try^{\max}) +1$.
+Thus let us assume  $\try(\cent) = 0$, and  let $t \geq \max (s(\cent) , \try^{\max}) +1$.
 Lemma~\ref{lem:mono_bi}  shows that either (1) round~$t$ is monovalent, 
 	or (2) $ \overline{c}_{\cent}(t) = \overline{i} \neq  \overline{1} $ and round~$t$ is $ \{\overline{1}, \overline{i} \, \}$-valent,
 	or (3) $ \overline{c}_{\cent}(t) = \overline{1}$ and round~$t$ is $ \{\overline{1}, \overline{i} \, \}$-valent.
@@ -490,34 +445,119 @@ Then, a  natural question is  whether there exists a better and more direct algo
 
 	\includepdf[pages=-]{contre_exemple_k_2}
 
+\section{$\mathrm{mod}\,k$-synchronization and coordinated algorithms}
 
+Some algorithms like Paxos rely on the existence of a shared coordinator in each round.
+A simple implementation consists in setting a rotating coordinator: 
+each node holds the list of nodes. In the first round, the chosen coordinator is the first node in the list.
+In the $i^{th}$ round, the chosen coordinator is the $i~mod~k^{th}$ node on the list.
+This works out-of-the box when the starts are assumed to be synchronous.
+However, when the starts are asynchronous, a prior $\mathrm{mod}\,n$-synchronization is required, where $n$ is the number of nodes in the shared list.
+This is another typical use case of the \SM algorithm.
 
 \section{Conclusion and future work}
 
-As any complex reasoning by cases, the correctness proof  of the \SM  algorithm, 
+As any complex reasoning by cases, the correctness proof  of the \SM   algorithm, 
 	and more specifically the proof of the liveness property, is very error prone. 
-This is a typical example of the relevance and the need of formal verification for distributed algorithms. 
+This is a typical example of the relevance of formal verification for distributed algorithms. 
 Indeed, in a later work~\cite{}, we used the interactive theorem prover Isabelle to encode the complete proof 
 	of Theorem~\ref{thm:k>2}, and thus obtained a certificate for  \SM\!\!'s correctness when $k$ is greater than 2.
 	
-Since the $\mathrm{mod}\,2$-synchronization is reducible to $\mathrm{mod}\,4$-synchronization,
+Since $\mathrm{mod}\,2$-synchronization is reducible to $\mathrm{mod}\,4$-synchronization,
 	 our algorithm solves the $\mathrm{mod}\,k$-synchronization problem for any positive integer~$k$
 	 in the class of  dynamic  graphs with a fixed center.
 This class of dynamic graphs plays a crucial role regarding benign failures as it captures 
-	the general model of at most $n-1$ faulty senders, including the one of at most $n-1$ crashes.
-In the wider context of dynamic graphs, a natural question is whether the problem is still solvable 
+	the synchronous model with at most $n-1$ faulty senders, including the one with at most $n-1$ crashes.
+In the wilder context of dynamic graphs, a natural question is whether the problem is still solvable 
 	under weaker connectivity assumptions, in particular, in the class of dynamic graphs with a fixed root, 
 	i.e., with a time-varying spanning tree at each round rooted at a fixed node.
 
-In \cite{model_ho}, a simple algorithm is proposed to construct a centered system from a rooted system.
-It consists in grouping each sequence of $\mathcal{N}$ rounds into \textit{macro-rounds}.
-If the depth of the spanning tree is bounded by $\mathcal{N}$, the root of the spanning tree is able to reach any node within each macro-round.
-Hence, these macro-rounds can be used to emulate a centered communication graph.
-Unfortunately, this construction -- which is useful in a variety of contexts -- would require a $\mathrm{mod}\,\mathcal{N}$-synchronization,
-which is precisely the problem we are trying to solve.
-We need either a asynchronous-starts-tolerant algorithm to turn a rooted system into a centered system, or an upgrade of \SM which works in a rooted system.
-That could be the topic of a future article.
-
 \printbibliography
+
+\section{Appendix: Non-uniform firing-squad algorithm}
+
+The goal of this section is to provide an adaptation of the firing-squad algorithm to solve the relaxed problem called \textit{non-uniform synchronization}.
+A subset $S \subseteq \Pi$ is the subset of correct nodes.
+A correct node cannot crash, and any messages sent by $u \in S$ always reach its destination.
+An incorrect node $u \in \Pi \setminus S$ which crashes in round $t$ must :
+\begin{itemize}
+	\item be correct until round $t-1$. All of its outgoing messages reach their destination.
+	\item fail in round $t$ : only a subset of its outgoing messages reach their destination.
+	\item be quiet in round $t+1$ and later.
+\end{itemize}
+
+We define the non-uniform synchronization problem as the conjunction of two properties:
+\begin{description}
+	\item[Safety:] If a correct node fires in round $t$, every correct node do so.
+	\item[Liveness:] At least one correct node fires.
+\end{description}
+
+\noindent We define below the firing-squad algorithm adapted for a system with at most $f$ failures.
+In this algorithm, each node maintains a counter. When every correct node is active, no node can receive a null message, and the nodes start incrementing their counters.
+In the case where a node crashes in round $s^{max}$, there might be a discrepancy of one unit between the counter of the nodes.
+This discrepancy might be preserved if a node crashes in round $s^{max}+1$.
+However, the upper bond on the number of crash, and the sharing of counter values between nodes in each round guarantee that the counter values of every node will eventually be synchronized.
+
+\begin{algorithm}[htb]\label{algo:code}
+\begin{distribalgo}[1]
+\BLANK \INDENT{\textbf{Initialization:}}
+	\STATE $i_u \in \mathds{N}$, initially 0
+
+\ENDINDENT \BLANK
+
+\INDENT{\textbf{In each round $t$:}}
+	\STATE send $i_u$ to all
+	\STATE receive incoming messages
+	\IF{no null received}
+		\STATE $i_u \leftarrow 1+min~\{i_v(t-1), v \in HO(u,t)\}$ \label{line:union}
+	\ELSE
+		\STATE $i_u \leftarrow 0$
+	\ENDIF
+	\IF{$i_u \geq f+2$}
+		\STATE fire
+	\ENDIF
+\ENDINDENT
+
+\caption{The firing-squad algorithm} \label{algo:R}
+\end{distribalgo}
+
+\end{algorithm}
+
+\subsection{Proof}
+
+\begin{lemma} \label{lem:sync}
+	If no node crash during a round $r \geq s^{max}$, every correct node must hold the same counter value.
+\end{lemma}
+\begin{proof}
+	In such a round $r$, every correct node sends to all its counter.
+	Since no crash happen, the remaining node stays quiet.
+	Then, every node receive the same sets of values. The line \ref{line:union} guarantees that, at the end of the round, every node holds the same set.
+\end{proof}
+
+\begin{lemma} \label{lem:remain-synced}
+	If at a round $r \geq s^{max}$, every correct node hold the same counter value, in every subsequent round, every node will hold the same counter value.
+\end{lemma}
+\begin{proof}
+	This property can be proved by induction over the round number.
+	Initially, we assume that every correct node hold the same counter value.
+	In every subsequent round, the set of received values will be the same singleton for every node.
+	Then, using the \ref{line:union}, the induction holds.
+\end{proof}
+
+\begin{theorem}
+	The firing-squad algorithm solves the non-uniform synchronization problem if no node remains passive forever, and at most $f$ crash happen.
+\end{theorem}
+\begin{proof}
+	If no node remains passive forever, $s^{max}$ is finite.
+	\begin{description}
+		\item[Safety:] Since at most $f$ crash may happen, there exists a round $r$ between $s^{max}$ and $s^{max}+f+1$ in which no crash happen.
+			Then, using lemmas \ref{lem:sync} and \ref{lem:remain-synced}, we obtain that, in round $s^{max}+f+1$, every node holds the same counter value.
+			Moreover, no node can reach $i_u \geq f+2$ before round $s^{max}+f+1$. 
+			That proves safety.
+		\item[Liveness:] Beyond round $s^{max}+1$, no node can receive a null message.
+			We can prove that, in round $s^{max}+k$, the value $k$ is a lower bound of the counter values in the system.
+			Thus, nodes must reach a counter value of $f+2$. That proves liveness.
+	\end{description}
+\end{proof}
 
 \end{document}
