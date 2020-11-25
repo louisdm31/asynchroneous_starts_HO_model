@@ -535,7 +535,7 @@ We exemplify that with an adaptation of the UniformVoting \cite{model_ho} \cite{
 \INDENT{\textbf{Initialisation:}}
 	\STATE $x_u := v_u$ ~~~~~~~~\{\emph{$v_u$ is the initial value of $p$}\}
 	\STATE $vote_u \in V\cup\{ ? \}$, initially $?$
-	\STATE $phase_u = true$ ~~~~~~\{\textit{variable used to organise the rotation of the two phases}\}
+	\STATE $phase_u = true$ ~~~~~~\{\textit{variable which organises the two-phase rotation}\}
 
 \ENDINDENT
 \BLANK
@@ -549,16 +549,16 @@ We exemplify that with an adaptation of the UniformVoting \cite{model_ho} \cite{
 	\STATE receive incoming messages
 	\IF{$phase_u$}
 		\IF{a node voted for $v$}
-			\STATE $x_u:= v$
+			\STATE $x_u:= v$ \label{line:adopt_vote}
 		\ELSE
-			\STATE $x_u :=$ smallest  $w$ from  $\langle w , ? \rangle$ received
+			\STATE $x_u :=$ smallest  $w$ from  $\langle w , ? \rangle$ received \label{line:min_vote}
 		\ENDIF
 		\IF{every node voted for $v$, none sent null} \label{line:cond1}
 			\STATE $DECIDE(v)$
 		\ENDIF
 		\STATE $vote_u :=\ ?$
 	\ELSE
-		\STATE $ x_u :=$ minimum value received (excluding null)
+		\STATE $ x_u :=$ minimum value received (excluding null) \label{line:min_val}
 		\IF{every node sent $v$, none sent null} \label{line:cond2}
 			\STATE $vote_u := v$
 		\ENDIF
@@ -585,7 +585,35 @@ It is possible to prove the following theorem:
 \end{theorem}
 
 The proof of validity and agreement for UniformVoting given in \cite{model_ho} can easily be transposed to \newline $SynchMod_4 \lozenge AdaptedUniformVoting$.
-The proof of termination is radically different, though.
+The proof of termination, which is radically different, is detailed below.
+
+\begin{proof}
+	We consider an execution of $SynchMod_4 \lozenge AdaptedUniformVoting$.
+	Let $r$ be the round in which $\cent$ fires.
+	In round $r+1$, the $AdaptedUniformVoting$ algorithm is started by $\cent$.
+
+	We claim that the sequence $(x_\cent(r+i+1))_{i \in \mathds{N}}$ is decreasing.
+	\begin{enumerate}
+		\item If $i+2$ is odd, the line \ref{line:min_val} guarantees that $x_\cent(r+i+2) \leq x_\cent(r+i+1)$.
+		\item If $i+2$ is even and a node $u$ voted for $v$, the only possibility is $v = x_\cent(r+i+1)$. This is because $\cent$ sent $x_\cent(r+i+1)$ to $u$ in round $r+i+2$.
+			Then $x_\cent(r+i+2) = x_\cent(r+i+1)$.
+		\item If $i+2$ is even and no node voted, the line \ref{line:min_vote} guarantees that $x_\cent(r+i+2) \leq x_\cent(r+i+1)$.
+	\end{enumerate}
+	That proves the claim.
+
+	Since this series is decreasing, and the set of initial decision values is finite, it must reach a minimum.
+	We consider the earliest round $r_0 \geq \phi^{max}$ in which every node have already fired and the series has stabilized to $v$.
+
+	Without loss of generality, we assume that the round $r_0+1$ is a round of exchange of value (i.e. $\forall u \in \Pi, \neg phase_u(r_0)$).
+	Since $x_\cent(r_0+1) = x_\cent(r_0)$, we know that $\cent$ only receives messages containing $v$ in round $r_0+1$ (see line \ref{line:min_val}).
+	Then $\cent$ must vote $v$ in round $r_0+2$ (see line \ref{line:cond2}).
+	Then every node must adopt $v$ in round $r_0+2$ (see line \ref{line:adopt_vote}).
+	Then, in round $r_0+3$ every node must send $v$ to all.
+	Then, in round $r_0+3$ every node can only receive $v$.
+	Then, in round $r_0+3$ every node must vote for $v$ (see line \ref{line:cond2}).
+	Then, in round $r_0+4$ every node must decide $v$.
+	That proves termination.
+\end{proof}
 
 \subsection{$\mathrm{mod}\,k$-synchronization and coordinated algorithms}
 
