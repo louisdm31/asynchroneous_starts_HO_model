@@ -6,11 +6,11 @@
 \usepackage{listings}
 \usepackage{amsthm}
 \usepackage{dsfont}
+\usepackage{graphicx}
 \usepackage{stmaryrd}
 \usepackage[left=2cm, right=2cm, top=2cm]{geometry}
 \usepackage[utf8]{inputenc}
-\usepackage{pdfpages}
-
+\usepackage[pdftex,pdfpagelabels,bookmarks,hyperindex,hyperfigures]{hyperref}
 
 \newtheorem{lemma}{Lemma}[section]
 \newtheorem{theorem}{Theorem}
@@ -37,6 +37,7 @@
 \begin{document}
 
 \maketitle
+\tableofcontents
 
 \section{Introduction}
 
@@ -67,7 +68,7 @@ Then, they stop sending null, and instead interact according to the code of algo
 \subsection{A previous proposition, and its shortcomings}
 
 In the literature, an algorithm has been designed to simulate synchronous starts in an asynchronous-starts context.
-This algorithm, named "firing squad" algorithm, can be started asynchronously in a distributed system.
+This algorithm, named "firing squad" algorithm \cite{firing_squad}, can be started asynchronously in a distributed system.
 Each node executing this algorithm is guaranteed to eventually raise a flag (i.e. this node is said to \textit{fire}, hence the name of the algorithm), and every node must fire in the same round.
 This firing can be used as a starting signal for any subsequent non-asynchronous-starts tolerant algorithm.
 This algorithm is said to solve the \textit{synchronization problem}.
@@ -108,9 +109,9 @@ The starting signals will have to satisfy the following properties:
 \subsection{Validity domain}
 
 We would like to maximize the fault-tolerance of our systems.
-In the literature, the fault-tolerance is often expressed by the maximum number of crash-failure that are expected to happen.
+In the literature, the fault-tolerance is often expressed by the maximum number of crash-failure that are expected to happen \cite{gafni}.
 Hence, a $t$-resilient system is correct if at most $t$ nodes stop working.
-In the model \cite{CBS09} we use, the crash-failures are not defined as a "first-class" notion.
+In the model \cite{model_ho} we use, the crash-failures are not defined as a "first-class" notion.
 Instead, they can be encapsulated inside the communication assumptions.
 In this article, we will consider scenarios where at least one node is able to communicate with every other node (including with itself, which is an obvious but important assumption).
 This assumption is compliant with a failure of $n-1$ nodes, where $n$ is the total number of nodes.
@@ -121,7 +122,7 @@ Thus, this work is hopefully useful for real-life system.
 \subsection{The computational model}
 	
 We consider a networked system with a {\em fixed} set $V$ of $n$ nodes.
-We assume a round-based computational model  in the spirit of the Heard-Of model~\cite{CBS09}, 
+We assume a round-based computational model  in the spirit of the Heard-Of model~\cite{model_ho}, 
 	in which point-to-point communications are organized into \emph{synchronized rounds}: 
 	each node can send messages  to all nodes and can receive messages sent  by some of the nodes.
 Rounds are communication closed in the sense that no node receives messages in round~$t$ that are sent 
@@ -133,7 +134,7 @@ The set of $u$'s incoming neighbors in the digraph $\dG(t)$ is denoted by $\In_u
 
 We assume a self-loop at each node in all these digraphs  since every node can communicate with 
 	itself instantaneously.	
-The sequence of such digraphs~$\dG=\left (\dG(t) \right )_{t\in\IN}$ is called a {\em dynamic graph}~\cite{CFQS12:TVG}. 
+The sequence of such digraphs~$\dG=\left (\dG(t) \right )_{t\in\IN}$ is called a {\em dynamic graph}~\cite{time_varying_graph}. 
 
 In round $t$ ($t = 1, 2 , \ldots $), each node~$ u $ successively
 	(a) broadcasts  messages determined by its state at the beginning of round~$ t $
@@ -180,7 +181,7 @@ We will focus on the specific network model of \emph{centered} dynamic graphs~$\
 	$$\exists \cent \in V, \, \forall u \in V, \, \forall t \in \mathds{N}, \ \cent \in \In_u(t) .$$
 Note that there may be several fixed centers for~$\dG$.
 
-As demonstrated in~\cite{CBS09}, centered dynamic graphs in the Heard-Of model captures the
+As demonstrated in~\cite{model_ho}, centered dynamic graphs in the Heard-Of model captures the
 	classical model of synchronous systems with a (fixed) complete communication graph and 
 	 at most $n-1$ faulty senders, including the case of crashes.
 
@@ -444,7 +445,7 @@ In this section, we propose an optimisation which improves time-complexity in th
 When a node fires, it learns that the system is monovalent. During the subsequent rounds, it tries to share this knowledge using gossip.
 A node knowing that the system is monovalent may fire as soon as its counters is equal to $\overline{1}$, in spite of the null messages it might receive.
 
-\begin{algorithm}[htb]\label{algo:code}
+\begin{algorithm}[htb]
 \begin{distribalgo}[1]
 \BLANK \INDENT{\textbf{Initialization:}}
 	\STATE $\overline{c}_u \in \mathds{Z}/k\mathds{Z} \cup \{\bot\}$, initially $\bot$
@@ -459,25 +460,25 @@ A node knowing that the system is monovalent may fire as soon as its counters is
 	\STATE receive incoming messages
 	\STATE $monovalent_u \leftarrow monovalent_u \vee$ all the received messages are equal to $\overline{k}~\vee$ one true flag received \label{line:detect-monovalent}
 	\IF{$monovalent_u \wedge \overline{c}_u = k$}
-		\STATE $fired_u \leftarrow true$ \label{line:fire}
+		\STATE $fired_u \leftarrow true$
 	\ENDIF
 	\IF{the received messages other than $null $ and $\bot$ are all equal to $i \in \{ \overline{1}, \dots, \overline{k} \}$ }
-		\STATE $\overline{c}_u \leftarrow \overline{i+1} $ \label{line:agreed}
+		\STATE $\overline{c}_u \leftarrow \overline{i+1} $
 	\ELSE \IF{$\neg tried_u $ and no received message is $\overline{k}$ }
-		\STATE $\overline{c}_u \leftarrow \overline{k} $  \label{line:try}
-		\STATE $tried_u \leftarrow true$   \label{line:try+1}
+		\STATE $\overline{c}_u \leftarrow \overline{k} $
+		\STATE $tried_u \leftarrow true$
 	\ELSE
-		\STATE $\overline{c}_u \leftarrow \overline{1}$ \label{line:tried}
+		\STATE $\overline{c}_u \leftarrow \overline{1}$
 	\ENDIF
 	\ENDIF
 \ENDINDENT 
 
-\caption{The \SM algorithm} \label{algo:R}
+\caption{The \SM algorithm} 
 \end{distribalgo}
 
 \end{algorithm}
 
-\begin{theorem}\label{thm:k>2}
+\begin{theorem}
 Under the conditions of complete activation schedules and centered dynamic graphs,
 	the optimized \SM algorithm solves the $\mathrm{mod}\,k$-synchronization problem for any integer~$k$ greater than 2.
 	Moreover, in any execution of the optimized algorithm, no node can fire later than in the corresponding execution of the non-optimized algorithm.
@@ -583,7 +584,7 @@ It is possible to prove the following theorem:
 	The $SynchMod_4 \lozenge AdaptedUniformVoting$ algorithm solves the consensus problem under the condition of a centered dynamic graph and a complete activation schedule.
 \end{theorem}
 
-The proof of validity and agreement for UniformVoting given in \ref{} can easily be transposed to $SynchMod_4 \lozenge AdaptedUniformVoting$.
+The proof of validity and agreement for UniformVoting given in \cite{model_ho} can easily be transposed to \newline $SynchMod_4 \lozenge AdaptedUniformVoting$.
 The proof of termination is radically different, though.
 
 \subsection{$\mathrm{mod}\,k$-synchronization and coordinated algorithms}
@@ -596,12 +597,25 @@ This works out-of-the box when the starts are assumed to be synchronous.
 However, when the starts are asynchronous, a prior $\mathrm{mod}\,n$-synchronization is required, where $n$ is the number of nodes in the shared list.
 This is another typical use case of the \SM algorithm.
 
+\subsection{A much simpler approach ?}
+
+In the case of the problem of consensus, we have mentioned in a previous paragraph the possibility to use Paxos.
+Since we only consider synchronous systems, much simpler algorithms like FloodSet \cite{lynch_distributed} exists.
+As mentioned in \cite{distributed_firing_squad}, the FloodSet algorithm can be adapted to solve consensus in a system with asynchronous starts.
+Using a variant of the firing squad algorithm (called $AdaptedFiringSquad_f$ here),
+where the nodes hold a counter $c_u \in \mathds{N}$, and fire when they reach an upper bound $f$ on the number of failure.
+Using $AdaptedFiringSquad_f \lozenge FloodSet$, we get a simple consensus algorithm.
+This approach has some shortcomings, though.
+Firstly, the nodes have to "know" an shared upper bound on the number of failures.
+Then, only the simplest form of failure is supported: the crash-failures.
+More importantly, this method achieves \textit{non-uniform} consensus: only the non-crashed nodes are required to decide.
+
 \section{Conclusion and future work}
 
 As any complex reasoning by cases, the correctness proof  of the \SM   algorithm, 
 	and more specifically the proof of the liveness property, is very error prone. 
 This is a typical example of the relevance of formal verification for distributed algorithms. 
-Indeed, in a later work~\cite{}, we used the interactive theorem prover Isabelle \cite{ho_isa} to encode the complete proof 
+Indeed, in a later work~\cite{}, we used the interactive theorem prover Isabelle \cite{HO_isa} to encode the complete proof 
 	of Theorem~\ref{thm:k>2}, and thus obtained a certificate for  \SM\!\!'s correctness when $k$ is greater than 2.
 	
 Since $\mathrm{mod}\,2$-synchronization is reducible to $\mathrm{mod}\,4$-synchronization,
