@@ -45,16 +45,7 @@ Lots of today's digital services relies on distributed systems to improve the re
 A typical problem in distributed computing consists in emulating a data structure (stack, dictionary ...), or an algorithm (consensus ...) on a distributed
 set of machines, such that the correctness of the considered algorithm is unaffected by the failures of some components.
 
-There are two major frameworks in this field: synchronous and asynchronous systems (the exact definition of these terms may vary).
-In an \emph{asynchronous system}, the model considers each machine as an individual state machine, which may progress independently from the others,
-just like people working from home and communicating by email.
-% They can send messages and check  to other machines whenever they want.
-In opposition, a \emph{synchronous model} assumes the existence of a global schedule of execution.
-The timeline is composed in a succession of rounds, the nodes make progress step by step \cite{closed_communic},
-just like people having a meeting every day.
-This document is focused on synchronous systems.
-
-% In the framework of synchronous system, an assumption can be made
+This document is focused on synchronous systems, and round-based algorithms \cite{closed_communic}.
 
 \subsection{Motivation}
 
@@ -62,7 +53,7 @@ In the literature, most of the proposed algorithms for synchronous system make a
 This assumption tells that there exists a round at which every node starts the execution of the algorithm.
 In this context, the system is said to have \emph{synchronous starts}.
 In opposition, a system where each node may start at an unpredictable round is said to have \emph{asynchronous starts}.
-Since most system in the literature rely on the assumption of synchronous starts, we may wonder whether this hypothesis may be avoided.
+Since most system in the literature rely on the assumption of synchronous starts, we may wonder whether this hypothesis may be relaxed.
 
 This work may be useful in practice, since the hypothesis of synchronous starts adds an engineering constraint, which in some cases is difficult to solve.
 For example, let's assume that a system needs to execute several tasks in series.
@@ -82,21 +73,8 @@ This firing can be used as a starting signal for any subsequent non-asynchronous
 This algorithm is said to solve the \textit{synchronization problem}.
 
 However, one of the main result of this work shows that this is only doable when the communication graph is strongly connected in every round.
-This required hypothesis is not compatible with crash-failures, since a crashed node must be unable to send any message.
-The goal of this article is to find a solution compatible with a wider notion of fault-tolerance.
-
-\subsection{Synchronization, consensus and failures}
-
-The idea to solve this problem consist in weakening the specification of the synchronization problem.
-During this work, we considered the following modification:
-instead of requiring that every node eventually fire during the same round, we consider the subset of \textit{correct nodes}, which never crash, and whose outgoing messages are never lost.
-Every node, in this subset only, is now required to fire.
-In this context, the firing squad algorithm can solve the synchronization problem in spite of an arbitrary number of failures.
-This adaptation of the firing squad algorithm is presented in the appendix.
-However, we thought that this solution was not satisfactory. In this framework, simple send omissions have to be considered as definitive crash failure.
-We want a solution which can smartly handle all kind of failures.
-We tried to figure out a other way to weaken the synchronization problem.
-In the next section, we describe the approach we actually chose.
+This required hypothesis heavily limits fault-tolerance. Intuitively, a node is not allowed to crash if the communication graph has to be strongly connected.
+The goal of this article is to find a solution compatible with a more extensive fault-tolerance.
 
 \subsection{Approach of this article}
 
@@ -108,7 +86,7 @@ The algorithm is supposed to work properly if each phase is executed simultaneou
 
 In the case of synchronous starts, the nodes always start with the first phase (prepare), and then rotate.
 In that situation, the simultaneousness of each phase is guaranteed.
-However, in the case of asynchronous starts, that could result in conflicting phases executed simultaneously.
+However, in the case of asynchronous starts, that could result in conflicting phases executed in a given round.
 
 To solve this problem, we need to make sure that the starting round of each node are congruent modulo $k$,
 where $k$ is a parameter representing the number of phases of the target algorithm ($k=4$ in the case of Paxos).
@@ -132,8 +110,8 @@ The starting signals will have to satisfy the following properties:
 We would like to maximize the fault-tolerance of our systems.
 In the literature, the fault-tolerance is often expressed by the maximum number of crash-failure that are expected to happen.
 Hence, a $t$-resilient system is correct if at most $t$ nodes stop working.
-In the Heard-Of model \cite{CBS09} which we use, the crash-failures are not defined as a "first-class" notion.
-Instead, they they can be encapsulated inside the communication assumptions.
+In the model \cite{CBS09} we use, the crash-failures are not defined as a "first-class" notion.
+Instead, they can be encapsulated inside the communication assumptions.
 In this article, we will consider scenarios where at least one node is able to communicate with every other node (including with itself, which is an obvious but important assumption).
 This assumption is compliant with a failure of $n-1$ nodes, where $n$ is the total number of nodes.
 Thus, this work is hopefully useful for real-life system.
@@ -438,16 +416,177 @@ Unfortunately, the \SM algorithm does not work when $k=2$, as demonstrated by it
 	The starts schedule is defined by $\mathcal{A}_0 = \emptyset$, $\mathcal{A}_1 = \{u_1\}$ and $\mathcal{A}_i = \Pi$ for any $i>1$.
 	The system cycles between two configuration and no node ever fire. That violates the termination property. 
 	
+\begin{figure}[h]
+	\centering
+	\includegraphics[width=\textwidth]{contr_exemple_init}
+	\caption{First three rounds of non-terminating execution}
+\end{figure}
+
+\begin{figure}[h]
+	\centering
+	\includegraphics[width=0.7\textwidth]{contr_exemple_cycle}
+	\caption{Loop in non-terminating execution}
+\end{figure}
+
 However,  the $\mathrm{mod}\,k$-synchronization is trivially reducible to the $\mathrm{mod}\,k'$-synchronization 
 	if $k$ divides~$k'$.
 Hence, the $\mathrm{mod}\,2$-synchronization is solvable with the {\em SynchMod}$_{\,4}$ algorithm 
 	in the class of dynamic  graphs with a fixed center.
+
 Then, a  natural question is  whether there exists a better and more direct algorithm for the $\mathrm{mod}\,2$-synchronization
-	problem in the class of  centered dynamic graphs, using a  different algorithmic approach. 
+problem in the class of  centered dynamic graphs, using a  different algorithmic approach. 
 
-	\includepdf[pages=-]{contre_exemple_k_2}
+\section{A possible optimisation}
 
-\section{$\mathrm{mod}\,k$-synchronization and coordinated algorithms}
+There exist some scenarios where the majority of nodes are active, and some of them have already fired. Because of some remaining passive node, some active nodes refrain from firing.
+In the worst case, a single passive node can prevent some active node from firing, during an arbitrary long time.
+In this section, we propose an optimisation which improves time-complexity in the average case.
+When a node fires, it learns that the system is monovalent. During the subsequent rounds, it tries to share this knowledge using gossip.
+A node knowing that the system is monovalent may fire as soon as its counters is equal to $\overline{1}$, in spite of the null messages it might receive.
+
+\begin{algorithm}[htb]\label{algo:code}
+\begin{distribalgo}[1]
+\BLANK \INDENT{\textbf{Initialization:}}
+	\STATE $\overline{c}_u \in \mathds{Z}/k\mathds{Z} \cup \{\bot\}$, initially $\bot$
+	\STATE $tried_u \leftarrow false$
+	\STATE $fired_u \leftarrow false$
+	\STATE $monovalent_u \leftarrow false$
+
+\ENDINDENT \BLANK
+
+\INDENT{\textbf{In each round $t$:}}
+	\STATE send $\langle \overline{c}_u, monovalent_u \rangle$ to all 
+	\STATE receive incoming messages
+	\STATE $monovalent_u \leftarrow monovalent_u \vee$ all the received messages are equal to $\overline{k}~\vee$ one true flag received \label{line:detect-monovalent}
+	\IF{$monovalent_u \wedge \overline{c}_u = k$}
+		\STATE $fired_u \leftarrow true$ \label{line:fire}
+	\ENDIF
+	\IF{the received messages other than $null $ and $\bot$ are all equal to $i \in \{ \overline{1}, \dots, \overline{k} \}$ }
+		\STATE $\overline{c}_u \leftarrow \overline{i+1} $ \label{line:agreed}
+	\ELSE \IF{$\neg tried_u $ and no received message is $\overline{k}$ }
+		\STATE $\overline{c}_u \leftarrow \overline{k} $  \label{line:try}
+		\STATE $tried_u \leftarrow true$   \label{line:try+1}
+	\ELSE
+		\STATE $\overline{c}_u \leftarrow \overline{1}$ \label{line:tried}
+	\ENDIF
+	\ENDIF
+\ENDINDENT 
+
+\caption{The \SM algorithm} \label{algo:R}
+\end{distribalgo}
+
+\end{algorithm}
+
+\begin{theorem}\label{thm:k>2}
+Under the conditions of complete activation schedules and centered dynamic graphs,
+	the optimized \SM algorithm solves the $\mathrm{mod}\,k$-synchronization problem for any integer~$k$ greater than 2.
+	Moreover, in any execution of the optimized algorithm, no node can fire later than in the corresponding execution of the non-optimized algorithm.
+\end{theorem}
+
+The proof of the first part of this theorem is exactly the same as the proof of the non-optimized algorithm.
+Moreover, the proof of the second part results from a simple observation of the line \ref{line:detect-monovalent}.
+
+\section{Use-cases of $\mathrm{mod}\,n$-synchronization}
+
+\subsection{Algorithms without safety assumption}
+
+Let us consider a given algorithm $A$, which can solve a problem $\mathcal{A}$ when the starts are synchronous.
+The correctness of $A$ may depend on some assumptions.
+Usually, the assumptions required for safety are expressed as invariants on the dynamic graph: $\forall r \in \mathds{N}, P_{saf}(\mathds{G}_r)$.
+Whereas the assumptions required for liveness are expressed as infinitely often verified predicates on the dynamic graph: $\forall r \in \mathds{N}, \exists r' > r, P_{liv}(\mathds{G}_{r'})$.
+The case where no invariant is required for safety is easier to deal with. At first we focus on this case.
+
+We assume that $A$ is structured as $k$ rotating phases, which means that $A$ needs $\mathrm{mod}\,k$-synchronization.
+We construct the algorithm $SynchMod_k \lozenge A$ in the following way:
+we consider a node $u$. 
+\begin{enumerate}
+	\item At first, $u$ is passive, and sends null messages, according to the model.
+	\item From round $s_u$, the node $u$ is active. It starts the \SM algorithm. It sends and receives messages according to the \SM algorithm and ignore the messages related to $A$.
+	\item In round $\tf_u$, the node $u$ fires. From this round, $u$ executes \SM in parallel with $A$. Both $A$ and \SM send and receive messages according to their pseudo-code.
+		In some cases, $u$ may receive from a neighbor $v$ a message related to \SM, and no message related to $A$. Then $u$ can guess that $v$ has not fired yet.
+		The $A$ instance of $u$ interpret that as a null message received from $v$.
+\end{enumerate}
+
+We now wonder whether $SynchMod_k \lozenge A$ solves $\mathcal{A}$ with asynchronous starts, and how $A$ should deal with null message.
+In the case without required invariant, $A$ could assimilate null messages as lost messages,
+and we could reasonably expect that $SynchMod_k \lozenge A$ solves $\mathcal{A}$ with asynchronous starts.
+Indeed, the drop of the null messages in $A$ is equivalent with the drop of some edges in the dynamic graph.
+The safety proof without invariant is not affected by the modification of the dynamic graph, and should be easily extended from synchronous starts system to asynchronous starts system.
+Moreover, if we assume that no node remains passive forever, no edge is dropped in the dynamic graph beyond a certain round.
+Then, the liveness proof with synchronous starts should be still valid if applied from that round.
+
+Some notable examples of algorithms which can be adapted with this approach include the LastVoting \cite{model_ho} algorithm (an round-based adaptation of Paxos \cite{paxos}) which solves consensus,
+and the ThreePhaseCommit \cite{3PC} algorithm, which solves the database commit problem.
+
+\subsection{Algorithms with safety assumption}
+
+When the safety proof of an algorithm relies on some invariant, the drop of edges in the dynamic graph might break the safety proof.
+A possible fix could consist in changing the way the algorithm $A$ deals with null message. This must be done in a case-by-case basis.
+We exemplify that with an adaptation of the UniformVoting \cite{model_ho} \cite{ben_or} algorithm.
+
+
+\begin{algorithm}[htb]
+\begin{distribalgo}[1]
+\begin{tabular}{ll}
+\begin{minipage}{33em}
+
+
+\INDENT{\textbf{Initialisation:}}
+	\STATE $x_u := v_u$ ~~~~~~~~\{\emph{$v_u$ is the initial value of $p$}\}
+	\STATE $vote_u \in V\cup\{ ? \}$, initially $?$
+	\STATE $phase_u = true$ ~~~~~~\{\textit{variable used to organise the rotation of the two phases}\}
+
+\ENDINDENT
+\BLANK
+
+\INDENT{\textbf{Round $r$:}}
+	\IF{$phase_u$}
+		\STATE send $\langle x_u , vote_u \rangle$ to all
+	\ELSE
+		\STATE send $\langle x_u \rangle$ to all
+	\ENDIF
+	\STATE receive incoming messages
+	\IF{$phase_u$}
+		\IF{a node voted for $v$}
+			\STATE $x_u:= v$
+		\ELSE
+			\STATE $x_u :=$ smallest  $w$ from  $\langle w , ? \rangle$ received
+		\ENDIF
+		\IF{every node voted for $v$, none sent null} \label{line:cond1}
+			\STATE $DECIDE(v)$
+		\ENDIF
+		\STATE $vote_u :=\ ?$
+	\ELSE
+		\STATE $ x_u :=$ minimum value received (excluding null)
+		\IF{every node sent $v$, none sent null} \label{line:cond2}
+			\STATE $vote_u := v$
+		\ENDIF
+	\ENDIF
+	\STATE $phase_u := \neg phase_u$
+\ENDINDENT
+
+\end{minipage}
+\end{tabular}
+
+\caption{The {\em AdaptedUniformVoting} algorithm}
+\label{unifvotfig}
+\end{distribalgo}
+\end{algorithm}
+
+This pseudo-code is almost identical to the pseudo-code used in the systems with synchronous starts.
+However, you can see that in lines \ref{line:cond1} and \ref{line:cond2}, the effect of the null messages is precised.
+In that case, the null messages are not dropped. They prevent the nodes from voting and deciding.
+
+It is possible to prove the following theorem:
+
+\begin{theorem}
+	The $SynchMod_4 \lozenge AdaptedUniformVoting$ algorithm solves the consensus problem under the condition of a centered dynamic graph and a complete activation schedule.
+\end{theorem}
+
+The proof of validity and agreement for UniformVoting given in \ref{} can easily be transposed to $SynchMod_4 \lozenge AdaptedUniformVoting$.
+The proof of termination is radically different, though.
+
+\subsection{$\mathrm{mod}\,k$-synchronization and coordinated algorithms}
 
 Some algorithms like Paxos rely on the existence of a shared coordinator in each round.
 A simple implementation consists in setting a rotating coordinator: 
@@ -462,7 +601,7 @@ This is another typical use case of the \SM algorithm.
 As any complex reasoning by cases, the correctness proof  of the \SM   algorithm, 
 	and more specifically the proof of the liveness property, is very error prone. 
 This is a typical example of the relevance of formal verification for distributed algorithms. 
-Indeed, in a later work~\cite{}, we used the interactive theorem prover Isabelle to encode the complete proof 
+Indeed, in a later work~\cite{}, we used the interactive theorem prover Isabelle \cite{ho_isa} to encode the complete proof 
 	of Theorem~\ref{thm:k>2}, and thus obtained a certificate for  \SM\!\!'s correctness when $k$ is greater than 2.
 	
 Since $\mathrm{mod}\,2$-synchronization is reducible to $\mathrm{mod}\,4$-synchronization,
