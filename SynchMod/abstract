@@ -1,14 +1,16 @@
-One of the main framework in distributed systems is the round-based approach.
+One of the most studied framework in distributed systems is the round-based approach.
 Lots of algorithms have been designed in that framework.
 They usually assume that the starts are synchronous: every nodes in the network have to start the algorithm in the same round.
-In some context, this assumption is not true. The traditional approach to avoid this assumption consists in using the firing squad algorithm,
-which can simulate synchronous starts in an asynchronous-starts environment.
-To do so, the nodes start the firing squad algorithm. Eventually, every node fire in a given round. This firing is the starting signal for a subsequent non-asynchronous-start-tolerant algorithm.
-However, this solution requires strong assumptions on the connectivity of the network. That's why we propose a new approach.
+In some context, this assumption is not true. The traditional approach to avoid it consists in using the firing squad algorithm,
+which can simulate synchronous starts in an asynchronous-start environment.
+To do so, the nodes start the firing squad algorithm. Eventually, every node must "fire" in the same round. This firing is the starting signal for a subsequent non-asynchronous-start-tolerant algorithm.
+However, this solution requires strong connectivity on the network, which weakens the fault-tolerance, especially the crash-tolerance. That's why we propose a new approach.
 We designed an algorithm called SynchMod, which solves a relaxed problem of synchronization.
 Instead of firing in the same round, the nodes running SynchMod are required to fire in rounds congruent modulo k (where k is a parameter).
-This is particularly relevent in the cases where we need to execute an algorithm structured in several alternating phases.
-For example, Paxos is composed of four phases (thus k=4).
-The weaker specification of SynchMod requires an adaptation of the target algorithm. In the algorithm we considered, that happened to be quite easy, though.
+This is relevant in the cases where we need to execute an algorithm structured in several alternating phases.
+For example, the well-know Paxos algorithm is composed of four phases (so we set k to 4).
+The weaker specification of SynchMod may require in return some adaptation of the target algorithm. In the algorithms we considered, that happened to be quite easy, though.
 
-In short, we replace the traditional combination "firing squad then Paxos" by "SynchMod then AdaptedPaxos". We show that the later has better fault-tolerance that the earlier.
+In short, we replace the traditional combination "firing squad then Paxos" by "SynchMod then AdaptedPaxos".
+The correctness of SynchMod relies on a weaker assumption: the existence of a spanning tree in the communication graph, in opposition with the strong connectivity for the firing squad.
+Our solution is a strict improvement on the fault-tolerance over the existing approach.
