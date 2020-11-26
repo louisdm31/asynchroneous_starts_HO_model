@@ -6,7 +6,7 @@ typedecl Proc
 axiomatization where Proc_finite: "OFCLASS(Proc, finite_class)"
 instance Proc :: finite by (rule Proc_finite)
 
-abbreviation "N \<equiv> card (UNIV :: Proc set)"
+abbreviation "N == card (UNIV :: Proc set)"
 
 record pstate = 
      x :: nat
@@ -28,19 +28,16 @@ definition ready_fire where
 "ready_fire msgs == ALL p. msgs p = Void \<or> msgs p = Content (Val (k-1))"
 
 definition ready_force where
-"ready_force msgs ss == (~ forc ss) \<and> (ALL p. msgs p ~= Content (Val (k-1))) \<and> 
-(EX p q v1 v2. msgs p = Content (Val v1) \<and> msgs q = Content (Val v2) & v1 ~= v2)"
+"ready_force msgs ss == (~ forc ss) & (ALL p. msgs p ~= Content (Val (k-1))) &
+(EX p q v1 v2. msgs p = Content (Val v1) & msgs q = Content (Val v2) & v1 ~= v2)"
 
 definition SyncMod_nextState :: "Proc => pstate => (Proc => SendVal message) => pstate => bool" where
 "SyncMod_nextState p ss msgs st ==
     fire st = (ready_fire msgs | fire ss) &
     (if ready_force msgs ss then
         x st = k-1 & forc st
-        else forc ss = forc st & (
-            if EX v. concordant msgs v then x st = (Suc (SOME v. concordant msgs v)) mod k else x st = 0))"
-        (*"if x st = 0 then
-            ALL v. concordant msgs v --> v = k - 1 else
-            concordant msgs ((x st - 1) mod k)) \<and> (x st) mod k = x st)"*)
+        else forc ss = forc st & (if ALL q v. msgs q ~= Content (Val v) then x st = 0 else EX q v. msgs q = Content (Val v) & Suc v mod k = x st) &
+        (ALL q v. msgs q = Content (Val v) --> Suc v mod k >= x st))"
 
 definition SyncMod_sendMsg where
 "SyncMod_sendMsg p q st == if x st = k then Nope else Val (x st)"
