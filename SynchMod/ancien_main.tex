@@ -439,11 +439,11 @@ problem in the class of  centered dynamic graphs, using a  different algorithmic
 
 \section{A possible optimisation}
 
-There exist some scenarios where the majority of nodes are active, and some of them have already fired. Because of some remaining passive node, some active nodes refrain from firing.
-In the worst case, a single passive node can prevent some active node from firing, during an arbitrary long time.
+There exists some scenarios where the majority of nodes are active, and some of them have already fired. Because of some remaining passive node, some active nodes refrain from firing.
+In the worst case, a single passive node can prevent several active nodes from firing, during an arbitrarily long time.
 In this section, we propose an optimisation which improves time-complexity in the average case.
 When a node fires, it learns that the system is monovalent. During the subsequent rounds, it tries to share this knowledge using gossip.
-A node knowing that the system is monovalent may fire as soon as its counters is equal to $\overline{1}$, in spite of the null messages it might receive.
+A node knowing that the system is monovalent may fire as soon as its counters is equal to $\overline{1}$. No received null message can delay its firing any longer.
 
 \begin{algorithm}[htb]
 \begin{distribalgo}[1]
@@ -473,7 +473,7 @@ A node knowing that the system is monovalent may fire as soon as its counters is
 	\ENDIF
 \ENDINDENT 
 
-\caption{The \SM algorithm} 
+\caption{The optimized \SM algorithm} 
 \end{distribalgo}
 
 \end{algorithm}
