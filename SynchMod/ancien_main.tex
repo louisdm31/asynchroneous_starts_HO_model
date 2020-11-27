@@ -41,81 +41,74 @@
 
 \section{Introduction}
 
-The topic of distributed systems has focused a lot of attention in recent years.
-Lots of today's digital services relies on distributed systems to improve the resilience of critical infrastructures.
-A typical problem in distributed computing consists in emulating a data structure (stack, dictionary ...), or an algorithm (consensus ...) on a distributed
-set of machines, such that the correctness of the considered algorithm is unaffected by the failures of some components.
+Distributed algorithms are often designed in a synchronous computing model, in which computation
+	is divided into communication {\em closed rounds}:
+	any message  sent at some round  can be received only at that round.
+In this model it is classically assumed that each run of an algorithm is started by all nodes simultaneously, i.e., at the same round,
+	or even at round one.
+For instance, most of synchronous consensus algorithms
+	(e.g.,~\cite{PSL80,DS83,ST87}), as well as many distributed algorithms for dynamic networks (e.g.,~\cite{KLO10,KMO11})
+	require synchronous starts.
 
-This document is focused on synchronous systems, and round-based algorithms \cite{closed_communic}.
+This assumption makes the sequential composition of two distributed algorithms $A;B$
+	-- in which each node starts executing $B$ when it has completed the execution of~$A$ --
+	quite problematic.
+Indeed, nodes start the algorithm~$B$ asynchronously when the algorithm~$A$ terminates asynchronously,
+	and the properties of~$B$ are no more guaranteed in this context of asynchronous starts.
 
-\subsection{Motivation}
+This leads to the problem of simulating synchronous starts, classically referred to as
+	the {\em firing squad problem}:
+Each node is  initially  {\em passive} and then become {\em active}  at an unpredictable round.
+The goal is to guarantee that   the nodes, when all active, eventually synchronize
+	by {\em firing} -- i.e., entering a designated state for the first time -- at the same round.
 
-In the literature, most of the proposed algorithms for synchronous system make an additional assumption.
-This assumption tells that there exists a round at which every node starts the execution of the algorithm.
-In this context, the system is said to have \emph{synchronous starts}.
-In opposition, a system where each node may start at an unpredictable round is said to have \emph{asynchronous starts}.
-Since most system in the literature rely on the assumption of synchronous starts, we may wonder whether this hypothesis may be relaxed.
+Unfortunately, the impossibility result in~\cite{CBM18} demonstrates that the firing squad problem
+	is not solvable without a strong connectivity property of the network, namely, there exists  some positive
+	integer~$T$ such that communication graph within  every period of $T$ consecutive
+	rounds is strongly connected and the delay~$T$ is known.
+In many situations,  this connectivity property is not guaranteed:
+	as an example, in the dynamic graphs corresponding to any system model with benign failures,
+	a node  that experiments permanent and complete send omissions
+	is  constantly a sink in the  communication graph.
 
-This work may be useful in practice, since the hypothesis of synchronous starts adds an engineering constraint, which in some cases is difficult to solve.
-For example, let's assume that a system needs to execute several tasks in series.
-When a node ends a task, he has to start the next one, however it does not know if others nodes have finished the previous task and are ready to go on.
-If each task is computed with an asynchronous-starts-tolerant algorithm, that is no longer an issue.
+However, with a closer look at many distributed algorithms designed in the round-based model,  we see that
+	these algorithms actually  do not require perfect synchronous starts, and still work under the weaker condition that all the nodes
+	start executing the algorithms in rounds with numbers that are equal modulo~$k$, for some positive integer~$k$.
+The corresponding synchronization problem, that we call ${\mathrm{mod}\,k}$  \emph{synchronization}, is formally specified as follows:
+	\begin{description}
+	\item[Termination:]   If all nodes are eventually active, then  every node eventually fires.
+	\item[ $\mathbf{\mathrm{mod}\,k}$-simultaneity:]  If two nodes fire at round~$t$ and $t'$, then $t' \equiv t \mod k$.
+	\end{description}
 
-In a system with \textit{asynchronous starts}, we suppose that initially, the nodes are not ready to execute a given algorithm. They stay passive with regard to the target algorithm, 
-and signal their non-readiness by sending a special message noted null. Each node may eventually get ready in an unpredictable round of the execution.
-Then, they stop sending null, and instead interact according to the code of algorithm they are executing.
+Indeed, let $A$ be an algorithm  organized into regular  \emph{phases} consisting of  a fixed number  $k$ of consecutive rounds:
+	the sending and transition functions of every node at round~$t$ are entirely determined by the value of~$t$ modulo~$k$.
+Moreover, assume that $A$ has been proved correct (with respect to some given specification) when all nodes start $A$
+	synchronously (at round one) and with any dynamic graph in a family~${\cal G}$ that is stable  under
+	addition of arbitrary finite prefixes.
+For instance, the \emph{ThreePhaseCommit} algorithm for non-blocking atomic commitment~\cite{BHG},
+	as well as the consensus algorithms in~\cite{DLS87} or the \emph{LastVoting} algorithm ~\cite{CBS09}
+	-- corresponding to the consensus core of \emph{Paxos} -- fulfill all the above requirements
+	for phases of length $k=3$ and $k=4$, respectively, and the family ${\cal G}$ of dynamic graphs in which
+	there exists an infinite number of ``good'' communication patterns
+	(eg., a sequence of $2k-1$ consecutive communication graphs  in which a majority of nodes is heard by all
+	in   each graph).
+The use of a ${\mathrm{mod}\,k}$-synchronization algorithm on the top of the algorithm $A$ yields a new algorithm that executes
+	exactly like $A$ does, after a finite preliminary period during which every node becomes active and fires.
+The above property on the set of dynamic graphs ${\cal G}$ then guarantees this variant of $A$ to be correct with
+	asynchronous starts and dynamic graphs in ${\cal G}$.
 
-\subsection{A previous proposition, and its shortcomings}
-
-In the literature, an algorithm has been designed to simulate synchronous starts in an asynchronous-starts context.
-This algorithm, named "firing squad" algorithm \cite{firing_squad}, can be started asynchronously in a distributed system.
-Each node executing this algorithm is guaranteed to eventually raise a flag (i.e. this node is said to \textit{fire}, hence the name of the algorithm), and every node must fire in the same round.
-This firing can be used as a starting signal for any subsequent non-asynchronous-starts tolerant algorithm.
-This algorithm is said to solve the \textit{synchronization problem}.
-
-However, one of the main result of this work shows that this is only doable when the communication graph is strongly connected in every round.
-This required hypothesis heavily limits fault-tolerance. Intuitively, a node is not allowed to crash if the communication graph has to be strongly connected.
-The goal of this article is to find a solution compatible with a more extensive fault-tolerance.
-
-\subsection{Approach of this article}
-
-The main issue that makes existing algorithms non-asynchronous-start-resilient lies in their structure:
-they are composed of several alternating phases.
-For example, the well-known Paxos \cite{paxos} algorithm is structured as a rotation of four phases, (named prepare,
-promise, accept, accepted).
-The algorithm is supposed to work properly if each phase is executed simultaneously by every nodes.
-
-In the case of synchronous starts, the nodes always start with the first phase (prepare), and then rotate.
-In that situation, the simultaneousness of each phase is guaranteed.
-However, in the case of asynchronous starts, that could result in conflicting phases executed in a given round.
-
-To solve this problem, we need to make sure that the starting round of each node are congruent modulo $k$,
-where $k$ is a parameter representing the number of phases of the target algorithm ($k=4$ in the case of Paxos).
-This problem is named \emph{$\mathrm{mod}\,k$-synchronization problem}.
-The point of this article is to solve this problem.
-
-\subsection{Proposed solution}
-
-The goal of this document is to propose an algorithm that solves the $\mathrm{mod}\,k$-synchronization problem.
-Such an algorithm could be executed on a distributed system without synchronous starts,
-an at a certain round, each node would fire.
-That would be a starting signal for the subsequent algorithm.
-The starting signals will have to satisfy the following properties:
-\begin{description}
-	\item[Safety:] The starting round of each node are congruent modulo $k$.
-	\item[Liveness:] Every node eventually fires.
-\end{description}
-
-\subsection{Validity domain}
-
-We would like to maximize the fault-tolerance of our systems.
-In the literature, the fault-tolerance is often expressed by the maximum number of crash-failure that are expected to happen \cite{gafni}.
-Hence, a $t$-resilient system is correct if at most $t$ nodes stop working.
-In the model \cite{model_ho} we use, the crash-failures are not defined as a "first-class" notion.
-Instead, they can be encapsulated inside the communication assumptions.
-In this article, we will consider scenarios where at least one node is able to communicate with every other node (including with itself, which is an obvious but important assumption).
-This assumption is compliant with a failure of $n-1$ nodes, where $n$ is the total number of nodes.
-Thus, this work is hopefully useful for real-life system.
+Another typical example for which perfect synchronization can be weakening into synchronization modulo $k$ is
+	the development of the basic \emph{rotating coordinator} strategy in the context of asynchronous starts.
+Roughly speaking, this strategy consists in the following: if nodes have unique identifiers in $\{1,\dots,n\}$,
+	the coordinator at round~$t$ is the node whose identifier is  $t$ modulo~$n$.
+For that, 	 each node~$u$ maintains a local counter $c_u$
+	whose current value is the number of rounds where it has been active.
+At each round, the  coordinator of $u$ is the  node with the identifier that is equal to the current value of $c_u$ modulo~$n$.
+Since there may be only one coordinator per round, such a selection rule requires synchronous starts.
+Clearly, with the use of a ${\mathrm{mod}\,n}$-synchronization algorithm in a preliminary phase and a
+	counter for each node that now counts the number of rounds elapsed since the node fired, the above scheme correctly\footnote{%
+	With respect to a specification that lets a passive node to be  a coordinator.}
+	implements the rotating coordinator strategy in the context of asynchronous starts.
 
 \section{ Preliminaries}\label{sec:model}
  
