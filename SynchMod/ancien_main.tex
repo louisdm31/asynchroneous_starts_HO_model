@@ -16,7 +16,7 @@
 \newtheorem{theorem}{Theorem}
 \newtheorem{definition}{Definition}
 \usepackage{biblatex}
-\addbibresource{rapport.bib}
+\addbibresource{dynamic.bib}
 
 \newcommand{\cent}{\gamma}
 
@@ -115,7 +115,7 @@ Clearly, with the use of a ${\mathrm{mod}\,n}$-synchronization algorithm in a pr
 \subsection{The computational model}
 	
 We consider a networked system with a {\em fixed} set $V$ of $n$ nodes.
-We assume a round-based computational model  in the spirit of the Heard-Of model~\cite{model_ho}, 
+We assume a round-based computational model  in the spirit of the Heard-Of model~\cite{CBS09}, 
 	in which point-to-point communications are organized into \emph{synchronized rounds}: 
 	each node can send messages  to all nodes and can receive messages sent  by some of the nodes.
 Rounds are communication closed in the sense that no node receives messages in round~$t$ that are sent 
@@ -127,7 +127,7 @@ The set of $u$'s incoming neighbors in the digraph $\dG(t)$ is denoted by $\In_u
 
 We assume a self-loop at each node in all these digraphs  since every node can communicate with 
 	itself instantaneously.	
-The sequence of such digraphs~$\dG=\left (\dG(t) \right )_{t\in\IN}$ is called a {\em dynamic graph}~\cite{time_varying_graph}. 
+The sequence of such digraphs~$\dG=\left (\dG(t) \right )_{t\in\IN}$ is called a {\em dynamic graph}~\cite{CFQS11:TVG}. 
 
 In round $t$ ($t = 1, 2 , \ldots $), each node~$ u $ successively
 	(a) broadcasts  messages determined by its state at the beginning of round~$ t $
@@ -174,7 +174,7 @@ We will focus on the specific network model of \emph{centered} dynamic graphs~$\
 	$$\exists \cent \in V, \, \forall u \in V, \, \forall t \in \mathds{N}, \ \cent \in \In_u(t) .$$
 Note that there may be several fixed centers for~$\dG$.
 
-As demonstrated in~\cite{model_ho}, centered dynamic graphs in the Heard-Of model captures the
+As demonstrated in~\cite{CBS09}, centered dynamic graphs in the Heard-Of model captures the
 	classical model of synchronous systems with a (fixed) complete communication graph and 
 	 at most $n-1$ faulty senders, including the case of crashes.
 
@@ -509,14 +509,14 @@ The safety proof without invariant is not affected by the modification of the dy
 Moreover, if we assume that no node remains passive forever, no edge is dropped in the dynamic graph beyond a certain round.
 Then, the liveness proof with synchronous starts should be still valid if applied from that round.
 
-Some notable examples of algorithms which can be adapted with this approach include the LastVoting \cite{model_ho} algorithm (an round-based adaptation of Paxos \cite{paxos}) which solves consensus,
+Some notable examples of algorithms which can be adapted with this approach include the LastVoting \cite{CBS09} algorithm (an round-based adaptation of Paxos \cite{paxos}) which solves consensus,
 and the ThreePhaseCommit \cite{3PC} algorithm, which solves the database commit problem.
 
 \subsection{Algorithms with safety assumption}
 
 When the safety proof of an algorithm relies on some invariant, the drop of edges in the dynamic graph might break the safety proof.
 A possible fix could consist in changing the way the algorithm $A$ deals with null message. This must be done in a case-by-case basis.
-We exemplify that with an adaptation of the UniformVoting \cite{model_ho} \cite{ben_or} algorithm.
+We exemplify that with an adaptation of the UniformVoting \cite{CBS09} \cite{Ben83} algorithm.
 
 
 \begin{algorithm}[htb]
@@ -577,7 +577,7 @@ It is possible to prove the following theorem:
 	The $SynchMod_4 \lozenge AdaptedUniformVoting$ algorithm solves the consensus problem under the condition of a centered dynamic graph and a complete activation schedule.
 \end{theorem}
 
-The proof of validity and agreement for UniformVoting given in \cite{model_ho} can easily be transposed to \newline $SynchMod_4 \lozenge AdaptedUniformVoting$.
+The proof of validity and agreement for UniformVoting given in \cite{CBS09} can easily be transposed to \newline $SynchMod_4 \lozenge AdaptedUniformVoting$.
 The proof of termination, which is radically different, is detailed below.
 
 \begin{proof}
