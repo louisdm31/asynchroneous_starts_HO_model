@@ -21,9 +21,6 @@ begin
 definition SyncMod_initState where 
 "SyncMod_initState p st == x st = k & (~ forc st) & ~ fire st"
 
-definition concordant where
-"concordant msgs v == EX p. msgs p = Content (Val v) & (ALL q vv. msgs q = Content (Val vv) --> vv = v)"
-
 definition ready_fire where
 "ready_fire msgs == ALL p. msgs p = Void \<or> msgs p = Content (Val (k-1))"
 
