@@ -1,20 +1,105 @@
-\documentclass{article}
-\usepackage{amsmath}
+\documentclass[11pt,letterpaper]{article}
+\special{papersize=8.5in,11in}
+
+\usepackage{fullpage}
+\usepackage{amsmath,amssymb,amsthm,dsfont}
+\usepackage{tikz}
+\usetikzlibrary{shapes.symbols,arrows}
+
+\usetikzlibrary{shapes.symbols,arrows}
+\usepackage{enumerate}
+
+\usepackage{algorithm,algorithmic}
+
+\renewcommand{\algorithmicrequire}{\textbf{Initialization:}}
+\renewcommand{\algorithmicensure}{\textbf{In each round $t$ do:}}
+
+\newcommand{\INITIALLY}{\REQUIRE{}}
+\newcommand{\ROUND}{\ENSURE{}}
+
+
+\DeclareMathOperator{\NC}{NC}
+\DeclareMathOperator{\NCL}{NCL}
+\DeclareMathOperator{\lcm}{lcm}
+\DeclareMathOperator{\Rem}{Rem}
+\DeclareMathOperator{\Simp}{Simp}
+\DeclareMathOperator{\Crit}{Crit}
+\DeclareMathOperator{\Extr}{Extr}
+\DeclareMathOperator{\Closed}{Closed}
+\DeclareMathOperator{\Cyc}{Closed}
+\DeclareMathOperator{\Step}{Step}
+\DeclareMathOperator{\Red}{Red}
+\DeclareMathOperator{\Inc}{Inc}
+\DeclareMathOperator{\Start}{Start}
+\DeclareMathOperator{\End}{End}
+\DeclareMathOperator{\Edges}{Edges}
+\DeclareMathOperator{\Sections}{Sections}
+\newcommand{\CDD}{{cd}}
+\newcommand{\EP}{{ep}}
+\newcommand{\CF}{{cr}}
+\newcommand{\nc}{{\mathrm{ nc}}}
+\newcommand{\In}{{\mathrm {In}}}
+\newcommand{\legendre}[2]{\genfrac{(}{)}{}{}{#1}{#2}}
+\newcommand{\cT}{{ (c,T)  }}
+\newcommand{\tY}{\tilde{Y}}
+\newcommand{\oY}{\overline{Y}}
+
+\newcommand{\IR}{\mathds{R}}
+\newcommand{\IN}{\mathds{N}}
+\newcommand{\IZ}{\mathds{Z}}
+\newcommand{\IQ}{\mathds{Q}}
+\newcommand{\IC}{\mathds{C}}
+\newcommand{\M}{\mathcal{M}}
+
+\newcommand{\Bcnc}{A^{\Delta}_{\mathrm {c}}}
+\newcommand{\Bunu}{\tilde{B}}
+\newcommand{\Bms}{\tilde{B}}
+\newcommand{\Bep}{A^{\Delta}_\mathrm{e}}
+\newcommand{\Benp}{A^{\Delta}_\mathrm{e}}
+\newcommand{\Bneone}{A^{\Delta}_\mathrm{r}}
+\newcommand{\Bnetwo}{A^{\Delta}_\mathrm{r}^\mathrm{HA}}
+
+\newcommand{\SCC}{\mathcal{C}}
+\newcommand{\CP}{\mathcal{P}_\ccirclearrowleft}
+
+\newcommand{\IRmax}{\overline{\IR}}
+\newcommand{\IRmin}{{\IR}_{\min}}
+\newcommand{\wstar}{{w}_{*}}
+\newcommand{\ito}{{i\!\to}}
+\newcommand{\Pa}{{\mathcal{W}}}
+
+\newcommand{\real}[1]{\mathbf{N}_{\geqslant {#1}}}
+\newcommand{\realrem}[2]{\mathbf{N}_{\geqslant {#1}}^{({#2})}}
+
+\renewcommand{\le}{\leqslant}
+\renewcommand{\leq}{\leqslant}
+\renewcommand{\ge}{\geqslant}
+\renewcommand{\geq}{\geqslant}
+
+\newcommand{\one}{\mathds{1}}
+
+\newcommand{\shlomo}[1]{\comment{\textcolor{red}{Shlomo: #1}}}
+\newcommand{\be}[1]{\comment{\textcolor{blue}{b: #1}}}
+\newcommand{\comment}[1]{\textcolor{red}{\textbf{#1}}}
+\newcommand{\ignore}[1]{}
+
+
+\newtheorem{thm}{Theorem}
+\newtheorem{pro}[thm]{Proposition}
+\newtheorem{lem}[thm]{Lemma}
+\newtheorem{cor}[thm]{Corollary}
+\newtheorem{defi}[thm]{Definition}
+
+\newcommand{\onevec}{{\mathbf{1}}}
+\newcommand{\zerovec}{{\mathbf{0}}}
+
 \usepackage[noend]{libHO/distribalgo}
-\usepackage{algorithm}
-\usepackage{amssymb}
 \usepackage{listings}
-\usepackage{amsthm}
-\usepackage{dsfont}
 \usepackage{graphicx}
-\usepackage{stmaryrd}
-\usepackage[left=2cm, right=2cm, top=2cm]{geometry}
+%\usepackage{stmaryrd}
 \usepackage[utf8]{inputenc}
 \usepackage[pdftex,pdfpagelabels,bookmarks,hyperindex,hyperfigures]{hyperref}
 
-\newtheorem{lemma}{Lemma}[section]
-\newtheorem{theorem}{Theorem}
-\newtheorem{definition}{Definition}
 \usepackage{biblatex}
 \addbibresource{dynamic.bib}
 \addbibresource{bibase.bib}
@@ -31,9 +116,9 @@
 \newcommand{\try}{\tau}
 \newcommand{\SM}{{\em SynchMod}$_{\,k}\ $}
 
-\title{The $\mathrm{mod}\,k$-synchronization Problem}
-\date{August 2020}
-\author{Louis Penet de Monterno - Bernadette Charron-Bost}
+\title{Synchronization Modulo $k$ in Dynamic Networks}
+\author{Bernadette Charron-Bost\textsuperscript{1} \and Louis Penet de Monterno\textsuperscript{1}}
+\date{\textsuperscript{1} \'Ecole polytechnique, 91128 Palaiseau, France\\~\\ \today}
 
 \begin{document}
 
@@ -266,9 +351,9 @@ It follows that $\try^{\max} =  \max_{u \in \Pi}  \try(u) < \infty$.
 In the \SM algorithm, the state of each node $u$ is composed of three variables named $\overline{c}_u$, $fired_u$ and $tried_u$.
 For any round $r$, we denote $\overline{c}_u(r)$, $fired_u(r)$ and $tried_u(r)$ respectively the values of these variables in the execution $\sigma$.
 
-\begin{lemma}\label{lem:k_mono}
+\begin{lem}\label{lem:k_mono}
 If $\overline{c}_\cent(t) = \overline{k} $, then the round~$t +1$  is $\overline{1}$-monovalent.
-\end{lemma}
+\end{lem}
 \begin{proof}
 If $\overline{c}_\cent(t) = \overline{k} $, then the node $\cent$ sends $\overline{k}$ to all nodes in round $t+1$.
 Hence, any active node $u$ at round~$t+1$ receives $\overline{k}$ in this round,
@@ -276,10 +361,10 @@ Hence, any active node $u$ at round~$t+1$ receives $\overline{k}$ in this round,
 In both cases, it holds that $\overline{c}_u (t+1) =\overline{1}$.
 \end{proof}
 
-\begin{lemma}\label{lem:mono_mono}
+\begin{lem}\label{lem:mono_mono}
 	If the center $\cent$ is active in round $t$  and round~$t$ is $\overline{i}$-monovalent, 
 	then any subsequent round~$ t + h$ is $\overline{i+ h}$-monovalent.
-\end{lemma}
+\end{lem}
 
 \begin{proof}
 The proof is by induction on $h \in \mathds{N}$.
@@ -295,10 +380,10 @@ The proof is by induction on $h \in \mathds{N}$.
 \end{enumerate}
 \end{proof}
 
-\begin{lemma}\label{lem:k_liv}
+\begin{lem}\label{lem:k_liv}
 If the center $\cent$ is active at round $t$  and $\overline{c}_\cent(t) = \overline{k} $, 
 	then every node fires no later than round $\max(t, s^{\max}) + k $.
-\end{lemma}
+\end{lem}
 \begin{proof}
 Lemmas \ref{lem:k_mono} and \ref{lem:mono_mono} show that the system is $\overline{1}$-monovalent in round $t+1$
 	and $\overline{i}$-monovalent in every  following round~$t+i$.
@@ -308,10 +393,10 @@ In round $r$, every node, including $\cent$, sends $ \overline{k} $.
 According to line~\ref{line:fire}, every node fires no later than round~$r+1$.
 \end{proof}
  
-\begin{lemma}\label{lem:mono_liv}
+\begin{lem}\label{lem:mono_liv}
 If  round $t$ is a monovalent round in which the center $\cent$ is active, then 
 	every node fires before round $max( t, s^{\max} )+k + 1$.
-\end{lemma}
+\end{lem}
 \begin{proof}
 Lemma \ref{lem:mono_mono} guarantees that for every non negative integer~$i$,
 	the round~$t +i$ is monovalent.   
@@ -322,10 +407,10 @@ According to line~\ref{line:fire}, every node fires no later than round~$r+1$.
 \end{proof}
 
 
-\begin{lemma}\label{lem:mono_bi}
+\begin{lem}\label{lem:mono_bi}
 	Any round $t > \max (s(\cent), \try^{\max}) + 1$  is either monovalent or
 	$S$-valent with  $S = \{1, \overline{i} \, \}$.
-\end{lemma}
+\end{lem}
 \begin{proof}
 Let $t \geq \max (t_s(\cent), \try^{\max}) + 1$, and let $u$ be an active node at round~$t$.
 Since $t \geq s(\cent)+1$, we have $ \overline{c}_\cent(t - 1) = \overline{i -1 } \in \mathds{Z}/k\mathds{Z} $,
@@ -350,10 +435,10 @@ For the liveness property, Lemmas~\ref{lem:k_liv} and~\ref{lem:mono_liv} lead us
 	center reaches  the value $\overline{k}$:
 	liveness is then enforced by the existence of a good round.
 
-\begin{theorem}\label{thm:k>2}
+\begin{thm}\label{thm:k>2}
 Under the conditions of complete activation schedules and centered dynamic graphs,
 	the \SM algorithm solves the $\mathrm{mod}\,k$-synchronization problem for any integer~$k$ greater than 2.
-\end{theorem}
+\end{thm}
 
 \begin{proof}
 Let $\alpha$ be an execution of the \SM algorithm with a dynamic graph centered at~$\cent$ 
@@ -472,11 +557,11 @@ A node knowing that the system is monovalent may fire as soon as its counters is
 
 \end{algorithm}
 
-\begin{theorem}
+\begin{thm}
 Under the conditions of complete activation schedules and centered dynamic graphs,
 	the optimized \SM algorithm solves the $\mathrm{mod}\,k$-synchronization problem for any integer~$k$ greater than 2.
 	Moreover, in any execution of the optimized algorithm, no node can fire later than in the corresponding execution of the non-optimized algorithm.
-\end{theorem}
+\end{thm}
 
 The proof of the first part of this theorem is exactly the same as the proof of the non-optimized algorithm.
 Moreover, the proof of the second part results from a simple observation of the line \ref{line:detect-monovalent}.
@@ -574,9 +659,9 @@ In that case, the null messages are not dropped. They prevent the nodes from vot
 
 It is possible to prove the following theorem:
 
-\begin{theorem}
+\begin{thm}
 	The $SynchMod_4 \lozenge AdaptedUniformVoting$ algorithm solves the consensus problem under the condition of a centered dynamic graph and a complete activation schedule.
-\end{theorem}
+\end{thm}
 
 The proof of validity and agreement for UniformVoting given in \cite{CBS09} can easily be transposed to \newline $SynchMod_4 \lozenge AdaptedUniformVoting$.
 The proof of termination, which is radically different, is detailed below.
