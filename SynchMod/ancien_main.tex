@@ -96,7 +96,6 @@
 \usepackage[noend]{libHO/distribalgo}
 \usepackage{listings}
 \usepackage{graphicx}
-%\usepackage{stmaryrd}
 \usepackage[utf8]{inputenc}
 \usepackage[pdftex,pdfpagelabels,bookmarks,hyperindex,hyperfigures]{hyperref}
 
@@ -124,6 +123,17 @@
 
 \maketitle
 \tableofcontents
+
+\begin{abstract}
+	We define the mod k—synchronization problem as a weakening of the Firing Squad problem,
+	where all nodes fire not at the same round, but at rounds that are all equal modulo k.
+	We propose an algorithm that achieves mod k—synchronization  in any dynamic network
+	with a fixed spanning star. As opposed to the perfect synchronization in
+	the Firing Squad problem, mod k—synchronization thus does not require
+	any strong connectivity property in the network. 
+	Then, we develop our approach for the consensus problem,
+	and present different consensus algorithms that all tolerate asynchronous starts.
+\end{abstract}
 
 \section{Introduction}
 
