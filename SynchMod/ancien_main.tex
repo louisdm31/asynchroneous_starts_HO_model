@@ -17,6 +17,7 @@
 \newtheorem{definition}{Definition}
 \usepackage{biblatex}
 \addbibresource{dynamic.bib}
+\addbibresource{bibase.bib}
 
 \newcommand{\cent}{\gamma}
 
@@ -85,8 +86,8 @@ Indeed, let $A$ be an algorithm  organized into regular  \emph{phases} consistin
 Moreover, assume that $A$ has been proved correct (with respect to some given specification) when all nodes start $A$
 	synchronously (at round one) and with any dynamic graph in a family~${\cal G}$ that is stable  under
 	addition of arbitrary finite prefixes.
-For instance, the \emph{ThreePhaseCommit} algorithm for non-blocking atomic commitment~\cite{BHG},
-	as well as the consensus algorithms in~\cite{DLS87} or the \emph{LastVoting} algorithm ~\cite{CBS09}
+For instance, the \emph{ThreePhaseCommit} algorithm for non-blocking atomic commitment~\cite{BHG87},
+	as well as the consensus algorithms in~\cite{DLS88} or the \emph{LastVoting} algorithm ~\cite{CBS09}
 	-- corresponding to the consensus core of \emph{Paxos} -- fulfill all the above requirements
 	for phases of length $k=3$ and $k=4$, respectively, and the family ${\cal G}$ of dynamic graphs in which
 	there exists an infinite number of ``good'' communication patterns
@@ -510,7 +511,7 @@ Moreover, if we assume that no node remains passive forever, no edge is dropped 
 Then, the liveness proof with synchronous starts should be still valid if applied from that round.
 
 Some notable examples of algorithms which can be adapted with this approach include the LastVoting \cite{CBS09} algorithm (an round-based adaptation of Paxos \cite{paxos}) which solves consensus,
-and the ThreePhaseCommit \cite{3PC} algorithm, which solves the database commit problem.
+and the ThreePhaseCommit \cite{BT93} algorithm, which solves the database commit problem.
 
 \subsection{Algorithms with safety assumption}
 
@@ -621,8 +622,8 @@ This is another typical use case of the \SM algorithm.
 \subsection{A much simpler approach ?}
 
 In the case of the problem of consensus, we have mentioned in a previous paragraph the possibility to use Paxos.
-Since we only consider synchronous systems, much simpler algorithms like FloodSet \cite{lynch_distributed} exists.
-As mentioned in \cite{distributed_firing_squad}, the FloodSet algorithm can be adapted to solve consensus in a system with asynchronous starts.
+Since we only consider synchronous systems, much simpler algorithms like FloodSet \cite{Lyn96} exists.
+As mentioned in \cite{CDDS85}, the FloodSet algorithm can be adapted to solve consensus in a system with asynchronous starts.
 Using a variant of the firing squad algorithm (called $AdaptedFiringSquad_f$ here),
 where the nodes hold a counter $c_u \in \mathds{N}$, and fire when they reach an upper bound $f$ on the number of failure.
 Using $AdaptedFiringSquad_f \lozenge FloodSet$, we get a simple consensus algorithm.
@@ -636,7 +637,7 @@ More importantly, this method achieves \textit{non-uniform} consensus: only the 
 As any complex reasoning by cases, the correctness proof  of the \SM   algorithm, 
 	and more specifically the proof of the liveness property, is very error prone. 
 This is a typical example of the relevance of formal verification for distributed algorithms. 
-Indeed, in a later work~\cite{}, we used the interactive theorem prover Isabelle \cite{HO_isa} to encode the complete proof 
+Indeed, in a later work~\cite{}, we used the interactive theorem prover Isabelle \cite{Merz12} to encode the complete proof 
 	of Theorem~\ref{thm:k>2}, and thus obtained a certificate for  \SM\!\!'s correctness when $k$ is greater than 2.
 	
 Since $\mathrm{mod}\,2$-synchronization is reducible to $\mathrm{mod}\,4$-synchronization,
