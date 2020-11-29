@@ -135,6 +135,7 @@
 	and present different consensus algorithms that all tolerate asynchronous starts.
 \end{abstract}
 
+% section_intro (do not modify this comment)
 \section{Introduction}
 
 Distributed algorithms are often designed in a synchronous computing model, in which computation
@@ -206,7 +207,8 @@ Clearly, with the use of a ${\mathrm{mod}\,n}$-synchronization algorithm in a pr
 	With respect to a specification that lets a passive node to be  a coordinator.}
 	implements the rotating coordinator strategy in the context of asynchronous starts.
 
-\section{ Preliminaries}\label{sec:model}
+% section_model (do not modify this comment)
+\section{Preliminaries}\label{sec:model}
  
 \subsection{The computational model}
 	
@@ -282,6 +284,7 @@ Synchronous starts correspond to complete start schedules $\IS = (s_u)_{u\in V}$
 The property of synchronous starts can be relaxed into \emph{$\mathrm{mod}\,k$-synchronous starts},
 	where $k$ is any positive integer: for every pair of nodes~$u$ and $v$, it holds that $s_u \equiv s_v \!\mod k$.
 
+% section_algorithm (do not modify this comment)
 \section{The \SM algorithm}
 
 In the \SM algorithm, each node  maintains a local clock modulo $k$ with values in $\{ \overline{1}, \dots,  \overline{k} \}$.
@@ -381,12 +384,12 @@ The proof is by induction on $h \in \mathds{N}$.
 \begin{enumerate}
 	\item The base case $s=0$ corresponds to the assumption in the lemma.
 	\item Induction step:  assume that the round $t+h$ is $\overline{i+h}$-monovalent,
-			 and let~$u$ be  any active node in round~$t+h+1$.
-			The center $\cent$ is active in round $t +h$, and thus sends the value $\overline{i+h}$ to~$u$
-				in round~$ t+h+1$.
-			Therefore, the node~$u$ can receive only this value (in addition of null and $\bot$), and thus updates
-				$\overline{c}_u$ according to line~\ref{line:agreed}. 
-			It follows that $ \overline{c}_u(t+h+1) = \overline{i+h+1}$ as required.
+		and let~$u$ be  any active node in round~$t+h+1$.
+		The center $\cent$ is active in round $t +h$,
+		and thus sends the value $\overline{i+h}$ to~$u$ in round~$ t+h+1$.
+		Therefore, the node~$u$ can receive only this value (in addition of null and $\bot$),
+		and thus updates $\overline{c}_u$ according to line~\ref{line:agreed}. 
+		It follows that $ \overline{c}_u(t+h+1) = \overline{i+h+1}$ as required.
 \end{enumerate}
 \end{proof}
 
@@ -576,6 +579,7 @@ Under the conditions of complete activation schedules and centered dynamic graph
 The proof of the first part of this theorem is exactly the same as the proof of the non-optimized algorithm.
 Moreover, the proof of the second part results from a simple observation of the line \ref{line:detect-monovalent}.
 
+% section_cons (do not modify this comment)
 \section{Use-cases of $\mathrm{mod}\,n$-synchronization}
 
 \subsection{Algorithms without safety assumption}
@@ -727,6 +731,7 @@ Firstly, the nodes have to "know" an shared upper bound on the number of failure
 Then, only the simplest form of failure is supported: the crash-failures.
 More importantly, this method achieves \textit{non-uniform} consensus: only the non-crashed nodes are required to decide.
 
+% section_conclusion (do not modify this comment)
 \section{Conclusion and future work}
 
 As any complex reasoning by cases, the correctness proof  of the \SM   algorithm, 
@@ -743,6 +748,8 @@ This class of dynamic graphs plays a crucial role regarding benign failures as i
 In the wilder context of dynamic graphs, a natural question is whether the problem is still solvable 
 	under weaker connectivity assumptions, in particular, in the class of dynamic graphs with a fixed root, 
 	i.e., with a time-varying spanning tree at each round rooted at a fixed node.
+
+% end_section (do not modify this comment)
 
 \printbibliography
 
