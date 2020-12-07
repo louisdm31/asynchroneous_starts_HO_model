@@ -594,23 +594,28 @@ Moreover, the proof of the second part results from a simple observation of the 
 \ENDINDENT \BLANK
 
 \INDENT{\textbf{In each round $t$:}}
-	\STATE send $\langle \overline{c}_u, concordant_u \rangle$ to all 
+	\STATE send $\langle \overline{c}_u, concordant_u, delayed_u \rangle$ to all 
 	\STATE receive incoming messages
-	\STATE $\overline{c}_u \leftarrow$ minimum received value, incremented by 1
-	\STATE $concordant_u \leftarrow$ all received values are equal to $\langle v, true \rangle \wedge$ (hence no null, no $\bot$)
-	\IF{$concordant_u \wedge \overline{c}_u = k/2 \wedge \neg delayed_u$}
-		\STATE $\overline{c}_u \leftarrow 1$
+	\IF{at least a message raised the $delayed$ flag}
 		\STATE $delayed_u \leftarrow true$
-	\ELSE \IF{$concordant_u \wedge \overline{c}_u = 1 \wedge delayed_u$}
-		\STATE $fired_u \leftarrow true$
+		\STATE $\overline{c}_u \leftarrow min \{v+1, \langle v, *, true \rangle received \}$
+	\ELSE
+		\STATE $\overline{c}_u \leftarrow min \{v+1, \langle v, *, * \rangle received \}$
 	\ENDIF
+	\STATE $concordant_u \leftarrow$ all received values are equal to $\langle v, true, * \rangle$ (hence no null, no $\bot$)
+	\IF{$concordant_u \wedge \overline{c}_u = k/2 \wedge \neg delayed_u$}
+		\STATE $\overline{c}_u \leftarrow k/4$
+		\STATE $delayed_u \leftarrow true$
+	\ENDIF
+	\IF{$concordant_u \wedge \overline{c}_u = 1 \wedge delayed_u$}
+		\STATE $fired_u \leftarrow true$
 	\ENDIF
 	\IF{$\overline{c}_u < k/2$}
 		\STATE $stuck_u \leftarrow 0$
 	\ELSE
 		\STATE $stuck_u \leftarrow stuck_u + 1$
 	\ENDIF
-	\IF{$stuck_u > k \wedge \neg tried_u \wedge \neg ready_u$}
+	\IF{$stuck_u > k \wedge \neg tried_u$}
 		\STATE $\overline{c}_u \leftarrow \overline{k} $  \label{line:try}
 		\STATE $tried_u \leftarrow true$   \label{line:try+1}
 	\ENDIF
@@ -624,7 +629,17 @@ Moreover, the proof of the second part results from a simple observation of the 
 
 \end{algorithm}
 
+\begin{lemma}
+	If $concordant_u(r)$ is true, and $\overline{c}_u(r) = i > k/2$, then, $\forall h \in [r-i, r-D], \overline{c}_\cent(h) = h-r-i$
+\end{lemma}
 
+\begin{thm}
+	The algorithm is safe.
+\end{thm}
+\begin{proof}
+	We assume that $u$ is the first firing node, in round $r$.
+	Then, $concordant_u(r)$ is true.
+\end{proof}
 
 % section_cons (do not modify this comment)
 \section{Use-cases of $\mathrm{mod}\,n$-synchronization}
