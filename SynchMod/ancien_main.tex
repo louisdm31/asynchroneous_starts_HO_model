@@ -587,40 +587,46 @@ Moreover, the proof of the second part results from a simple observation of the 
 	\STATE $\overline{c}_u \in \mathds{Z}/k\mathds{Z} \cup \{\bot\}$, initially $\bot$
 	\STATE $tried_u \leftarrow false$
 	\STATE $concordant_u \leftarrow false$
+	\STATE $forced_u \leftarrow false$
+	\STATE $ready_u \leftarrow false$
 	\STATE $stuck_u \leftarrow 0$
-	\STATE $fired_u \leftarrow false$
-	\STATE $delayed_u \leftarrow false$
 
 \ENDINDENT \BLANK
 
 \INDENT{\textbf{In each round $t$:}}
-	\STATE send $\langle \overline{c}_u, concordant_u, delayed_u \rangle$ to all 
+	\STATE send $\langle \overline{c}_u, concordant_u, forced_u, ready_u \rangle$ to all 
 	\STATE receive incoming messages
-	\IF{at least a message raised the $delayed$ flag}
-		\STATE $delayed_u \leftarrow true$
-		\STATE $\overline{c}_u \leftarrow min \{v+1, \langle v, *, true \rangle received \}$
+	\IF{at least one forced message received, containing value $v$}
+		\STATE $forced_u \leftarrow true$
+		\STATE $\overline{c}_u \leftarrow v+1$
 	\ELSE
 		\STATE $\overline{c}_u \leftarrow min \{v+1, \langle v, *, * \rangle received \}$
 	\ENDIF
-	\STATE $concordant_u \leftarrow$ all received values are equal to $\langle v, true, * \rangle$ (hence no null, no $\bot$)
-	\IF{$concordant_u \wedge \overline{c}_u = k/2 \wedge \neg delayed_u$}
-		\STATE $\overline{c}_u \leftarrow k/4$
-		\STATE $delayed_u \leftarrow true$
+	\IF{$\overline{c}_u < k/2$}
+		\STATE $forced_u \leftarrow false$
 	\ENDIF
-	\IF{$concordant_u \wedge \overline{c}_u = 1 \wedge delayed_u$}
+	\STATE $ready_u \leftarrow$ all received messages were tagged as ready
+	\STATE $concordant_u \leftarrow$ all received values are equal to $\langle v, true, *, * \rangle$ (hence no null, no $\bot$)
+	\IF{$concordant_u \wedge \overline{c}_u = 1 \wedge ready_u$}
 		\STATE $fired_u \leftarrow true$
+	\ENDIF
+	\IF{$concordant_u \wedge \overline{c}_u = k/2 \wedge \neg tried_u$}
+		\STATE $tried_u \leftarrow true$
+		\STATE $forced_u \leftarrow true$
+	\ENDIF
+	\IF{$\overline{c}_u = 1$}
+		\STATE $concordant_u \leftarrow true$
+	\ENDIF
+	\IF{$\overline{c}_u = k/2$}
+		\STATE $ready_u \leftarrow tried_u$
 	\ENDIF
 	\IF{$\overline{c}_u < k/2$}
 		\STATE $stuck_u \leftarrow 0$
 	\ELSE
 		\STATE $stuck_u \leftarrow stuck_u + 1$
 	\ENDIF
-	\IF{$stuck_u > k \wedge \neg tried_u$}
+	\IF{$stuck_u > k$}
 		\STATE $\overline{c}_u \leftarrow \overline{k} $  \label{line:try}
-		\STATE $tried_u \leftarrow true$   \label{line:try+1}
-	\ENDIF
-	\IF{$\overline{c}_u = 1$}
-		\STATE $concordant_u \leftarrow true$
 	\ENDIF
 \ENDINDENT 
 
