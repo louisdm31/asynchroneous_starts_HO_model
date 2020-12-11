@@ -162,39 +162,34 @@
 	\STATE send $\langle \overline{c}_u, concordant_u, force_u, ready_u \rangle$ to all 
 	\STATE receive incoming messages
 	\IF{$\overline{c}_u = \bot$}
-		\STATE $alarm_u = v+1$ where $v$ is the value of any received message
+		\STATE $c_u = v$ where $v$ is the value of any received message, 0 if none received
 	\ENDIF
 	\STATE $force_u \leftarrow$ max forcing level received
-	\IF{$force_u > 1$}
-		\STATE $alarm_u \leftarrow v+1$ where $v$ is received from a level 2 or 3 message
-	\ELSE
-		\STATE $alarm_u = min (\{alarm_u+1\} \cup \{v+1, where~message~\langle v, *, 1, * \rangle~received\})$
-	\ENDIF
-	\IF{$alarm_u = k+1 \wedge level_u = 0$}
-		\STATE $\overline{c}_u \leftarrow 1$
-		\STATE $force_u \leftarrow 1$
-		\STATE $level_u \leftarrow 1$
-		\STATE $ready_u \leftarrow false$
-		\STATE $concordant_u \leftarrow false$
+	\IF{$level_u = 0 \wedge force_u = 0$}
+		\STATE $\overline{c}_u \leftarrow \overline{c}_u+1$
 	\ELSE
 		\STATE $let~V = \{v, such~that~message~\langle v, *, force_u, * \rangle~received\}$
-		\STATE $let~width(v) = min \{i \in \mathds{N} such~that~V \subseteq \{v, \dots, v+i\}\}$
+		\STATE $let~width(v) =$ smallest $i > 0$ such that $V \subseteq \{v, \dots, v+i\}$
 		\STATE $\overline{c}_u \leftarrow argmin~width$
-		\IF{$\overline{c}_u > k/2$}
-			\STATE $force_u \leftarrow 0$
-		\ENDIF
-		\STATE $ready_u \leftarrow$ all received messages were tagged as ready
-		\STATE $concordant_u \leftarrow$ all received values are equal to $\langle v, true, *, * \rangle$ (hence no null, no $\bot$) \label{line:conc_gossip}
 	\ENDIF
-	\IF{$concordant_u \wedge \overline{c}_u = 1 \wedge level_u < 2$}
-		\STATE $level_u \leftarrow 2$
-		\STATE $force_u \leftarrow 2$
+	\IF{$\overline{c}_u > k/2 \wedge force_u < 3$}
+		\STATE $force_u \leftarrow 0$
 	\ENDIF
-	\IF{$concordant_u \wedge \overline{c}_u = 1 \wedge ready_u$}
-		\STATE $force_u \leftarrow 3$
-		\STATE $level_u \leftarrow 3$
-	\ENDIF
+	\STATE $ready_u \leftarrow$ all received messages were tagged as ready
+	\STATE $concordant_u \leftarrow$ all received values are equal to $\langle v, true, *, * \rangle$ (hence no null, no $\bot$) \label{line:conc_gossip}
 	\IF{$\overline{c}_u = 1$}
+		\IF{$level_u = 0$}
+			\STATE $force_u \leftarrow 1$
+			\STATE $level_u \leftarrow 1$
+		\ENDIF
+		\IF{$concordant_u \wedge level_u = 1$}
+			\STATE $level_u \leftarrow 2$
+			\STATE $force_u \leftarrow 2$
+		\ENDIF
+		\IF{$force_u = 3 \vee (concordant_u \wedge ready_u)$}
+			\STATE $force_u \leftarrow 3$
+			\STATE $level_u \leftarrow 3$
+		\ENDIF
 		\STATE $concordant_u \leftarrow true$
 		\STATE $ready_u \leftarrow level_u > 1$
 	\ENDIF
@@ -206,11 +201,11 @@
 \end{algorithm}
 
 \begin{lemma}
-	If $concordant_u(t+k+1) \wedge \overline{c}_u(t+k+1) = 1$, then, for all $0 \leq i < k/2$, the counter of \cent verifies $\overline{c}_\cent(t+i) = i$.
+	If $concordant_u(t+k+1) \wedge \overline{c}_u(t+k+1) = 1$, then, for all $0 < i \leq k/2$, the counter of $\cent$ verifies $\overline{c}_\cent(t+i) = i$.
 \end{lemma}
 \begin{proof}
 	For any $i$ in the above range, there exists a path from $\cent$ in round $t+i$ to $u$ in round $t+k+1$. 
-	We can now show by induction over $k+1-i$ that every node $v(j)$ on this path verifies $c_v(j)(t+j) = j+1$ and $concordant_v(j)(t+j)$.
+	We can now show by induction over $k+1-i$ that for any $i < j < k+1$, the $j^{th}$-node $v(j)$ on this path verifies $c_v(j)(t+j) = j+1$ and $concordant_v(j)(t+j)$.
 \end{proof}
 
 \begin{lemma}
