@@ -149,34 +149,36 @@
 \begin{algorithm}[htb]\label{algo:code}
 \begin{distribalgo}[1]
 \BLANK \INDENT{\textbf{Initialization:}}
-	\STATE $\overline{c}_u \in \mathds{Z}/k\mathds{Z} \cup \{\bot\}$, initially $\bot$
+	\STATE $\overline{c}_u \in \mathds{Z}/k\mathds{Z} \cup \{\bot\}$, initially 0
 	\STATE $concordant_u \leftarrow false$
 	\STATE $ready_u \leftarrow false$
 	\STATE $force_u \in \{0, 1, 2, 3\}$, initially 0
 	\STATE $level_u \in \{0, 1, 2, 3\}$, initially 0
-	\STATE $alarm_u \in \mathds{N} \cup \bot$, initially $\bot$
+	\STATE $silence_u \leftarrow true$
 
 \ENDINDENT \BLANK
 
 \INDENT{\textbf{In each round $t$:}}
-	\STATE send $\langle \overline{c}_u, concordant_u, force_u, ready_u \rangle$ to all 
-	\STATE receive incoming messages
-	\IF{$\overline{c}_u = \bot$}
-		\STATE $c_u = v$ where $v$ is the value of any received message, 0 if none received
-	\ENDIF
-	\STATE $force_u \leftarrow$ max forcing level received
-	\IF{$level_u = 0 \wedge force_u = 0$}
-		\STATE $\overline{c}_u \leftarrow \overline{c}_u+1$
+	\IF{$silence_u$}
+		\STATE send $\bot$ to all 
 	\ELSE
-		\STATE $let~V = \{v, such~that~message~\langle v, *, force_u, * \rangle~received\}$
+		\STATE send $\langle \overline{c}_u, concordant_u, force_u, ready_u \rangle$ to all 
+	\ENDIF
+	\STATE receive incoming messages
+	\STATE $silence_u \leftarrow silence_u \wedge \overline{c}_u < k/2 \wedge$ no value received
+	\STATE $force_u \leftarrow$ max forcing level received \label{line:force}
+	\IF{$level_u = 0 \wedge force_u = 0$}
+		\STATE $\overline{c}_u \leftarrow \overline{c}_u+1$ \label{line:straight-increment}
+	\ELSE
+		\STATE $let~V = \{v, such~that~message~\langle v, *, force_u, * \rangle~received\}$ \label{line:min-z}
 		\STATE $let~width(v) =$ smallest $i > 0$ such that $V \subseteq \{v, \dots, v+i\}$
-		\STATE $\overline{c}_u \leftarrow argmin~width$
+		\STATE $\overline{c}_u \leftarrow 1+argmin~width$ \label{line:min-z-end}
 	\ENDIF
 	\IF{$\overline{c}_u > k/2 \wedge force_u < 3$}
-		\STATE $force_u \leftarrow 0$
+		\STATE $force_u \leftarrow 0$ \label{line:back-to-0}
 	\ENDIF
 	\STATE $ready_u \leftarrow$ all received messages were tagged as ready
-	\STATE $concordant_u \leftarrow$ all received values are equal to $\langle v, true, *, * \rangle$ (hence no null, no $\bot$) \label{line:conc_gossip}
+	\STATE $concordant_u \leftarrow$ all received values are equal to $\langle v, true, *, * \rangle$ (hence no null, no $\bot$) \label{line:conc-gossip}
 	\IF{$\overline{c}_u = 1$}
 		\IF{$level_u = 0$}
 			\STATE $force_u \leftarrow 1$
@@ -184,14 +186,14 @@
 		\ENDIF
 		\IF{$concordant_u \wedge level_u = 1$}
 			\STATE $level_u \leftarrow 2$
-			\STATE $force_u \leftarrow 2$
+			\STATE $force_u \leftarrow 2$ \label{line:force2}
 		\ENDIF
 		\IF{$force_u = 3 \vee (concordant_u \wedge ready_u)$}
 			\STATE $force_u \leftarrow 3$
 			\STATE $level_u \leftarrow 3$
 		\ENDIF
-		\STATE $concordant_u \leftarrow true$
-		\STATE $ready_u \leftarrow level_u > 1$
+		\STATE $concordant_u \leftarrow true$ \label{line:conc-true}
+		\STATE $ready_u \leftarrow level_u > 1$ \label{line:init-ready}
 	\ENDIF
 \ENDINDENT 
 
@@ -200,28 +202,102 @@
 
 \end{algorithm}
 
-\begin{lemma}
-	If $concordant_u(t+k+1) \wedge \overline{c}_u(t+k+1) = 1$, then, for all $0 < i \leq k/2$, the counter of $\cent$ verifies $\overline{c}_\cent(t+i) = i$.
-\end{lemma}
+We assume that the dynamic graph verifies the predicate $\mathcal{P}_{rooted} \equiv \exists \cent \in \Pi, \exists D > 0, \mathds{G}(t:t+D)$ contains a spanning tree rooted by $\cent$.
+We also assume that $2D+1 < k$.
+
+\begin{lem} \label{lem:conc-safety}
+	If $concordant_u(t+k+1) \wedge \overline{c}_u(t+k+1) = 1$, then, for all $i \in \{1, \dots, k/2+1\}$, the counter of $\cent$ verifies $\overline{c}_\cent(t+i) = i$.
+\end{lem}
 \begin{proof}
-	For any $i$ in the above range, there exists a path from $\cent$ in round $t+i$ to $u$ in round $t+k+1$. 
-	We can now show by induction over $k+1-i$ that for any $i < j < k+1$, the $j^{th}$-node $v(j)$ on this path verifies $c_v(j)(t+j) = j+1$ and $concordant_v(j)(t+j)$.
+	We have $t+k+1 - (t+i) \geq k+1 - k/2 - 1 \geq k/2 \geq D$.
+	Then, using $\mathcal{P}_{rooted}$, for any $i \in \{1, \dots, k/2+1\}$ in the above range, there exists a path from $\cent$ in round $t+i$ to $u$ in round $t+k+1$. 
+	We can now show by induction over $k+1-i$ that for any $i \leq j \leq k+1$, the $j^{th}$-node $v(j)$ on this path verifies $c_v(j)(t+j) = j$ and $concordant_v(j)(t+j)$.
+
+	The base case is the hypothesis of the lemma.
+
+	For the induction case, we assume that $i \leq j < k+1$, and $\overline{c}_c(j+1)(t+j+1) = j+1$ and $concordant_c(j+1)(t+j+1)$.
+	By the definition of a path, we know that $c(j)$ sent a message $\langle v, concordant_c(j)(t+j), *, * \rangle$ to $c(j+1)$.
+	If $i = j = 1$, the induction case is deductible from line \ref{line:conc-true}.
+	Otherwise, from line \ref{line:conc-gossip}, we get that $concordant_c(j)(t+j)$. Moreover, the received messages are concordant.
+	Then, from lines \label{line:min-z} to \label{line:min-z-end}, we get $\overline{c}_c(j+1)(t+j+1) = v+1$, then $\overline{c}_c(j)(t+j) = v = j$.
 \end{proof}
 
-\begin{lemma}
+\begin{lem} \label{lem:no-close-level2}
 	If $u$ reaches level 2 in round $t+k+1$, no node can reach level 2 in any round between $t+k+2$ and $t+k+k/2+1$.
-\end{lemma}
+\end{lem}
 \begin{proof}
-	By contradiction, we assume that $v$ reaches level 2 in round $t+k+2 < t+k+2+i \leq t+k+k/2$.
-	Using previous lemma, we get $c_\cent(t+i) = i$ and $c_\cent(t+i) = 1$.
+	We assume that $v$ reaches level 2 in round $t+k+i+1$ where $i \in \{1, \dots, k/2\}$.
+	Applying the previous lemma to $u$ and $v$, we get respectively $c_\cent(t+i+1) = i+1$ and $c_\cent(t+i+1) = 1$.
+	That contradicts the assumption $i > 0$.
+\end{proof}
+
+\begin{lem} \label{lem:ready-safety}
+	If node $u$ reaches level 3 in round $t+k$, then $\cent$ must have reached level 2 in round $t$.
+\end{lem}
+\begin{peoof}
+	We assume that $u$ is the first level 3 node. Then, in round $t+k$, the node $u$ may only receive ready messages.
+	Using lemma \ref{lem:conc-safety}, we get that $\overline{c}_\cent(t) = 1$.
+	Using a reasoning similar to the proof of lemma \ref{lem:conc-safety}, we can show that the messages sent by $\cent$ in round $t+1$ must be ready.
+	Otherwise, by induction over a path from $\cent$ to $u$, $u$ would have received a non-ready message.
+	According to line \ref{line:init-ready}, $\cent$ must have reached level 2 in round $t$.
+\end{peoof}
+
+\begin{lem} \label{lem:safety-force}
+	If $\overline{c}_u(t+i) = i$ and $force_u(t+i) > 0$, then a node must have reached level $force_u(t+i)$ in round $t+1$.
+\end{lem}
+\begin{proof}
+	Without loss of generality, we assume $force_u(t+i) = 2$.
+	We show this lemma by induction over $i$.
+	For the base case, we have to show that the line \ref{line:force2} was executed by $u$ in round $t+1$.
+	We just have to prove that $force_u(t+1)$ was different from 2 before the execution of this line, we reason by contradiction.
+	If $force_u(t+1)$ was already equal to 2, a node $v$ must have sent a message which looks like $\langle k, *, 2, * \rangle$ (see line \ref{line:force} and \ref{line:min-z}).
+	This is impossible because of line \ref{line:back-to-0}.
+
+	For the induction case, we assume that $\overline{c}_u(t+i+1) = i+1$ and $force_u(t+i+1) = 2$.
+	Then, a node $v$ must have sent a message which looks like $\langle i, *, 2, * \rangle$ (see line \ref{line:force} and \ref{line:min-z}).
+	The proof can now be concluded thanks to the induction hypothesis.
+\end{proof}
+
+The system is said to be \textit{v-monovalent} in round $t$ if every node $u$ verifies $\overline{c}_u(t) = v \vee silent_u(t)$.
+
+\begin{lem} \label{lem:monovalent}
+	If $\cent$ reaches level 2 in round $t+1$, the system is monovalent from round $t+k/2$, and no node is silent.
+\end{lem}
+\begin{proof}
+	We consider any node $u$.	
+	We consider the path $(\cent = v(1), \dots, v(k/2) = u)$ between $\cent$ and $u$.
+	We show by induction over $i \in \{1, \dots, k/2\}$ that $\overline{c}_v(i) = i$ and $force_c_(i) = 2$.
+
+	The base case simply results from line \ref{line:force2}.
+	For the induction case, we assume that $\overline{c}_v(i) = i$ and $force_c_(i) = 2$.
+	Then $v(i)$ sends to $v(i+1)$ a message which looks like $\langle i, *, 2, * \rangle$.
+	We get $force_c_(i+1) = 2$.
+	In order to prove $\overline{c}_v(i+1) = i+1$, we need to show that $v(i+1)$ cannot receive a message looking like $\langle i' < i, *, 2, * \rangle$.
+	That can be deduced from lemmas \ref{lem:safety-force} and \ref{lem:no-close-level2}.
+
+	Using that, we get $\forall u \in \mathcal{A}_{t+k/2}, \overline{c}_u = k/2$. The system is now monovalent.
+\end{proof}
+
+\begin{lem}
+	If $\cent$ is active and non-silent, and the system is strongly $i$-monovalent in round $t$, it must be weakly $i+h$-monovalent in round $t+h$.
+\end{lem}
+\begin{proof}
+	Since $\cent$ is active
+
+	We do the proof by induction over the round number. The base case holds since a strongly monovalent system is also weakly monovalent.
+	For the induction case, we assume that the system is weakly $i+h$-monovalent in round $t+h$.
+	We consider a node $u$ which is non-silent in round $t+h+1$.
+	If $u$ is silent in round $t+h$, and was active in round $t$
+	Using the line 
+	If the system is strongly monovalent in round $t$, then in round $t+1$, 
 \end{proof}
 
 
-\begin{lemma}
+\begin{lem}
 	If $concordant_u(r)$ is true, and $\overline{c}_u(r) = i > k/2$, then, $\forall h \in [r-i, r-D], \overline{c}_\cent(h) = h-r-i$
-\end{lemma}
+\end{lem}
 
-\begin{thm}
+\begin{thm} \label{lem:safety} 
 	The algorithm is safe.
 \end{thm}
 \begin{proof}
