@@ -149,50 +149,45 @@
 \begin{algorithm}[htb]\label{algo:code}
 \begin{distribalgo}[1]
 \BLANK \INDENT{\textbf{Initialization:}}
-	\STATE $\overline{c}_u \in \mathds{Z}/k\mathds{Z} \cup \{\bot\}$, initially 0
+	\STATE $c_u \in \mathds{N}$, initially 0
 	\STATE $concordant_u \leftarrow false$
+	\STATE $nopassive_u \leftarrow false$
 	\STATE $ready_u \leftarrow false$
 	\STATE $force_u \in \{0, 1, 2, 3\}$, initially 0
 	\STATE $level_u \in \{0, 1, 2, 3\}$, initially 0
-	\STATE $silence_u \leftarrow true$
 
 \ENDINDENT \BLANK
 
 \INDENT{\textbf{In each round $t$:}}
-	\IF{$silence_u$}
-		\STATE send $\bot$ to all 
-	\ELSE
-		\STATE send $\langle \overline{c}_u, concordant_u, force_u, ready_u \rangle$ to all 
-	\ENDIF
+	\STATE send $\langle \overline{c}_u, nopassive_u, concordant_u, force_u, ready_u \rangle$ to all 
 	\STATE receive incoming messages
-	\STATE $silence_u \leftarrow silence_u \wedge \overline{c}_u < k/2 \wedge$ no value received
 	\STATE $force_u \leftarrow$ max forcing level received \label{line:force}
 	\IF{$level_u = 0 \wedge force_u = 0$}
-		\STATE $\overline{c}_u \leftarrow \overline{c}_u+1$ \label{line:straight-increment}
+		\STATE $c_u \leftarrow c_u+1$ \label{line:straight-increment}
 	\ELSE
-		\STATE $let~V = \{v, such~that~message~\langle v, *, force_u, * \rangle~received\}$ \label{line:min-z}
-		\STATE $let~width(v) =$ smallest $i > 0$ such that $V \subseteq \{v, \dots, v+i\}$
-		\STATE $\overline{c}_u \leftarrow 1+argmin~width$ \label{line:min-z-end}
+		\STATE $c_u \leftarrow$ minimum received value among maximum force messages \label{line:min-z-end}
 	\ENDIF
-	\IF{$\overline{c}_u > k/2 \wedge force_u < 3$}
-		\STATE $force_u \leftarrow 0$ \label{line:back-to-0}
-	\ENDIF
+	\STATE $nopassive_u \leftarrow$ no null received and all received message tagged non-passive
 	\STATE $ready_u \leftarrow$ all received messages were tagged as ready
-	\STATE $concordant_u \leftarrow$ all received values are equal to $\langle v, true, *, * \rangle$ (hence no null, no $\bot$) \label{line:conc-gossip}
-	\IF{$\overline{c}_u = 1$}
+	\STATE $concordant_u \leftarrow$ all received values are congruent modulo $k$ \label{line:conc-gossip}
+	\IF{$c_u \equiv 0 [k] \wedge (nopassive_u \vee force_u = 3)$}
 		\IF{$level_u = 0$}
 			\STATE $force_u \leftarrow 1$
 			\STATE $level_u \leftarrow 1$
+			\STATE $c_u \leftarrow 0$
 		\ENDIF
 		\IF{$concordant_u \wedge level_u = 1$}
 			\STATE $level_u \leftarrow 2$
 			\STATE $force_u \leftarrow 2$ \label{line:force2}
+			\STATE $c_u \leftarrow 0$
 		\ENDIF
 		\IF{$force_u = 3 \vee (concordant_u \wedge ready_u)$}
 			\STATE $force_u \leftarrow 3$
 			\STATE $level_u \leftarrow 3$
+			\STATE $c_u \leftarrow 0$
 		\ENDIF
 		\STATE $concordant_u \leftarrow true$ \label{line:conc-true}
+		\STATE $nopassive_u \leftarrow true$ \label{line:nopassive-true}
 		\STATE $ready_u \leftarrow level_u > 1$ \label{line:init-ready}
 	\ENDIF
 \ENDINDENT 
