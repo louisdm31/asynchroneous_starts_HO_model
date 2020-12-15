@@ -145,10 +145,11 @@
 % section_algorithm (do not modify this comment)
 \section{The \SM algorithm}
 
+In this algorithm, the nodes hold a $level$ variable. When they start, they are level 0. They eventually reach level 1 then level 2.
+A node fires when it reaches level 2.
+
 The colored section in the algorithm actually implement an optimization.
 For the proof, we will at first consider this optimization disabled.
-
-\subsection{The GeneralizedSynchMod algorithm}
 
 \begin{algorithm}[htb]\label{algo:code}
 \begin{distribalgo}[1]
@@ -207,7 +208,7 @@ We also assume that $2D+1 < k$.
 	Then, from line \label{line:min-z-end}, we get $\overline{c}_c(j+1)(t+j+1) \equiv v+1 [k]$, then $\overline{c}_c(j)(t+j) \equiv v \equiv j [k]$.
 \end{proof}
 
-Using the exact same reasoning, we can prove the following lemma.
+\noindent Using the exact same reasoning, we can prove the following lemma.
 \begin{lem} \label{lem:conc-safety-bis}
 	If $concordant_u(t+k) \wedge ready_u(t+k) \wedge c_u(t+k) \equiv 0 [k]$, then $\cent$ must already have reached level 1 in round $t+i$.
 \end{lem}
@@ -261,7 +262,7 @@ Using the exact same reasoning, we can prove the following lemma.
 	The case $i \leq k/2$ is impossible according to lemma \ref{lem:no-close-level2}.
 
 	In the case $i > k/2$, since $concordant_u(t+i)$ is true, there exist an active path from $\cent$ in round $t$ to $u$ in round $t+i$.
-	On this path $(v(0), \dots, v(i))$, we can show by a simple induction that, for any $0 \leq j \leq i$, we have $c_{v(j)}(t+j) \leq c_\cent(t)+j$.
+	On this path $(\cent = v(0), \dots, v(i) = u)$, we can show by a simple induction that, for any $0 \leq j \leq i$, we have $c_{v(j)}(t+j) \leq c_\cent(t)+j$.
 	Since we assumed that $i \not\equiv 0[k]$, we have $c_u(t+i) \neq c_\cent(t)+i$.
 	Then, using lemma \ref{lem:safety-force} gives us that a node $v$ must have reached level 1 later than $\cent$, with $c_v(t+i) = c_u(t+i)$.
 	This contradicts the fact that $u$ was the first non-congruent level 1 node.
@@ -279,26 +280,27 @@ Using the exact same reasoning, we can prove the following lemma.
 	Since we have $c_u(t+i) \equiv 0 [k]$ and $c_v(t+j) \equiv 0 [k]$, we get $i \equiv j [k]$. That proves safety.
 \end{proof}
 
-\begin{lemma}
-	Every node reaches level 1.
-\end{lemma}
+\begin{lem}
+	Every node eventually reaches level 1.
+\end{lem}
 \begin{proof}
 	Let $Z_r$ be the set of level 0 nodes in round $r$.
 	Let $V_r$ be the set of values of $Z_r$.
-	We consider the sequence $h_r = |Z_r| + max V_r - min V_r$.
-	We have to show that $Z_r$ eventually becomes empty, in other words $(h_r)$ is eventually undefined.
+	We consider the sequence $h_r = |Z_r| + max~V_r - min~V_r$.
+	We have to show that $Z_r$ eventually becomes empty, in other words $(h_r)$ should eventually be undefined.
 	By contradiction, we assume that $(h_r)$ is always defined.
 	Let $s^{max}$ the first round in which every node is active.
 	If $r \geq s^{max}$, we can show that if $V_r \subseteq \{t, \dots, t+i\}$, then $V_{r+1} \subseteq \{t+1, \dots , t+i+1\}$ (see line \ref{line:min-z-end}).
 	That proves that $(h_r)$ cannot grow from $s^{max}$.
-	Then, from a round $t$, the set $Z_r$ is stabilized and $max V_r - min V_r$ is constant.
-	We consider the set $Z_r^{max}$, which contains every nodes $u$ such that $c_u(r) = max V_r$.
+	Then, there exists a round $t$ from which the set $Z_r$ is stabilized and $max~V_r - min~V_r$ is constant.
+	We consider the set $Z_r^{max}$, which contains every nodes $u$ such that $c_u(r) = max~V_r$.
 	For any $r \geq t$, we can show that $Z_{r+1}^{max} = \{u \in Z_r^{max}, HO(u, r+1) \subseteq Z_r^{max}\}$. That is a consequence of line \ref{line:min-z-end}.
-	Then, this sequence of set is decreasing from $t$. Moreover, it cannot become empty. Then we consider the non-empty set $M = \bigcap\limits_{r \geq t} Z_r^{max}$.
+	Then, this sequence of set is decreasing from $t$. Moreover, it cannot become empty, otherwise $max~V_r - min~V_r$ would decrease.
+	Then we consider the non-empty set $M = \bigcap\limits_{r \geq t} Z_r^{max}$.
 	Such a set is a subset of the system, which from $t$, never receive any message from the outside, and all hold the same value.
-	From the round $t+k$, the line \ref{line:conc-gossip} implies that any $u \in M$ must verify $\forall r > t+k, concordant_u(r)$.
-	Then, every node in $M$ must reach level 1 before round $t+2k$.
-	However we assumed that $Z_r$ was constant from $t$. We get a contradiction.
+	From the round $t+k$, the line \ref{line:conc-gossip} implies that any $u \in M$ must hold a true $concordant$ variable.
+	Then, every node in $M$ must reach level 1 before round $t+2k$. Hence $M \cap Z_{t+2k} = \emptyset$.
+	We get a contradiction with the definition of $M$.
 \end{proof}
 
 \begin{lem}
@@ -306,6 +308,12 @@ Using the exact same reasoning, we can prove the following lemma.
 \end{lem}
 \begin{proof}
 	We consider the round $t$ in which every node have reached level 1.
+	For any node $u$, we consider the path $(\cent = v(0), \dots, v(k) = u)$ which starts from $\cent$ in round $t$, end in $u$ in round $t+k$.
+	Every node is now active.
+	By a simple forward induction on this path, we can prove that $c_u(t+k) \leq c_\cent(t)+k$.
+	With lemma \ref{lem:later-level1}, we can show that from round $t+k$, every values in the system are congruent modulo $k$.
+	Then, from $t+2k$, the variables $ready$ and $concordant$ must be true in all nodes.
+	Every node must have reached level 2 in round $t+3k$.
 \end{proof}
 
 % section_cons (do not modify this comment)
