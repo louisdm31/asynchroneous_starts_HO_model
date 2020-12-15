@@ -10,15 +10,6 @@
 \usetikzlibrary{shapes.symbols,arrows}
 \usepackage{enumerate}
 
-\usepackage{algorithm,algorithmic}
-
-\renewcommand{\algorithmicrequire}{\textbf{Initialization:}}
-\renewcommand{\algorithmicensure}{\textbf{In each round $t$ do:}}
-
-\newcommand{\INITIALLY}{\REQUIRE{}}
-\newcommand{\ROUND}{\ENSURE{}}
-
-
 \DeclareMathOperator{\NC}{NC}
 \DeclareMathOperator{\NCL}{NCL}
 \DeclareMathOperator{\lcm}{lcm}
@@ -94,7 +85,7 @@
 \newcommand{\onevec}{{\mathbf{1}}}
 \newcommand{\zerovec}{{\mathbf{0}}}
 
-\usepackage[noend]{libHO/distribalgo}
+\usepackage[ruled, linesnumbered, noline]{algorithm2e}
 \usepackage{listings}
 \usepackage{graphicx}
 \usepackage[utf8]{inputenc}
@@ -151,42 +142,40 @@ A node fires when it reaches level 2.
 The colored section in the algorithm actually implement an optimization.
 For the proof, we will at first consider this optimization disabled.
 
-\begin{algorithm}[htb]\label{algo:code}
-\begin{distribalgo}[1]
-\BLANK \INDENT{\textbf{Initialization:}}
-	\STATE $c_u \in \mathds{N}$, initially 0
-	\STATE $concordant_u \leftarrow false$
-	\STATE $ready_u \leftarrow false$
-	\STATE $force_u \in \{0, 1, 2\}$, initially 0
-	\STATE $level_u \in \{0, 1, 2\}$, initially 0
-
-\ENDINDENT \BLANK
-
-\INDENT{\textbf{In each round $t$:}}
-	\STATE send $\langle \overline{c}_u, concordant_u, force_u, ready_u \rangle$ to all 
-	\STATE receive incoming messages
-	\STATE $force_u \leftarrow$ maximum forcing level received \label{line:force}
-	\STATE $c_u \leftarrow 1+$ minimum received value among maximum force messages \label{line:min-z-end}
-	\STATE $ready_u \leftarrow$ all received messages were tagged as ready \label{line:ready-gossip} 
-	\STATE $concordant_u \leftarrow$ all received values are congruent modulo $k$ and no null received \label{line:conc-gossip}
-	\IF{$c_u \equiv 0 [k] \wedge (concordant_u \textcolor{teal}{\vee force_u = 2)}$} \label{line:cond-levelup} 
-		\IF{$level_u = 0$}
-			\STATE $level_u \leftarrow 1$
-			\STATE $force_u \leftarrow 1$ \label{line:force2}
-			\STATE $c_u \leftarrow 0$ \label{line:force3}
-		\ENDIF
-		\IF{$\textcolor{teal}{force_u = 2 \vee} ready_u$} \label{line:cond-firing} 
-			\STATE $\color{teal} force_u \leftarrow 2$
-			\STATE $level_u \leftarrow 2$
-		\ENDIF
-		\STATE $concordant_u \leftarrow true$ \label{line:conc-true}
-		\STATE $ready_u \leftarrow level_u > 0$ \label{line:init-ready}
-	\ENDIF
-\ENDINDENT 
-
-\caption{The generalized \SM algorithm} \label{algo:R}
-\end{distribalgo}
-
+\begin{algorithm}[htb]
+	\DontPrintSemicolon
+	\textbf{Initialization:} \;
+	\Indp
+		$c_u \in \mathds{N}$, initially 0 \;
+		$concordant_u \leftarrow false$ \;
+		$ready_u \leftarrow false$ \;
+		$force_u \in \{0, 1, 2\}$, initially 0 \;
+		$level_u \in \{0, 1, 2\}$, initially 0 \;
+	\BlankLine
+	\Indm
+	\textbf{At each round $r$:} \;
+	\Indp
+		send $\langle \overline{c}_u, concordant_u, force_u, ready_u \rangle$ to all  \;
+		receive incoming messages \;
+		$force_u \leftarrow$ maximum forcing level received \;\label{line:force}
+		$c_u \leftarrow 1+$ minimum received value among maximum force messages \;\label{line:min-z-end} 
+		$ready_u \leftarrow$ all received messages were tagged as ready \; \label{line:ready-gossip} 
+		$concordant_u \leftarrow$ all received values are congruent modulo $k$ and no null received \; \label{line:conc-gossip}
+		\If{$c_u \equiv 0 [k] \wedge (concordant_u \textcolor{teal}{\vee force_u = 2)}$}{ \label{line:cond-levelup} 
+			\If{$level_u = 0$}{
+				$level_u \leftarrow 1$ \;
+				$force_u \leftarrow 1$ \; \label{line:force2}
+				$c_u \leftarrow 0$ \; \label{line:force3}
+			}
+			\If{$\textcolor{teal}{force_u = 2 \vee} ready_u$}{ \label{line:cond-firing}
+				$\color{teal} force_u \leftarrow 2$ \;
+				$level_u \leftarrow 2$ \;
+			}
+			$concordant_u \leftarrow true$ \; \label{line:conc-true}
+			$ready_u \leftarrow level_u > 0$ \; \label{line:init-ready}
+		}
+	\Indm
+\caption{The generalized \SM algorithm} 
 \end{algorithm}
 
 We assume that the dynamic graph verifies the predicate $\mathcal{P}_{rooted} \equiv \exists \cent \in \Pi, \exists D > 0, \mathds{G}(t:t+D)$ contains a spanning tree rooted by $\cent$.
@@ -205,7 +194,7 @@ We also assume that $2D+1 < k$.
 	By the definition of a path, we know that $c(j)$ sent a message $\langle v, concordant_c(j)(t+j), *, * \rangle$ to $c(j+1)$.
 	If $i = j = 1$, the induction case is deductible from line \ref{line:conc-true}.
 	Otherwise, from line \ref{line:conc-gossip}, we get that $c(j)$ is active and $concordant_{c(j)}(t+j)$. Moreover, the received messages are concordant.
-	Then, from line \label{line:min-z-end}, we get $\overline{c}_c(j+1)(t+j+1) \equiv v+1 [k]$, then $\overline{c}_c(j)(t+j) \equiv v \equiv j [k]$.
+	Then, from line \ref{line:min-z-end}, we get $\overline{c}_c(j+1)(t+j+1) \equiv v+1 [k]$, then $\overline{c}_c(j)(t+j) \equiv v \equiv j [k]$.
 \end{proof}
 
 \noindent Using the exact same reasoning, we can prove the following lemma.
@@ -230,15 +219,15 @@ We also assume that $2D+1 < k$.
 \begin{lem} \label{lem:ready-safety}
 	If node $u$ reaches level 2 in round $t+i$, then $\cent$ must have reached level 1 in a previous round $t$. Moreover $c_u(t+i) \leq i$.
 \end{lem}
-\begin{peoof}
+\begin{proof}
 	The first part of the lemma results from lemma \ref{lem:conc-safety-bis}. We now prove the second part.
 	We consider a path $(\cent = v(0), \dots, v(i) = u)$ from $\cent$ in round $t$ to $u$ in round $t+k$. This path must exist, since lemma \ref{lem:no-close-level2} tells us that $i > k/2$.
 	Using a simple backward induction on this path, we can show that any $v(j)$ on this path is active, is at least in level 1, and verifies $ready_{v(j)}(t+j)$ and $concordant_{v(j)}(t+j)$.
-	The base case relies on the lines \ref{line:cond-firing} and \ref{line:cond-levelup}. The induction case relies on lines \label{line:ready-gossip} and \ref{line:ready-gossip}.
+	The base case relies on the lines \ref{line:cond-firing} and \ref{line:cond-levelup}. The induction case relies on lines \ref{line:ready-gossip} and \ref{line:ready-gossip}.
 
 	Using a simple forward induction on this path, we can show that any $v(j)$ on this path verifies $force_{v(j)}(t+j) \geq 1$ and $c_{v(j)}(t+j) \leq j$.
-	The base case relies on the lines \ref{line:force2} and \ref{line:force3}. The induction case relies on lines \label{line:force} and \ref{line:min-z-end}.
-\end{peoof}
+	The base case relies on the lines \ref{line:force2} and \ref{line:force3}. The induction case relies on lines \ref{line:force} and \ref{line:min-z-end}.
+\end{proof}
 
 \begin{lem} \label{lem:safety-force}
 	If $c_u(t+i) = i$, then a node must have reached level $force_u(t+i)$ in round $t$.
