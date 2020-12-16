@@ -1,4 +1,5 @@
------------------------------- MODULE SyncMod ------------------------------
+
+------------------------------ MODULE GenSyncMod ------------------------------
 (***************************************************************************)
 (* TLA+ specification of the algorithm for synchronization modulo k.       *)
 (***************************************************************************)
@@ -12,21 +13,27 @@ N == Cardinality(Proc)
 Min(S) == CHOOSE s \in S : \A t \in S : s <= t
 
 (* process states modeled as records *)
-State == [x : Nat, force : BOOLEAN, fire : BOOLEAN]
+State == [x : Nat, force : Nat, concordant : BOOLEAN, ready : BOOLEAN, level : Nat]
+MsgTuple == [x : Nat, force : Nat, concordant : BOOLEAN, ready : BOOLEAN]
 
 (* messages are either a natural number or None *)
-None == CHOOSE x : x \notin Nat
-Msg == Nat \cup {None}
+None == CHOOSE x : x \notin MsgTuple
+Msg == MsgTuple \cup {None}
 NoMsg == CHOOSE x : x \notin Msg
 
 (* We count rounds modulo k *)
 roundsPerPhase == k
 
 (* initial states of processes *)
-Start(p) == [x |-> k, force |-> FALSE, fire |-> FALSE]
+Start(p) == [x |-> 0, force |-> 0, concordant |-> FALSE, ready |-> FALSE, level |-> 0]
 
 (* message sent from p to q at round r, where st is p's state *)
-Send(p,r,st,q) == IF st.x = k THEN None ELSE st.x  \* could be simplified to st.x ??
+Send(p,r,st,q) == [x |-> 0, force |-> 0, concordant |-> FALSE, ready |-> FALSE]
+
+maxForce(rcvd) ==	IF \E m \in rcvd : m.force = 2 THEN 2 ELSE
+					IF \E m \in rcvd : m.force = 1 THEN 1 ELSE 0
+setVal(rcvd) == {m.x : m \in rcvd /\ m.force = maxForce(rcvd)}
+gossipConc(rcvd) == \E v \in Nat : \A m \in rcvd. TRUE
 
 (* state transition function, rcvd \in SUBSET (Proc \X (Msg \cup {NoMsg})) *)
 ReadyFire(rcvd) == \A x \in rcvd : x[2] = k-1

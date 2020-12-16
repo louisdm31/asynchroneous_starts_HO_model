@@ -1,6 +1,6 @@
 ------------------- MODULE HeardOf ----------------------------
 (*
-  Coarse-grained executions of Heard-of model. The idea is that
+  Coarse-grained executions of Heard-Of model. The idea is that
   all processes advance their round (and emit the corresponding
   messages) simultaneously. The message history is not preserved
   so that the model becomes finite-state (provided the
