@@ -11,7 +11,7 @@
   need not start simultaneously but may be inactive ("asleep")
   initially.
 *)
-EXTENDS Naturals
+EXTENDS Naturals, TLC
 CONSTANTS 
   Proc,           (* set of processes *)
   State,          (* set of possible process states *)

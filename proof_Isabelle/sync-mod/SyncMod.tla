@@ -65,9 +65,10 @@ CentralSpec == Init /\ [][CentralNext]_vars
 -----------------------------------------------------------------------------
 
 Safety == 
-  \E c \in 0 .. (k-1) : \A p \in Proc \ {asleep} : state[p].fire => round = c
+  \E c \in 0 .. (k-1) : \A p \in Proc \ asleep : state[p].fire => round = c
 
 =============================================================================
 \* Modification History
+\* Last modified Thu Dec 17 12:07:59 CET 2020 by louis
 \* Last modified Fri Dec 11 11:42:02 CET 2020 by merz
 \* Created Thu Dec 10 17:55:14 CET 2020 by merz
