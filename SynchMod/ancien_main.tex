@@ -178,15 +178,16 @@ For the proof, we will at first consider this optimization disabled.
 \caption{The generalized \SM algorithm} 
 \end{algorithm}
 
-We assume that the dynamic graph verifies the predicate $\mathcal{P}_{rooted} \equiv \exists \cent \in \Pi, \exists D > 0, \mathds{G}(t:t+D)$ contains a spanning tree rooted by $\cent$.
-We also assume that $2D+1 < k$.
+We assume that the dynamic graph verifies the predicate $\mathcal{P}_{delayed-star} \equiv \exists \cent \in \Pi, \exists D > 0, \forall t \in \mathds{N}, \mathds{G}(t:t+D)$
+contains a spanning star centered in $\cent$. We also assume that $2D+1 < k$.
+
 
 \begin{lem} \label{lem:conc-safety}
 	If $concordant_u(t+k) \wedge c_u(t+k) \equiv 0 [k]$, then, for all $i \in \{0, \dots, k/2\}$, the counter of $\cent$ verifies $c_\cent(t+i) \equiv i [k]$.
 \end{lem}
 \begin{proof}
 	We have $t+k - (t+i) \geq k - k/2 \geq k/2 \geq D$.
-	Then, using $\mathcal{P}_{rooted}$, for any $i \in \{1, \dots, k/2\}$ in the above range, there exists a path $(\cent = v(i), \dots, v(k) = u)$ from $\cent$ in round $t+i$ to $u$ in round $t+k$. 
+	Then, using $\mathcal{P}_{delayed-star}$, for any $i \in \{1, \dots, k/2\}$ in the above range, there exists a path $(\cent = v(i), \dots, v(k) = u)$ from $\cent$ in round $t+i$ to $u$ in round $t+k$. 
 	We can now show using a backward induction on this path that every node $v(j)$ on this path is active and verifies $c_{v(j)}(t+j) \equiv j [k]$ and $concordant_{v(j)}(t+j)$.
 
 	The base case is the hypothesis of the lemma.
@@ -221,7 +222,7 @@ We also assume that $2D+1 < k$.
 \end{lem}
 \begin{proof}
 	The first part of the lemma results from lemma \ref{lem:conc-safety-bis}. We now prove the second part.
-	We consider a path $(\cent = v(0), \dots, v(i) = u)$ from $\cent$ in round $t$ to $u$ in round $t+k$. This path must exist, since lemma \ref{lem:no-close-level2} tells us that $i > k/2$.
+	We consider a path $(\cent = v(0), \dots, v(i) = u)$ from $\cent$ in round $t$ to $u$ in round $t+i$. This path must exist, since lemma \ref{lem:no-close-level2} tells us that $i > k/2$.
 	Using a simple backward induction on this path, we can show that any $v(j)$ on this path is active, is at least in level 1, and verifies $ready_{v(j)}(t+j)$ and $concordant_{v(j)}(t+j)$.
 	The base case relies on the lines \ref{line:cond-firing} and \ref{line:cond-levelup}. The induction case relies on lines \ref{line:ready-gossip} and \ref{line:ready-gossip}.
 
