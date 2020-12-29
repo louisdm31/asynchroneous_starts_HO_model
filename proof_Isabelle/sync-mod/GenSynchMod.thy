@@ -15,80 +15,70 @@ record locState =
      forc :: nat
      level :: nat
     
-record sendVal = 
-     x :: nat
-     conc :: bool
-     ready :: bool
-     forc :: nat
-    
 locale k_mod = fixes k :: nat
 begin
 
-definition gen_initState where 
-"gen_initState p st == x st = 0 & (~ conc st) & (~ ready st) & forc st = 0 & level st = 0"
+definition gen_initState where
+"gen_initState = (| x = 0, conc = False, ready = False, forc = 0, level = 0 |)"
 
-fun forceMsgs msgs where
+fun forceMsgs where
   "forceMsgs (Content m) = forc m"
 | "forceMsgs Void = 0"
 | "forceMsgs Bot  = 0"
 
 definition maxForce where
-"maxMorce rcvd = Max ((range rcvd) ` forceMsgs)"
-
-definition isConc where
-"isConc rcvd = ALL p m. rcvd p ~= Void --> rcvd p = Content m --> ready m"
+"maxForce rcvd == Max (forceMsgs ` (range rcvd))"
 
 definition isReady where
-"isReady rcvd = ALL p m. rcvd p = Content m --> ready m"
+"isReady rcvd == ALL p m. rcvd p = Content m --> ready m"
 
 definition minMsgs where
-"minMsgs rcvd = LEAST v. EX m p. rcvd p = Content m & forc m = maxForce rcvd & c m = v"
+"minMsgs rcvd == LEAST v. EX m p. rcvd p = Content m & forc m = maxForce rcvd & x m = v"
+
+definition isConc where
+"isConc rcvd == ALL p. rcvd p ~= Void --> (EX m. rcvd p = Content m & conc m & (x m) mod k = (minMsgs rcvd) mod k)"
 
 definition ready_level1 where
-"ready_level1 msgs s = isConc msgs & minMsgs msgs mod k = 0 & level s = 0"
+"ready_level1 msgs s == isConc msgs & minMsgs msgs mod k = k - 1 & level s = 0"
 
 definition ready_level2 where
-"ready_level2 msgs s = (maxForce msgs = 2 | (isConc msgs & isReady msgs)) & minMsgs msgs mod k = 0 & level s = 1"
+"ready_level2 msgs s == (maxForce msgs = 2 | (isConc msgs & isReady msgs))
+    & minMsgs msgs mod k = k - 1 & level s = 1"
 
-definition gen_nextState :: "Proc => pstate => (Proc => SendVal message) => pstate => bool" where
+definition gen_nextState :: "Proc => locState => (Proc => locState message) => locState => bool" where
 "gen_nextState p s msgs s' ==
-    if ~ (ready_level1 | ready_level2) then
-        x s' = minMsgs msgs & forc s' = maxForce msgs
-        if minMsgs msgs mod k = 0 then
+    if ~ (ready_level1 msgs s | ready_level2 msgs s) then
+        x s' = Suc (minMsgs msgs) & forc s' = maxForce msgs & level s = level s' & (
+        if x s' mod k = 0 then
             ready s' = (level s' > 0) & conc s' 
         else
-            conc s' = isConc msgs & ready s' = isReady msgs
+            conc s' = isConc msgs & ready s' = isReady msgs)
     else
-        x s' = 0 & forc s' = (if ready_level1 then 1 else 2) & level s' = forc s'"
+        x s' = 0 & forc s' = (if ready_level1 msgs s then 1 else 2) & level s' = forc s' & ready s' & conc s'"
 
 definition gen_sendMsg where
-"gen_sendMsg p q st == (| x = x st, conc = conc st, ready = ready st, forc = forc st |)"
+"gen_sendMsg p q st == st"
 
 definition gen_commPerRd where
 "gen_commPerRd HO == True"
 
-definition xi_nek where 
-"xi_nek HO xi == ALL p n. EX path. path 0 = xi & path (k/2) = p & (ALL i < k/2. path i : HO (n+i) (path (Suc i)))"
+(*existence of a path from xi to any node, between any round interval [n, n+k/2]*)
+definition path where 
+"path HO p q n D == EX seq. seq 0 = p & seq D = q &
+    (ALL i < D. seq i : HO (n+Suc i) (seq (Suc i)))"
 
 definition gen_commGlobal where
-"gen_commGlobal HO == EX xi. xi_nek HO xi"
+"gen_commGlobal HO == EX xi. ALL p n. path HO xi p n (k div 2)"
 
 definition gen_commSchedule where
 "gen_commSchedule sched == EX n. sched n = UNIV"
 
 definition gen_HOMachine where
 "gen_HOMachine == (|
-    CinitState = (%p st crd. gen_initState p st),
+    CinitState = (%_ st _. gen_initState = st),
     sendMsg = gen_sendMsg,
-    CnextState = (%p st msgs crd. gen_nextState p st msgs),
-    HOcommPerRd = gen_commPerRd,
-    HOcommGlobal = gen_commGlobal,
-    HOcommSchedule = gen_commSchedule
+    CnextState = (%p st msgs _. gen_nextState p st msgs)
 |)"
-
-lemma simp_nextState : "CnextState gen_HOMachine = (%p ss ms cr. gen_nextState p ss ms)"
-using gen_HOMachine_def
-by (simp add: gen_HOMachine_def)
 
 definition liveness where
 "liveness rho == ALL p r. rho r p ~= Asleep --> (EX rf sf. rho rf p = Active sf & level sf = 2)"
