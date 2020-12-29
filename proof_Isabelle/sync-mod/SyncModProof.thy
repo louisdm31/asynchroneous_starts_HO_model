@@ -2,20 +2,20 @@ theory SyncModProof
 imports "../HOModel" SyncMod
 begin
 
-definition HOMachine_to_Algorithm :: "(Proc, pstate, SendVal) HOMachine \<Rightarrow> (Proc, pstate, SendVal) CHOAlgorithm" where
+definition HOMachine_to_Algorithm :: "(Proc, pstate, SendVal) HOMachine => (Proc, pstate, SendVal) CHOAlgorithm" where
 "HOMachine_to_Algorithm mach = 
-  \<lparr> CinitState = CinitState mach, sendMsg = sendMsg mach, CnextState = CnextState mach \<rparr>"
+  (| CinitState = CinitState mach, sendMsg = sendMsg mach, CnextState = CnextState mach |)"
 
 
-definition monovalent :: "(nat \<Rightarrow> Proc \<Rightarrow> pstate proc_state) \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> bool" where
-"monovalent rho v n \<equiv> ALL p ss st. rho n p = Active ss \<longrightarrow> rho (Suc n) p = Active st \<longrightarrow> x st = v"
+definition monovalent :: "(nat => Proc => pstate proc_state) => nat => nat => bool" where
+"monovalent rho v n == ALL p ss st. rho n p = Active ss --> rho (Suc n) p = Active st --> x st = v"
 
 (*lemma A1 : assumes "rho r p = Active s"
 and run:"HORun (HOMachine_to_Algorithm (k_mod.SyncMod_HOMachine k)) rho HO" (is "HORun ?A _ _")
 and "x s = k-1"
 and "p : HO (Suc r) q"
 and "rho r q ~= Asleep"
-shows "ALL st. rho (Suc r) q = Active st \<longrightarrow> x st = 0"
+shows "ALL st. rho (Suc r) q = Active st --> x st = 0"
 proof (rule+)
     fix st
     assume "rho (Suc r) q = Active st"
@@ -23,18 +23,18 @@ proof (rule+)
     proof -
         *)
 lemma starting: 
-assumes prev: "0 < n \<longrightarrow> rho (n-1) p = Asleep"
+assumes prev: "0 < n --> rho (n-1) p = Asleep"
   and run: "HORun (HOMachine_to_Algorithm (k_mod.SyncMod_HOMachine k)) rho HO" (is "HORun ?A _ _")
   and act: "rho n p = Active s"
 shows "x s = k" 
-  and "\<forall>q. HOrcvdMsgs ?A q (HO (Suc n) q) (rho n) p = (if p \<in> HO (Suc n) q then Content Nope else Void)"
+  and "ALL q. HOrcvdMsgs ?A q (HO (Suc n) q) (rho n) p = (if p : HO (Suc n) q then Content Nope else Void)"
   and "~ forc s"
 proof -
-  from act have 1: "\<not> always_asleep rho p"
+  from act have 1: "~ always_asleep rho p"
     unfolding always_asleep_def by force
   from run prev act have 2: "first_awake rho p = n"
     by (rule first_awake_HO)
-  from run have "CHOinitConfig ?A rho (\<lambda>_ _. undefined)"
+  from run have "CHOinitConfig ?A rho (%_ _. undefined)"
     by (simp add: HORun_def CHORun_def)
   with 1 2 act have "CinitState ?A p s undefined"
     by (auto simp: CHOinitConfig_def)
@@ -42,20 +42,20 @@ proof -
     by (simp add:k_mod.SyncMod_HOMachine_def HOMachine_to_Algorithm_def)
   from 3 show "x s = k" "~ forc s" 
     by (auto simp: k_mod.SyncMod_initState_def)
-  with act show "\<forall>q. HOrcvdMsgs ?A q (HO (Suc n) q) (rho n) p = 
-                     (if p \<in> HO (Suc n) q then Content Nope else Void)"
+  with act show "ALL q. HOrcvdMsgs ?A q (HO (Suc n) q) (rho n) p = 
+                     (if p : HO (Suc n) q then Content Nope else Void)"
     by (auto simp: HOMachine_to_Algorithm_def k_mod.SyncMod_HOMachine_def 
                    k_mod.SyncMod_sendMsg_def HOrcvdMsgs_def)
 qed
 
 lemma sending : assumes run:"HORun (HOMachine_to_Algorithm (k_mod.SyncMod_HOMachine k)) rho HO" (is "HORun ?A rho HO")
 assumes "(HOrcvdMsgs ?A p (HO (Suc (Suc r)) p) (rho (Suc r))) q = Content (Val v)" (is "?msgs q = _")
-shows "? s ss. rho r q = Active s \<and> rho (Suc r) q = Active ss \<and> x ss = v"
+shows "? s ss. rho r q = Active s & rho (Suc r) q = Active ss & x ss = v"
 proof (cases "rho (Suc r) q")
     case Asleep
     hence "?msgs q = (if q : HO (Suc (Suc r)) p then Bot else Void)"
         using HOrcvdMsgs_def[of ?A p "HO (Suc (Suc r)) p" "rho (Suc r)"] by auto
-    thus "? s ss. rho r q = Active s \<and> rho (Suc r) q = Active ss \<and> x ss = v" using `?msgs q = Content (Val v)` by auto
+    thus "? s ss. rho r q = Active s & rho (Suc r) q = Active ss & x ss = v" using `?msgs q = Content (Val v)` by auto
 next
     case (Active sq)
     have "sendMsg ?A q p sq = Val (x sq)"
@@ -63,7 +63,7 @@ next
         by (simp add: Active HOMachine_to_Algorithm_def k_mod.SyncMod_HOMachine_def k_mod.SyncMod_sendMsg_def)
     hence "k_mod.SyncMod_sendMsg k q p sq = Val (x sq)"
         using HOMachine_to_Algorithm_def k_mod.SyncMod_HOMachine_def by 
-        (simp add: `\<And>k. k_mod.SyncMod_HOMachine k \<equiv> (|CinitState = %p st crd. k_mod.SyncMod_initState k p st,
+        (simp add: `\<And>k. k_mod.SyncMod_HOMachine k == (|CinitState = %p st crd. k_mod.SyncMod_initState k p st,
         sendMsg = k_mod.SyncMod_sendMsg k, CnextState = %p st msgs crd. k_mod.SyncMod_nextState k p st msgs,
         HOcommPerRd = k_mod.SyncMod_commPerRd, HOcommGlobal = k_mod.SyncMod_commGlobal,
         HOcommSchedule = k_mod.SyncMod_commSchedule|)`)
@@ -74,9 +74,9 @@ next
     moreover have "?msgs q = Content (Val (x sq))"
         using HOrcvdMsgs_def[of ?A p "HO (Suc (Suc r)) p" "rho (Suc r)"] `?msgs q = Content (Val v)`
         by (simp add: Active `sendMsg (HOMachine_to_Algorithm (k_mod.SyncMod_HOMachine k)) q p sq = Val (x sq)`)
-    ultimately have "rho r q = Active s \<and> rho (Suc r) q = Active sq \<and> x sq = v"
+    ultimately have "rho r q = Active s & rho (Suc r) q = Active sq & x sq = v"
         using `rho (Suc r) q = Active sq` `?msgs q = Content (Val v)` k_mod.SyncMod_sendMsg_def[of k q p sq] by auto
-    thus "? s ss. rho r q = Active s \<and> rho (Suc r) q = Active ss \<and> x ss = v"  by auto
+    thus "? s ss. rho r q = Active s & rho (Suc r) q = Active ss & x ss = v"  by auto
 qed
 
 lemma transition : assumes s_def:"rho r p = Active s"
@@ -87,7 +87,7 @@ shows "k_mod.SyncMod_nextState k p s (HOrcvdMsgs ?A p (HO (Suc r) p) (rho r)) ss
 and "x ss < k"
 proof -
     have "CHOnextConfig ?A (rho r) (HO (Suc r)) (%w. undefined) (rho (Suc r))" using run by (simp add:HORun_def CHORun_def)
-    then obtain sss where "rho (Suc r) p = Active sss \<and> CnextState ?A p s ?msgs undefined sss" 
+    then obtain sss where "rho (Suc r) p = Active sss & CnextState ?A p s ?msgs undefined sss" 
         using CHOnextConfig_def[of ?A "rho r" "HO (Suc r)" "%w. undefined" "rho (Suc r)"] s_def by fastforce
     hence "CnextState ?A p s ?msgs undefined ss" using ss_def by auto
     hence nxt:"k_mod.SyncMod_nextState k p s ?msgs ss"
@@ -175,7 +175,7 @@ proof (induction i)
 next
     case (Suc i)
     let "?msgs p" = "(HOrcvdMsgs ?A p (HO (Suc (r+Suc i)) p) (rho (r+Suc i)))"
-    have no_discord:"ALL p q vv. ?msgs p q = Content (Val vv) \<longrightarrow> vv = (v+i) mod k"
+    have no_discord:"ALL p q vv. ?msgs p q = Content (Val vv) --> vv = (v+i) mod k"
     proof (rule+)
         fix p q vv
         assume "?msgs p q = Content (Val vv)"
@@ -273,7 +273,7 @@ proof -
                 using k_mod.SyncMod_sendMsg_def[of k q p sqq] `k > 2` by auto 
             hence "sendMsg ?A q p sqq = Val (k-1)"
                 using k_mod.SyncMod_HOMachine_def HOMachine_to_Algorithm_def
-                by (simp add: `\<And>k. k_mod.SyncMod_HOMachine k \<equiv> (| CinitState = %p st crd. k_mod.SyncMod_initState k p st,
+                by (simp add: `\<And>k. k_mod.SyncMod_HOMachine k == (| CinitState = %p st crd. k_mod.SyncMod_initState k p st,
                 sendMsg = k_mod.SyncMod_sendMsg k, CnextState = %p st msgs crd. k_mod.SyncMod_nextState k p st msgs,
                 HOcommPerRd = k_mod.SyncMod_commPerRd, HOcommGlobal = k_mod.SyncMod_commGlobal, HOcommSchedule = k_mod.SyncMod_commSchedule |)`)
             hence "?msgs q = (if q : HO (Suc (Suc ?rd)) p then Content (Val (k-1)) else Void)"
@@ -579,7 +579,7 @@ proof -
             proof
                 assume "r = 0"
                 then obtain sz where sz:"rho 0 xi = Active sz" using `rho r xi ~= Asleep` by (cases "rho 0 xi") auto
-                hence "?msgs xi = (if xi \<in> HO (Suc 0) p then Content Nope else Void)"
+                hence "?msgs xi = (if xi : HO (Suc 0) p then Content Nope else Void)"
                   using starting[of 0 rho xi k HO sz] s assms `r = 0` by auto
                 thus "False" using `?msgs xi = Content (Val (k-1))` by auto
             qed
