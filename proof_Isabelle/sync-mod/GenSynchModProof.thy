@@ -251,6 +251,92 @@ proof
   qed
 qed
 
+lemma A5:
+assumes star:"ALL p n. k_mod.path HO xi p n (k div 2)"
+and loop:"ALL p r. p : HO r p"
+and run: "HORun (k_mod.gen_HOMachine k) rho HO" (is "HORun ?A _ _")
+and "k > 2"
+and sp:"rho r p = Active sp"
+shows "EX q ss. rho (r - x sp) q = Active ss &
+  (if level sp = 0 then
+    (r > x sp --> rho (r - x sp - 1) q = Asleep)
+  else
+    (EX s. rho (r - x sp - 1) q = Active s & Suc (level s) = level ss & level ss = level sp))"
+proof (induction "x sp" arbitrary:p sp r)
+  case 0
+  show ?case
+  proof (cases "level sp = 0")
+    case True
+    show ?thesis
+    proof (cases "r = 0")
+      case True
+      thus ?thesis using sp `level sp = 0` by auto
+    next
+      case False
+      have "rho (r - 1) p = Asleep"
+      proof (rule ccontr)
+        assume "rho (r - 1) p ~= Asleep"
+        then obtain ssp where "rho (r - 1) p = Active ssp" by (cases "rho (r - 1) p") auto
+        hence transp:"k_mod.gen_nextState k p ssp (HOrcvdMsgs ?A p (HO r p) (rho (r-1))) sp" (is "k_mod.gen_nextState _ _ _ ?msgp _")
+          using transition assms False by (metis "0.hyps" One_nat_def Suc_diff_Suc diff_zero neq0_conv)
+        hence "k_mod.ready_level1 k ?msgp ssp | k_mod.ready_level2 k ?msgp ssp" using `0 = x sp` unfolding k_mod.gen_nextState_def by auto
+        thus "False" using transp `level sp = 0` unfolding k_mod.ready_level1_def k_mod.ready_level2_def k_mod.gen_nextState_def by auto
+      qed
+      thus ?thesis using sp "0.hyps" True by auto
+    qed
+  next
+    case False
+    have "r > 0 & rho (r - 1) p ~= Asleep" using starting[of r] assms False
+      unfolding k_mod.gen_initState_def by (metis locState.select_convs(5))
+    then obtain ssp where ssp:"rho (r - 1) p = Active ssp" by (cases "rho (r - 1) p") auto
+    hence transp:"k_mod.gen_nextState k p ssp (HOrcvdMsgs ?A p (HO r p) (rho (r-1))) sp" (is "k_mod.gen_nextState _ _ _ ?msgp _")
+      using transition assms False by (metis One_nat_def Suc_diff_Suc `r > 0 & rho (r - 1) p ~= Asleep` diff_zero)
+    hence "k_mod.ready_level1 k ?msgp ssp | k_mod.ready_level2 k ?msgp ssp" using `0 = x sp` unfolding k_mod.gen_nextState_def by auto
+    hence "Suc (level ssp) = level sp" by (smt One_nat_def Suc_1 k_mod.gen_nextState_def k_mod.ready_level1_def k_mod.ready_level2_def transp)
+    hence "EX ss. rho (r-1) p = Active ss & Suc (level ss) = level sp" using ssp by auto
+    hence "if level sp = 0 then (r > x sp --> rho (r - x sp - 1) p = Asleep)
+      else (EX ssp. rho (r - 1) p = Active ssp & Suc (level ssp) = level sp & level sp = level sp)"
+      using `level sp ~= 0` ssp by auto
+    hence "rho r p = Active sp & (if level sp = 0 then (r > x sp --> rho (r - x sp - 1) p = Asleep)
+      else (EX ssp. rho (r - 1) p = Active ssp & Suc (level ssp) = level sp & level sp = level sp))" using sp by auto
+    thus ?thesis using "0.hyps" by auto
+  qed
+next
+  case (Suc v)
+  hence "r > 0 & rho (r - 1) p ~= Asleep" using starting[of r] assms 
+    unfolding k_mod.gen_initState_def by (metis (no_types, lifting) less_Suc_eq_0_disj less_numeral_extra(3) locState.select_convs(1))
+  then obtain ssp where ssp:"rho (r - 1) p = Active ssp" by (cases "rho (r - 1) p") auto
+  hence transp:"k_mod.gen_nextState k p ssp (HOrcvdMsgs ?A p (HO r p) (rho (r-1))) sp" (is "k_mod.gen_nextState _ _ _ ?msgp _")
+    using transition assms by (metis One_nat_def Suc_diff_Suc `r > 0 & rho (r - 1) p ~= Asleep` diff_zero)
+  hence "x sp = Suc (k_mod.minMsgs ?msgp)" and spmaxf:"forc sp = k_mod.maxForce ?msgp" using Suc unfolding k_mod.gen_nextState_def by auto
+  hence exLeast:"EX v sq q. ?msgp q = Content sq & forc sq =  k_mod.maxForce ?msgp & x sq = v" (is "EX v q sq. ?getLeast v q sq")
+  proof (cases "k_mod.maxForce ?msgp = 0")
+    case True
+    moreover from loop have "?msgp p = Content ssp"
+      using k_mod.gen_HOMachine_def k_mod.gen_sendMsg_def ssp unfolding HOrcvdMsgs_def by force
+    ultimately have "forc ssp = 0" using Max_ge[of _ "k_mod.forceMsgs (?msgp p)"] `?msgp p = Content ssp`
+      unfolding k_mod.maxForce_def by (metis finite_UNIV finite_imageI image_eqI k_mod.forceMsgs.simps(1) le_zero_eq range_eqI)
+    thus "EX v sq q. ?msgp q = Content sq & forc sq =  k_mod.maxForce ?msgp & x sq = v" using True `?msgp p = Content ssp` by auto
+  next
+    case False
+    have "k_mod.maxForce ?msgp : k_mod.forceMsgs ` range ?msgp" using Max_in unfolding k_mod.maxForce_def by auto
+    then obtain q where q:"k_mod.maxForce ?msgp = k_mod.forceMsgs (?msgp q)" by auto
+    moreover have "EX sq. ?msgp q = Content sq" unfolding k_mod.maxForce_def by (metis False q k_mod.forceMsgs.elims)
+    ultimately have "EX sq. ?msgp q = Content sq & k_mod.maxForce ?msgp = k_mod.forceMsgs (?msgp q)" by auto
+    thus "EX v sq q. ?msgp q = Content sq & forc sq =  k_mod.maxForce ?msgp & x sq = v" using k_mod.forceMsgs.elims False by metis
+  qed
+  from exLeast have "EX q sq. ?getLeast (k_mod.minMsgs ?msgp) q sq"
+    using LeastI[of "%v. EX q sq. ?getLeast v q sq"] `EX v q sq. ?getLeast v q sq` unfolding k_mod.minMsgs_def by blast
+  then obtain q sq where "?msgp q = Content sq" and "Suc (x sq) = x sp" and "forc sq = forc sp"
+    using spmaxf `x sp = Suc (k_mod.minMsgs ?msgp)` by auto
+  thus ?thesis using Suc.hyps Suc.prems by auto
+
+
+
+
+
+qed
+
 lemma A3:
 assumes star:"ALL p n. k_mod.path HO xi p n (k div 2)"
 and loop:"ALL p r. p : HO r p"
@@ -269,8 +355,14 @@ proof (rule ccontr)
   assume "i <= k div 2"
   have transp:"k_mod.gen_nextState k p sp (HOrcvdMsgs ?A p (HO (Suc r) p) (rho r)) ssp"
     (is "k_mod.gen_nextState _ _ _ ?msgp _") using assms transition by auto
-  hence "k_mod.ready_level1 k ?msgp sp" using assms
+  hence lev1p:"k_mod.ready_level1 k ?msgp sp" using assms
     unfolding k_mod.gen_nextState_def k_mod.ready_level1_def by (metis k_mod.ready_level2_def zero_neq_one)
+  have "r >= k"
+  proof (rule ccontr)
+    assume "r < k"
+    have "ALL i <= r. EX s. rho (r-i) p = Active s & conc s & x s = (k-i)"
+    from lev1p have "k_mod.isConc k ?msgp" unfolding k_mod.ready_level1_def by auto
+    from lev1p have "" unfolding k_mod.ready_level1_def by auto
   have transq:"k_mod.gen_nextState k q sq (HOrcvdMsgs ?A q (HO (Suc r+i) q) (rho (r+i))) ssq" using assms transition by auto
 
 
