@@ -179,42 +179,44 @@ For the proof, we will at first consider this optimization disabled.
 \end{algorithm}
 
 We assume that the dynamic graph verifies the predicate $\mathcal{P}_{delayed-star} \equiv \exists \cent \in \Pi, \exists D > 0, \forall t \in \mathds{N}, \mathds{G}(t:t+D)$
-contains a spanning star centered in $\cent$. We also assume that $2D+1 < k$.
+contains a spanning star centered in $\cent$. We also assume that $D < k$.
 
 
 \begin{lem} \label{lem:conc-safety}
-	If $concordant_u(t+k) \wedge c_u(t+k) \equiv 0 [k]$, then, for all $i \in \{0, \dots, k/2\}$, the counter of $\cent$ verifies $c_\cent(t+i) \equiv i [k]$.
+	Let $u$ and $v$ be two nodes such that there exist a path from $u$ to $v$ in the interval $[t+i,t+k]$.
+	If $concordant_u(t+k) \wedge c_u(t+k) \equiv 0 [k]$, then the counter of $\cent$ verifies $c_\cent(t+i) \equiv i [k]$.
 \end{lem}
 \begin{proof}
-	We have $t+k - (t+i) \geq k - k/2 \geq k/2 \geq D$.
-	Then, using $\mathcal{P}_{delayed-star}$, for any $i \in \{1, \dots, k/2\}$ in the above range, there exists a path $(\cent = v(i), \dots, v(k) = u)$ from $\cent$ in round $t+i$ to $u$ in round $t+k$. 
-	We can now show using a backward induction on this path that every node $v(j)$ on this path is active and verifies $c_{v(j)}(t+j) \equiv j [k]$ and $concordant_{v(j)}(t+j)$.
+	We denote $(u = w(t+i), \dots, w(t+k) = v)$ the path between $u$ and $v$.
+	We can now show using a backward induction on this path that every node $w(t+j)$ on this path is active and verifies $c_{w(t+j)}(t+j) \equiv j [k]$ and $concordant_{w(t+j)}(t+j)$.
 
 	The base case is the hypothesis of the lemma.
-	For the induction case, we assume that $i \leq j < k$, and $\overline{c}_c(j+1)(t+j) \equiv j [k]$ and $concordant_c(j)(t+j)$.
-	By the definition of a path, we know that $c(j)$ sent a message $\langle v, concordant_c(j)(t+j), *, * \rangle$ to $c(j+1)$.
-	If $i = j = 1$, the induction case is deductible from line \ref{line:conc-true}.
-	Otherwise, from line \ref{line:conc-gossip}, we get that $c(j)$ is active and $concordant_{c(j)}(t+j)$. Moreover, the received messages are concordant.
-	Then, from line \ref{line:min-z-end}, we get $\overline{c}_c(j+1)(t+j+1) \equiv v+1 [k]$, then $\overline{c}_c(j)(t+j) \equiv v \equiv j [k]$.
+	For the induction case, we assume that $i \leq j < k$, and $\overline{c}_{w(t+j+1)}(t+j+1) \equiv j+1 [k]$ and $concordant_{w(t+j+1)}(t+j+1)$.
+	By the definition of a path, we know that $w(t+j)$ sent a message $\langle x, concordant_{w(t+j)}(t+j), *, * \rangle$ to $w(t+j+1)$ in round $t+j+1$.
+	If $j = 1$, we get directly from line \ref{line:conc-true} that $concordant_{w(t+j)}(t+j)$.
+	Otherwise, from line \ref{line:conc-gossip}, we get that $w(t+j)$ is active and $concordant_{w(t+j)}(t+j)$. Moreover, the received messages are concordant.
+	Then, from line \ref{line:min-z-end}, we get $\overline{c}_{w(t+j+1)}(t+j+1) \equiv x+1 [k]$, then $\overline{c}_{w(t+j)}(t+j) \equiv x \equiv j [k]$.
 \end{proof}
 
 \noindent Using the exact same reasoning, we can prove the following lemma.
 \begin{lem} \label{lem:conc-safety-bis}
-	If $concordant_u(t+k) \wedge ready_u(t+k) \wedge c_u(t+k) \equiv 0 [k]$, then $\cent$ must already have reached level 1 in round $t+i$.
+	If $concordant_u(t+k) \wedge ready_u(t+k) \wedge c_u(t+k) \equiv 0 [k]$, then $\cent$ must already have reached level 1 in round $t$.
 \end{lem}
 \begin{proof}
-	We consider a path $(\cent = v(0), \dots, v(k) = u)$.
-	We can show using a backward induction on this path that any node on this path is active and verifies $concordant_{v(i)} \wedge ready_{v(i)}$.
-	That proves the lemma.
+	We consider a path $(\cent = w(t), \dots, w(t+k) = u)$. Such a path must exist because we assumed that $\mathcal{P}_{delayed-star}$.
+	We can show using a backward induction on this path that any node on this path is active and verifies $concordant_{w(t+i)} \wedge ready_{w(t+i)}$.
+	We eventually get $ready_\cent(t)$. The line \ref{line:init-ready} proves the lemma.
 \end{proof}
 
 \begin{lem} \label{lem:no-close-level2}
-	If $u$ reaches level 1 in round $t+k$, no node can level up in any round between $t+k+1$ and $t+k+k/2$.
+	If $u$ reaches level 1 in round $t+k$, no node can level up in any round between $t+k+1$ and $t+2k-1$.
 \end{lem}
 \begin{proof}
-	We assume that $v$ levels up in round $t+k+i$ where $i \in \{1, \dots, k/2\}$.
-	Applying the lemma \ref{lem:conc-safety} to $u$ and $v$, we get respectively $c_\cent(t+i) = i$ and $c_\cent(t+i) = 0$.
-	That contradicts the assumption $i > 0$.
+	We assume that $u$ levels up in round $t+k+i$ where $i \in \{1, \dots, k-1\}$.
+	Applying the lemma \ref{lem:conc-safety} to $u$ and $\cent$, we get respectively $c_\cent(t+i) \equiv 0 [k]$ and $c_\cent(t+i) \equiv i [k]$.
+	We use the path between $\cent$ and $u$ in the interval $[t+i,t+k+i]$ and the path between $\cent$ and $\cent$ in the interval $[t+i,t+k]$ respectively.
+	These paths are guaranteed to exist because of $\mathcal{P}_{delayed-star}$ and the assumption of existence of self-loops respectively.
+	We get a contradiction from $i \equiv 0 [k]$.
 \end{proof}
 
 \begin{lem} \label{lem:ready-safety}
@@ -222,11 +224,13 @@ contains a spanning star centered in $\cent$. We also assume that $2D+1 < k$.
 \end{lem}
 \begin{proof}
 	The first part of the lemma results from lemma \ref{lem:conc-safety-bis}. We now prove the second part.
-	We consider a path $(\cent = v(0), \dots, v(i) = u)$ from $\cent$ in round $t$ to $u$ in round $t+i$. This path must exist, since lemma \ref{lem:no-close-level2} tells us that $i > k/2$.
-	Using a simple backward induction on this path, we can show that any $v(j)$ on this path is active, is at least in level 1, and verifies $ready_{v(j)}(t+j)$ and $concordant_{v(j)}(t+j)$.
-	The base case relies on the lines \ref{line:cond-firing} and \ref{line:cond-levelup}. The induction case relies on lines \ref{line:ready-gossip} and \ref{line:ready-gossip}.
+	The lemma \ref{lem:no-close-level2} tells us that $i \geq k$.
+	We consider a path $(\cent = w(t), w(t+1) = \cent, \dots, w(t+i-k) = \cent, \dots, w(t+i) = u)$ from $\cent$ to $u$ in the interval $[t, t+i]$. 
+	Using a simple backward induction on this path, we can show that for any $j \in \{i-k, \dots, i\}$,
+	the node $w(t+j)$ is active, is at least in level 1, and verifies $ready_{w(t+j)}(t+j)$ and $concordant_{w(t+j)}(t+j)$.
+	The base case relies on the lines \ref{line:cond-firing} and \ref{line:cond-levelup}. The induction case relies on lines \ref{line:conc-gossip} and \ref{line:ready-gossip}.
 
-	Using a simple forward induction on this path, we can show that any $v(j)$ on this path verifies $force_{v(j)}(t+j) \geq 1$ and $c_{v(j)}(t+j) \leq j$.
+	Using a simple forward induction on this path, we can show that any $w(t+j)$ on this path verifies $force_{w(t+j)}(t+j) \geq 1$ and $c_{w(t+j)}(t+j) \leq j$.
 	The base case relies on the lines \ref{line:force2} and \ref{line:force3}. The induction case relies on lines \ref{line:force} and \ref{line:min-z-end}.
 \end{proof}
 
@@ -249,12 +253,12 @@ contains a spanning star centered in $\cent$. We also assume that $2D+1 < k$.
 \end{lem}
 \begin{proof}
 	By contradiction, we consider the first node $u$ which reaches level 1 in round $t+i$ with $i \not\equiv 0 [k]$.
-	The case $i \leq k/2$ is impossible according to lemma \ref{lem:no-close-level2}.
+	The case $i < k$ is impossible according to lemma \ref{lem:no-close-level2}.
 
-	In the case $i > k/2$, since $concordant_u(t+i)$ is true, there exist an active path from $\cent$ in round $t$ to $u$ in round $t+i$.
-	On this path $(\cent = v(0), \dots, v(i) = u)$, we can show by a simple induction that, for any $0 \leq j \leq i$, we have $c_{v(j)}(t+j) \leq c_\cent(t)+j$.
+	In the case $i > k$, since $concordant_u(t+i)$ is true, there exist an active path from $\cent$ in round $t$ to $u$ in round $t+i$.
+	On this path $(\cent = w(t), \dots, w(t+i) = u)$, we can show by a simple induction that, for any $0 \leq j \leq i$, we have $c_{w(t+j)}(t+j) \leq c_\cent(t)+j$.
 	Since we assumed that $i \not\equiv 0[k]$, we have $c_u(t+i) \neq c_\cent(t)+i$.
-	Then, using lemma \ref{lem:safety-force} gives us that a node $v$ must have reached level 1 later than $\cent$, with $c_v(t+i) = c_u(t+i)$.
+	Then, using lemma \ref{lem:safety-force} gives us that a node $v$ must have reached level 1 later than $\cent$, with $c_v(t+i) \equiv c_u(t+i) [k]$.
 	This contradicts the fact that $u$ was the first non-congruent level 1 node.
 \end{proof}
 
@@ -285,7 +289,7 @@ contains a spanning star centered in $\cent$. We also assume that $2D+1 < k$.
 	Then, there exists a round $t$ from which the set $Z_r$ is stabilized and $max~V_r - min~V_r$ is constant.
 	We consider the set $Z_r^{max}$, which contains every nodes $u$ such that $c_u(r) = max~V_r$.
 	For any $r \geq t$, we can show that $Z_{r+1}^{max} = \{u \in Z_r^{max}, HO(u, r+1) \subseteq Z_r^{max}\}$. That is a consequence of line \ref{line:min-z-end}.
-	Then, this sequence of set is decreasing from $t$. Moreover, it cannot become empty, otherwise $max~V_r - min~V_r$ would decrease.
+	Then, this sequence of set is decreasing from $t$. Moreover, it cannot become empty, otherwise $max~V_r - min~V_r$ would decrease (we assumed that this value is stable from t).
 	Then we consider the non-empty set $M = \bigcap\limits_{r \geq t} Z_r^{max}$.
 	Such a set is a subset of the system, which from $t$, never receive any message from the outside, and all hold the same value.
 	From the round $t+k$, the line \ref{line:conc-gossip} implies that any $u \in M$ must hold a true $concordant$ variable.
@@ -298,7 +302,7 @@ contains a spanning star centered in $\cent$. We also assume that $2D+1 < k$.
 \end{lem}
 \begin{proof}
 	We consider the round $t$ in which every node have reached level 1.
-	For any node $u$, we consider the path $(\cent = v(0), \dots, v(k) = u)$ which starts from $\cent$ in round $t$, end in $u$ in round $t+k$.
+	For any node $u$, we consider the path $(\cent = w(t), \dots, w(t+k) = u)$ from $\cent$ to $u$ in the interval $[t, t+k]$.
 	Every node is now active.
 	By a simple forward induction on this path, we can prove that $c_u(t+k) \leq c_\cent(t)+k$.
 	With lemma \ref{lem:later-level1}, we can show that from round $t+k$, every values in the system are congruent modulo $k$.
