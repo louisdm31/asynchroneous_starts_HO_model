@@ -139,175 +139,109 @@
 In this algorithm, the nodes hold a $level$ variable. When they start, they are level 0. They eventually reach level 1 then level 2.
 A node fires when it reaches level 2.
 
+Let $\mathds{G} = (\Pi, (E_r))$ be a dynamic graph and $\mathcal{A}$ an activation schedule.
+We construct the dynamic graph $\mathds{G}_\mathcal{A} = (V, (E_r \setminus ((\Pi \setminus \mathcal{A}_r) \times \Pi)))$.
+$\mathds{G}_\mathcal{A}$ is actually the dynamic graph $\mathds{G}$ where the incoming edges from any passive node have been removed.
+
+Let $In_u(t:t')$ be the set of incoming neighbours of $u$ in the graph $\mathds{G}_\mathcal{A}(t:t')$.
+$In_u(t:t')$ actually represents the set of nodes whose state in round $t$ is known by $u$ in round $t'$.
+For any $i \in \{0, 1, 2, 3\}$, let $In_u^i(t:t')$ be the subset of $In_u(t:t')$ of nodes whose level is at least $i$ in round $t$.
+We have $In_u^2(t:t') \subseteq In_u^1(t:t') \subseteq In_u^0(t:t') \subseteq In_u(t:t')$.
+
 The colored section in the algorithm actually implement an optimization.
 For the proof, we will at first consider this optimization disabled.
+
+For convenience reason, the definition of slices (e.g. $\mathds{G}(t:t')$) excludes the lower bound (i.e. $\mathds{G}(t)$).
 
 \begin{algorithm}[htb]
 	\DontPrintSemicolon
 	\textbf{Initialization:} \;
 	\Indp
 		$c_u \in \mathds{N}$, initially 0 \;
-		$concordant_u \leftarrow false$ \;
-		$ready_u \leftarrow false$ \;
-		$force_u \in \{0, 1, 2\}$, initially 0 \;
 		$level_u \in \{0, 1, 2\}$, initially 0 \;
 	\BlankLine
 	\Indm
 	\textbf{At each round $r$:} \;
 	\Indp
-		send $\langle \overline{c}_u, concordant_u, force_u, ready_u \rangle$ to all  \;
-		receive incoming messages \;
-		$force_u \leftarrow$ maximum forcing level received \;\label{line:force}
-		$c_u \leftarrow 1+$ minimum received value among maximum force messages \;\label{line:min-z-end} 
-		$ready_u \leftarrow$ all received messages were tagged as ready \; \label{line:ready-gossip} 
-		$concordant_u \leftarrow$ all received values are congruent modulo $k$ and no null received \; \label{line:conc-gossip}
-		\If{$c_u \equiv 0 [k] \wedge (concordant_u \textcolor{teal}{\vee force_u = 2)}$}{ \label{line:cond-levelup} 
-			\If{$level_u = 0$}{
-				$level_u \leftarrow 1$ \;
-				$force_u \leftarrow 1$ \; \label{line:force2}
-				$c_u \leftarrow 0$ \; \label{line:force3}
-			}
-			\If{$\textcolor{teal}{force_u = 2 \vee} ready_u$}{ \label{line:cond-firing}
-				$\color{teal} force_u \leftarrow 2$ \;
-				$level_u \leftarrow 2$ \;
-			}
-			$concordant_u \leftarrow true$ \; \label{line:conc-true}
-			$ready_u \leftarrow level_u > 0$ \; \label{line:init-ready}
+		$let~i \leftarrow argmax_{i \in \{0, 1, 2\}}~\bigcup\limit_{h \in \mathds{N}} In_u^i(h:r) \neq \emptyset$ \;\label{line:argmax}
+		$c_u \leftarrow argmin_{t \in \mathds{N}}~In_u^i(r-t:r) \nsubseteq In_u^i(r-t-1:r)$ \;\label{line:argmin} 
+		\If{$In_u(r-k:r) = In_u^i(r-k:r)$ and all nodes in $In_u^i(r-k:r)$ have values congruent with 0}{ \label{line:levelup} 
+			$level_u \leftarrow i+1$ \;
+		}
+		\If{$\color{teal} c_u \equiv 0 [k] \wedge In_u^2(0:r) \neq \emptyset$}{
+			$\color{teal} level_u \leftarrow 2$ \;
 		}
 	\Indm
 \caption{The generalized \SM algorithm} 
 \end{algorithm}
 
-We assume that the dynamic graph verifies the predicate $\mathcal{P}_{delayed-star} \equiv \exists \cent \in \Pi, \exists D > 0, \forall t \in \mathds{N}, \mathds{G}(t:t+D)$
-contains a spanning star centered in $\cent$. We also assume that $D < k$.
-
-
-\begin{lem} \label{lem:conc-safety}
-	Let $u$ and $v$ be two nodes such that there exist a path from $u$ to $v$ in the interval $[t+i,t+k]$.
-	If $concordant_u(t+k) \wedge c_u(t+k) \equiv 0 [k]$, then the counter of $\cent$ verifies $c_\cent(t+i) \equiv i [k]$.
-\end{lem}
-\begin{proof}
-	We denote $(u = w(t+i), \dots, w(t+k) = v)$ the path between $u$ and $v$.
-	We can now show using a backward induction on this path that every node $w(t+j)$ on this path is active and verifies $c_{w(t+j)}(t+j) \equiv j [k]$ and $concordant_{w(t+j)}(t+j)$.
-
-	The base case is the hypothesis of the lemma.
-	For the induction case, we assume that $i \leq j < k$, and $\overline{c}_{w(t+j+1)}(t+j+1) \equiv j+1 [k]$ and $concordant_{w(t+j+1)}(t+j+1)$.
-	By the definition of a path, we know that $w(t+j)$ sent a message $\langle x, concordant_{w(t+j)}(t+j), *, * \rangle$ to $w(t+j+1)$ in round $t+j+1$.
-	If $j = 1$, we get directly from line \ref{line:conc-true} that $concordant_{w(t+j)}(t+j)$.
-	Otherwise, from line \ref{line:conc-gossip}, we get that $w(t+j)$ is active and $concordant_{w(t+j)}(t+j)$. Moreover, the received messages are concordant.
-	Then, from line \ref{line:min-z-end}, we get $\overline{c}_{w(t+j+1)}(t+j+1) \equiv x+1 [k]$, then $\overline{c}_{w(t+j)}(t+j) \equiv x \equiv j [k]$.
-\end{proof}
-
-\noindent Using the exact same reasoning, we can prove the following lemma.
-\begin{lem} \label{lem:conc-safety-bis}
-	If $concordant_u(t+k) \wedge ready_u(t+k) \wedge c_u(t+k) \equiv 0 [k]$, then $\cent$ must already have reached level 1 in round $t$.
-\end{lem}
-\begin{proof}
-	We consider a path $(\cent = w(t), \dots, w(t+k) = u)$. Such a path must exist because we assumed that $\mathcal{P}_{delayed-star}$.
-	We can show using a backward induction on this path that any node on this path is active and verifies $concordant_{w(t+i)} \wedge ready_{w(t+i)}$.
-	We eventually get $ready_\cent(t)$. The line \ref{line:init-ready} proves the lemma.
-\end{proof}
-
-\begin{lem} \label{lem:no-close-level2}
-	If $u$ reaches level 1 in round $t+k$, no node can level up in any round between $t+k+1$ and $t+2k-1$.
+\begin{lem} \label{lem:no-close-levelup}
+	If $\cent$ reaches level 1 in round $t+k$, no node can level up in any round between $t+k+1$ and $t+2k-1$.
 \end{lem}
 \begin{proof}
 	We assume that $u$ levels up in round $t+k+i$ where $i \in \{1, \dots, k-1\}$.
-	Applying the lemma \ref{lem:conc-safety} to $u$ and $\cent$, we get respectively $c_\cent(t+i) \equiv 0 [k]$ and $c_\cent(t+i) \equiv i [k]$.
-	We use the path between $\cent$ and $u$ in the interval $[t+i,t+k+i]$ and the path between $\cent$ and $\cent$ in the interval $[t+i,t+k]$ respectively.
-	These paths are guaranteed to exist because of $\mathcal{P}_{delayed-star}$ and the assumption of existence of self-loops respectively.
-	We get a contradiction from $i \equiv 0 [k]$.
+	Then no passive node may belong to $In_u(t+i:t+k+i)$.
+	Using $\mathcal{P}_{delayed-star}$, we get that $\cent \in In_u(t+i:t+k+i)$.
+
+	By assumption, $c_\cent(t+i) \equiv 0 [k]$. Let $h$ be the natural number such that $c_\cent(t+i) = h \times k$.
+	We know that $c_\cent(t+i) \neq 0$, otherwise $\cent$ would be passive in round $t$, $\cent$ could not have leveled up in round $t+k$.
+	Using line \ref{line:argmin}, we can obtain the node $v \in In_u^0(t-i-h\times k:t+i)$ such that $In_u^0(t+i-h\times k+1:t+i) = \emptyset$.
+	There must exist a path of active nodes between $v$ and $u$ in the interval $[t+i-h\times k, t+i]$.
+	We consider the node $w$ which is on this path in round $t$.
+	Since $v \in In_w^0(t+i-h\times k:t)$ and $In_w^0(t+i-h\times k+1:t) \subseteq In_u^0(t+i-h\times k+1:t+i) = \emptyset$,
+	the value of $w$ in round $t$ must be $h\times k - i$.
+	Moreover, $w$ belongs to $In_\cent(t:t+k)$. From line \ref{line:levelup}, we get that the value of $w$ must be congruent to 0 in round $t$.
+	We obtain a contradiction.
 \end{proof}
 
-\begin{lem} \label{lem:ready-safety}
-	If node $u$ reaches level 2 in round $t+i$, then $\cent$ must have reached level 1 in a previous round $t$. Moreover $c_u(t+i) \leq i$.
-\end{lem}
-\begin{proof}
-	The first part of the lemma results from lemma \ref{lem:conc-safety-bis}. We now prove the second part.
-	The lemma \ref{lem:no-close-level2} tells us that $i \geq k$.
-	We consider a path $(\cent = w(t), w(t+1) = \cent, \dots, w(t+i-k) = \cent, \dots, w(t+i) = u)$ from $\cent$ to $u$ in the interval $[t, t+i]$. 
-	Using a simple backward induction on this path, we can show that for any $j \in \{i-k, \dots, i\}$,
-	the node $w(t+j)$ is active, is at least in level 1, and verifies $ready_{w(t+j)}(t+j)$ and $concordant_{w(t+j)}(t+j)$.
-	The base case relies on the lines \ref{line:cond-firing} and \ref{line:cond-levelup}. The induction case relies on lines \ref{line:conc-gossip} and \ref{line:ready-gossip}.
-
-	Using a simple forward induction on this path, we can show that any $w(t+j)$ on this path verifies $force_{w(t+j)}(t+j) \geq 1$ and $c_{w(t+j)}(t+j) \leq j$.
-	The base case relies on the lines \ref{line:force2} and \ref{line:force3}. The induction case relies on lines \ref{line:force} and \ref{line:min-z-end}.
-\end{proof}
-
-\begin{lem} \label{lem:safety-force}
-	If $c_u(t+i) = i$, then a node must have reached level $force_u(t+i)$ in round $t$.
-\end{lem}
-\begin{proof}
-	Without loss of generality, we assume $force_u(t+i) = 1$.
-	We show this lemma by induction over $i$.
-	For the base case, we have to show that the line \ref{line:force2} was executed by $u$ in round $t$.
-	This must be true, otherwise the fact that $c_u(t) = 0$ could not be explained.
-
-	For the induction case, we assume that $c_u(t+i+1) = i+1$ and $force_u(t+i+1) = 1$.
-	Then, a node $v$ must have sent a message which looks like $\langle i, *, 1, * \rangle$ (see lines \ref{line:force} and \ref{line:min-z-end}).
-	The proof can now be concluded thanks to the induction hypothesis.
-\end{proof}
-
-\begin{lem} \label{lem:later-level1}
+\begin{lem} \label{lem:later-level}
 	If $\cent$ reached level 1 in round $t$, whereas $u$ reached level 1 in round $t+i$, then $i \equiv 0 [k]$. 
 \end{lem}
 \begin{proof}
-	By contradiction, we consider the first node $u$ which reaches level 1 in round $t+i$ with $i \not\equiv 0 [k]$.
-	The case $i < k$ is impossible according to lemma \ref{lem:no-close-level2}.
+	By contradiction, we assume that there exists a node $u$ being the earliest node reaching level 1 in round $t+i$ with $i \not\equiv 0 [k]$.
+	The case $i < k$ is impossible according to lemma \ref{lem:no-close-levelup}.
+	Moreover, no passive node may belong to $In_u(t+i-k:t+i)$.
+	Using $\mathcal{P}_{delayed-star}$, we get that $\cent \in In_u(t+i-k:t+i)$.
+	We obtain $c_\cent(t+i-k) \equiv 0$.
 
-	In the case $i > k$, since $concordant_u(t+i)$ is true, there exist an active path from $\cent$ in round $t$ to $u$ in round $t+i$.
-	On this path $(\cent = w(t), \dots, w(t+i) = u)$, we can show by a simple induction that, for any $0 \leq j \leq i$, we have $c_{w(t+j)}(t+j) \leq c_\cent(t)+j$.
-	Since we assumed that $i \not\equiv 0[k]$, we have $c_u(t+i) \neq c_\cent(t)+i$.
-	Then, using lemma \ref{lem:safety-force} gives us that a node $v$ must have reached level 1 later than $\cent$, with $c_v(t+i) \equiv c_u(t+i) [k]$.
-	This contradicts the fact that $u$ was the first non-congruent level 1 node.
+	In round $t+i-k$, $\cent$ is the latest node reaching level 1. Moreover $\cent \in In_\cent(0:t+i-k)$.
+	According to \ref{line:argmin} and \ref{line:argmax}, we have $c_\cent(t+i-k) = i-k$.
+	Thus $i \equiv 0 [k]$. We get a contradiction.
 \end{proof}
 
-\begin{thm} \label{lem:safety} 
+\begin{lem}
 	The algorithm is safe.
-\end{thm}
+\end{lem}
 \begin{proof}
-	We assume that $u$ and $v$ reach level 2 in round $t+i$ and $t+j$ respectively.
-	According to lemma \ref{lem:ready-safety}, $\cent$ must have reached level 1 in a previous round $t$.
-	Moreover $c_u(t+i) \leq i$ and $c_v(t+j) \leq j$.
-	According to lemma \ref{lem:safety-force}, there must exist nodes $w$ and $w'$ which reached level 1 in rounds $t+i-c_u(t+i)$ and $t+j-c_u(t+j)$ respectively.
-	According to lemma \ref{lem:later-level1}, we have $i-c_u(t+i) \equiv 0 [k]$ and $j-c_u(t+j) \equiv 0 [k]$. 
-	Since we have $c_u(t+i) \equiv 0 [k]$ and $c_v(t+j) \equiv 0 [k]$, we get $i \equiv j [k]$. That proves safety.
+	Let $t$ be the round in which $\cent$ reaches level 1.
+	According to line \ref{line:levelup} and lemma \ref{lem:no-close-levelup}, no node may reach level 2 before round $t+k$.
+
+	Moreover, from lemma \ref{lem:later-level}, we obtain $c_\cent(t+i) \equiv 0 [k] \Rightarrow i \equiv 0 [k]$.
+	Then, if $u$ reaches level 2 in round $t+j$, it would mean that $\cent \in In_u(t+j-k:t+j)$ and $c_\cent(t+j-k) \equiv 0 [k]$.
+	We obtain $j \equiv 0 [k]$. That proves safety.
 \end{proof}
 
 \begin{lem}
-	Every node eventually reaches level 1.
+	The \texcolor{teal}{optimized} algorithm is live.
 \end{lem}
 \begin{proof}
-	Let $Z_r$ be the set of level 0 nodes in round $r$.
-	Let $V_r$ be the set of values of $Z_r$.
-	We consider the sequence $h_r = |Z_r| + max~V_r - min~V_r$.
-	We have to show that $Z_r$ eventually becomes empty, in other words $(h_r)$ should eventually be undefined.
-	By contradiction, we assume that $(h_r)$ is always defined.
-	Let $s^{max}$ the first round in which every node is active.
-	If $r \geq s^{max}$, we can show that if $V_r \subseteq \{t, \dots, t+i\}$, then $V_{r+1} \subseteq \{t+1, \dots , t+i+1\}$ (see line \ref{line:min-z-end}).
-	That proves that $(h_r)$ cannot grow from $s^{max}$.
-	Then, there exists a round $t$ from which the set $Z_r$ is stabilized and $max~V_r - min~V_r$ is constant.
-	We consider the set $Z_r^{max}$, which contains every nodes $u$ such that $c_u(r) = max~V_r$.
-	For any $r \geq t$, we can show that $Z_{r+1}^{max} = \{u \in Z_r^{max}, HO(u, r+1) \subseteq Z_r^{max}\}$. That is a consequence of line \ref{line:min-z-end}.
-	Then, this sequence of set is decreasing from $t$. Moreover, it cannot become empty, otherwise $max~V_r - min~V_r$ would decrease (we assumed that this value is stable from t).
-	Then we consider the non-empty set $M = \bigcap\limits_{r \geq t} Z_r^{max}$.
-	Such a set is a subset of the system, which from $t$, never receive any message from the outside, and all hold the same value.
-	From the round $t+k$, the line \ref{line:conc-gossip} implies that any $u \in M$ must hold a true $concordant$ variable.
-	Then, every node in $M$ must reach level 1 before round $t+2k$. Hence $M \cap Z_{t+2k} = \emptyset$.
-	We get a contradiction with the definition of $M$.
-\end{proof}
+	For any node $u$, the sequence $(In_u(t:\infty))_{t \in \mathds{N}}$ is decreasing.
+	We note $In_u(\intfy)$ its limit ($v \in In_u(\infty)$ means that $u$ infinitely often hears from $v$).
 
-\begin{lem}
-	The algorithm is live
-\end{lem}
-\begin{proof}
-	We consider the round $t$ in which every node have reached level 1.
-	For any node $u$, we consider the path $(\cent = w(t), \dots, w(t+k) = u)$ from $\cent$ to $u$ in the interval $[t, t+k]$.
-	Every node is now active.
-	By a simple forward induction on this path, we can prove that $c_u(t+k) \leq c_\cent(t)+k$.
-	With lemma \ref{lem:later-level1}, we can show that from round $t+k$, every values in the system are congruent modulo $k$.
-	Then, from $t+2k$, the variables $ready$ and $concordant$ must be true in all nodes.
-	Every node must have reached level 2 in round $t+3k$.
+	The collection $(In_u(\infty))_{u \in \Pi}$ may be interpreted as a graph $G_\infty = (V, \{(u,v), u \in In_v(\infty)\})$.
+	We consider a source of the condensation graph of $G_\infty$.
+	This source is a subset $S \subseteq \Pi$ which forms a clique in $\Pi$, and eventually never receive any message from the outside.
+	Then, for every nodes in $S$, for every $t$, the sets $In_u^0(t:t')$ must converge to $\bigcup\limits_{v \in S} In_v(0:\infty)$ when $t'$ grows to infinity.
+
+	When, at a given $t'$, every node $u \in S$ has reached $In_u(0:t') = \bigcup\limits_{v \in S} In_v(0:\infty)$, the nodes hold mutually identical sets $In_v^0(t:t')$.
+	From this point, the nodes in $S$ must hold congruent values.
+	They must reach level before round $t'+2k$, and level 2 before round $t'+3k$.
+
+	Finally, every node $u \in \Pi$ will eventually hear from a source node.
+	Moreover, the sequence $(In_u(0:t))_{t \in \mathds{N}}$ is increasing and eventually stabilizes.
+	After this point, $c_u(t+1) = c_u(t)+1$.
+	Thus, $u$ will eventually reach $c_u(t) \equiv 0 [k] \wedge In_u^3(0:t) \neq \emptyset$.
+	That proves liveness.
 \end{proof}
 
 % section_cons (do not modify this comment)
