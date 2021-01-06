@@ -145,13 +145,13 @@ $\mathds{G}_\mathcal{A}$ is actually the dynamic graph $\mathds{G}$ where the in
 
 Let $In_u(t:t')$ be the set of incoming neighbours of $u$ in the graph $\mathds{G}_\mathcal{A}(t:t')$.
 $In_u(t:t')$ actually represents the set of nodes whose state in round $t$ is known by $u$ in round $t'$.
-For any $i \in \{0, 1, 2, 3\}$, let $In_u^i(t:t')$ be the subset of $In_u(t:t')$ of nodes whose level is at least $i$ in round $t$.
+For any $i \in \{0, 1, 2\}$, let $In_u^i(t:t')$ be the subset of $In_u(t:t')$ of nodes whose level is at least $i$ in round $t$.
 We have $In_u^2(t:t') \subseteq In_u^1(t:t') \subseteq In_u^0(t:t') \subseteq In_u(t:t')$.
 
 The colored section in the algorithm actually implement an optimization.
 For the proof, we will at first consider this optimization disabled.
 
-For convenience reason, the definition of slices (e.g. $\mathds{G}(t:t')$) excludes the lower bound (i.e. $\mathds{G}(t)$).
+For convenience reasons, the definition of slices (e.g. $\mathds{G}(t:t')$) excludes the lower bound (i.e. $\mathds{G}(t)$).
 
 \begin{algorithm}[htb]
 	\DontPrintSemicolon
@@ -168,12 +168,20 @@ For convenience reason, the definition of slices (e.g. $\mathds{G}(t:t')$) exclu
 		\If{$In_u(r-k:r) = In_u^i(r-k:r)$ and all nodes in $In_u^i(r-k:r)$ have values congruent with 0}{ \label{line:levelup} 
 			$level_u \leftarrow i+1$ \;
 		}
-		\If{$\color{teal} c_u \equiv 0 [k] \wedge In_u^2(0:r) \neq \emptyset$}{
+		\If{$\color{teal} c_u \equiv 0 [k] \wedge \cup\limit_{h \in \mathds{N}} In_u^2(h:r) \neq \emptyset$}{ \label{line:optimized}
 			$\color{teal} level_u \leftarrow 2$ \;
 		}
 	\Indm
 \caption{The generalized \SM algorithm} 
 \end{algorithm}
+
+We consider an execution which verifies two assumptions:
+$\mathcal{P}_{delayed-star} \equiv \exists \cent, \forall u \in \Pi, \forall t \in \mathds{N}, \mathds{G}(t:t+k)$ is centered by $\cent$.
+Moreover, we assume that no node remains passive forever.
+
+In the above algorithm, the line \ref{line:argmax} computes the maximum level a node has ever heard of.
+In the line \ref{line:argmin}, the expression $In^In_u^i(r-t:r) \nsubseteq In_u^i(r-t-1:r)$ can tell whether a node reached level $i$ in round $r-t$.
+This line computes the latest level up to level $i$.
 
 \begin{lem} \label{lem:no-close-levelup}
 	If $\cent$ reaches level 1 in round $t+k$, no node can level up in any round between $t+k+1$ and $t+2k-1$.
@@ -183,12 +191,12 @@ For convenience reason, the definition of slices (e.g. $\mathds{G}(t:t')$) exclu
 	Then no passive node may belong to $In_u(t+i:t+k+i)$.
 	Using $\mathcal{P}_{delayed-star}$, we get that $\cent \in In_u(t+i:t+k+i)$.
 
-	By assumption, $c_\cent(t+i) \equiv 0 [k]$. Let $h$ be the natural number such that $c_\cent(t+i) = h \times k$.
+	Using line \ref{line:levelup}, $c_\cent(t+i) \equiv 0 [k]$. Let $h$ be the natural number such that $c_\cent(t+i) = h \times k$.
 	We know that $c_\cent(t+i) \neq 0$, otherwise $\cent$ would be passive in round $t$, $\cent$ could not have leveled up in round $t+k$.
-	Using line \ref{line:argmin}, we can obtain the node $v \in In_u^0(t-i-h\times k:t+i)$ such that $In_u^0(t+i-h\times k+1:t+i) = \emptyset$.
+	Using line \ref{line:argmin}, we can obtain the node $v \in In_u^0(t-i-h\times k:t+i)$ such that $v \notin In_u^0(t+i-h\times k+1:t+i)$.
 	There must exist a path of active nodes between $v$ and $u$ in the interval $[t+i-h\times k, t+i]$.
 	We consider the node $w$ which is on this path in round $t$.
-	Since $v \in In_w^0(t+i-h\times k:t)$ and $In_w^0(t+i-h\times k+1:t) \subseteq In_u^0(t+i-h\times k+1:t+i) = \emptyset$,
+	Since $v \in In_w^0(t+i-h\times k:t)$ and $In_w^0(t+i-h\times k+1:t) \subseteq In_u^0(t+i-h\times k+1:t+i)$,
 	the value of $w$ in round $t$ must be $h\times k - i$.
 	Moreover, $w$ belongs to $In_\cent(t:t+k)$. From line \ref{line:levelup}, we get that the value of $w$ must be congruent to 0 in round $t$.
 	We obtain a contradiction.
@@ -202,7 +210,7 @@ For convenience reason, the definition of slices (e.g. $\mathds{G}(t:t')$) exclu
 	The case $i < k$ is impossible according to lemma \ref{lem:no-close-levelup}.
 	Moreover, no passive node may belong to $In_u(t+i-k:t+i)$.
 	Using $\mathcal{P}_{delayed-star}$, we get that $\cent \in In_u(t+i-k:t+i)$.
-	We obtain $c_\cent(t+i-k) \equiv 0$.
+	We obtain $c_\cent(t+i-k) \equiv 0 [k]$.
 
 	In round $t+i-k$, $\cent$ is the latest node reaching level 1. Moreover $\cent \in In_\cent(0:t+i-k)$.
 	According to \ref{line:argmin} and \ref{line:argmax}, we have $c_\cent(t+i-k) = i-k$.
@@ -221,17 +229,38 @@ For convenience reason, the definition of slices (e.g. $\mathds{G}(t:t')$) exclu
 	We obtain $j \equiv 0 [k]$. That proves safety.
 \end{proof}
 
+\begin{thm}
+	The optimized algorithm is safe.
+\end{thm}
+\begin{proof}
+	A node $u$ may only reach leach level 2 with line \ref{line:optimized} in round $t$ if a node previously reached level 2 in a round $t' < t$.
+	Moreover lines \ref{line:argmax} and \ref{line:argmin} guarantee that $t' \equiv t [k]$.
+	Thus safety is preserved.
+\end{proof}
+
 \begin{lem}
-	The \texcolor{teal}{optimized} algorithm is live.
+	For any node $u$, the sequence $(t-c_u(t))_{t \in \mathds{N}}$ is eventually decreasing.
 \end{lem}
 \begin{proof}
+	The algorithm guarantees that the value of the variable $i$ is increasing and bounded by 2 (see \ref{line:argmax}).
+	Let $t$ be round number in which $i$ has already reached its final value.
+	By construction, there exists a node $v \in In_u^i(t-c_u(t):t)$ such that $v \notin In_u^i(t-c_u(t)+1:t)$ (see line \ref{line:argmax}).
+	Such a node $v$ also belongs to $In_u^i(t-c_u(t):t+1) = In_u^i(t+1-(c_u(t)+1):t+1)$, but not to $In_u^i(t-c_u(t)+1:t+1)$.
+	That guarantees that $c_u(t+1) \leq c_u(t)+1$.
+	That proves the lemma.
+\end{proof}
+
+\begin{thm}
+	The optimized algorithm is live.
+\end{thm}
+\begin{proof}
 	For any node $u$, the sequence $(In_u(t:\infty))_{t \in \mathds{N}}$ is decreasing.
-	We note $In_u(\intfy)$ its limit ($v \in In_u(\infty)$ means that $u$ infinitely often hears from $v$).
+	We note $In_u(\infty)$ its limit.
 
 	The collection $(In_u(\infty))_{u \in \Pi}$ may be interpreted as a graph $G_\infty = (V, \{(u,v), u \in In_v(\infty)\})$.
 	We consider a source of the condensation graph of $G_\infty$.
 	This source is a subset $S \subseteq \Pi$ which forms a clique in $\Pi$, and eventually never receive any message from the outside.
-	Then, for every nodes in $S$, for every $t$, the sets $In_u^0(t:t')$ must converge to $\bigcup\limits_{v \in S} In_v(0:\infty)$ when $t'$ grows to infinity.
+	Then, for every nodes in $S$, for every $t$, the sets $In_u(t:t')$ must converge to $\bigcup\limits_{v \in S} In_v(0:\infty)$ when $t'$ grows to infinity.
 
 	When, at a given $t'$, every node $u \in S$ has reached $In_u(0:t') = \bigcup\limits_{v \in S} In_v(0:\infty)$, the nodes hold mutually identical sets $In_v^0(t:t')$.
 	From this point, the nodes in $S$ must hold congruent values.
