@@ -1,0 +1,61 @@
+\documentclass[11pt,letterpaper]{article}
+\special{papersize=8.5in,11in}
+
+\usepackage{fullpage}
+\usepackage{amsmath,amssymb,amsthm,dsfont}
+\newtheorem{thm}{Theorem}
+\newtheorem{pro}[thm]{Proposition}
+\newtheorem{lem}[thm]{Lemma}
+\newtheorem{cor}[thm]{Corollary}
+\newtheorem{defi}[thm]{Definition}
+
+\title{Stabilisation in rooted communication graph}
+\author{Bernadette Charron-Bost\textsuperscript{1} \and Louis Penet de Monterno\textsuperscript{1}}
+\date{\textsuperscript{1} \'Ecole polytechnique, 91128 Palaiseau, France\\~\\ \today}
+
+\begin{document}
+
+\maketitle
+
+Given a graph $G = (N_G, A_G)$, we define $roots(G)$ as the set of roots of $G$.
+We also define $G_S$ as the restriction of $G$ over a set of nodes $S$ (i.e. $G_S = (S, A_G \cap (S \times S))$).
+We define $source(G)$ as $G_{roots(G)}$.
+
+
+\begin{lem} \label{lem:safB} 
+	Let $G = (N_G, A_G)$ be a graph and $i$ a node reachable from any node of $G$.
+	Let $B$ be a fibration-prime graph.
+	If $\exists j \in N_G, h(\tilde{G}^i \wedge \tilde{B}^j) \geq n_G + D_G$, then $\hat G = B$.
+\end{lem}
+
+\begin{thm}
+	For any rooted graph $G$, for any node $i$, for any $k \geq n_G + D_G$ we have $source(\mathcal{B}(\tilde{G}^i \uparrow k)) \backsimeq \widehat{source(G)}$
+\end{thm}
+\begin{proof}
+	First, using lemma \ref{lem:safB}, we can show that $\mathcal{B}(\tilde{G}^i \uparrow k) = \widehat{G_{S(i)}}$ where $S(i)$ is the set of nodes from which $i$ is reachable.
+	We now construct an isomorphism $\phi : \widehat{source(G)} \rightarrow source(\mathcal{B}(\tilde{G}^i \uparrow k))$.
+
+	Let $j \in \widehat{source(G)}$.
+	This node is a fiber containing several nodes from $roots(G)$.
+	Let $j' \in roots(G)$ be one of them. This node belongs to $S(i)$.
+	Thus we can construct a node $\bar j = \mu_{G_{S(i)}}(j')$ belonging to $\widehat{G_S(i)}$.
+
+	Now we show that $\bar j$ belongs to $roots(\mathcal{B}(\tilde{G}^i \uparrow k)) = roots(\widehat{G_S(i)})$
+	To do so, we  choose an arbitrary node $l \in G_{S(i)}$.
+	Since $j' \in roots(G)$, there exists a path in $G$ from $j'$ to $l$.
+	By lifting this path to $\hat G$, we obtain a path from $\bar j$ to any node of $\widehat{G_{S(i)}}$.
+	Thus $\bar j \in roots(\widehat{G_{S(i)}})$, we can set $\phi(j) = \bar j$.
+
+	We now need to prove that $\phi$ is an isomorphism.
+
+	\noindent \textbf{Injectivity: } Let $j_1$ and $j_2$ be two nodes in $\widehat{source(G)}$ verifying $\phi(j_1) = \phi(j_2)$.
+	This means that $j_1' \in roots(G)$ and $j_2' \in roots(G)$ both belong to the same fiber in $\widehat{G_S(i)}$.
+	They must also belong to the same fiber in $\widehat{source(G)}$ because the fibration $\mu_{source(G)}$ is minimal.
+
+	\noindent \textbf{Surjectivity: } Let $j$ be a node in $source(\widehat{G_S(i)})$.
+	This node is a fiber containing at least one node from $G_{S(i)}$.
+
+\end{proof}
+
+
+\end{document}
