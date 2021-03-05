@@ -153,6 +153,10 @@ Those set are computable, since $u$ can compute the state of any $v \in In_u(t:t
 
 We have $In_u^2(t:t') \subseteq In_u^1(t:t') \subseteq In_u^0(t:t') \subseteq In_u(t:t')$.
 
+We consider an execution which verifies two assumptions:
+$$\mathcal{P}_{delayed-star} \equiv \exists \cent, \forall u \in \Pi, \forall t \in \mathds{N}, \mathds{G}(t:t+k)$ is centered by $\cent$$.
+Moreover, we assume that no node remains passive forever.
+
 \subsection{Algorithm}
 
 In this algorithm, the nodes hold a $level$ variable. When they start, they are level 0. They eventually reach level 1 then level 2.
@@ -174,7 +178,7 @@ For the proof, we will at first consider this optimization disabled.
 		\textbf{let} $i \leftarrow argmax_{i \in \{0, 1, 2\}}~\bigcup\limit_{h \in \mathds{N}} In_u^i(h:r) \neq \emptyset$ \;\label{line:argmax}
 		$c_u \leftarrow argmin_{t \in \mathds{N}}~In_u^i(r-t:r) \nsubseteq In_u^i(r-t-1:r)$ \;\label{line:argmin} 
 		\If{$In_u(r-k:r) = In_u^i(r-k:r)$ and all nodes in $In_u^i(r-k:r)$ have values congruent with 0}{ \label{line:levelup} 
-			$level_u \leftarrow level_u+1$ \;
+			$level_u \leftarrow min (level_u+1, 2)$ \;
 		}
 		\If{$\color{teal} c_u \equiv 0 [k] \wedge i=2$}{ \label{line:optimized}
 			$\color{teal} level_u \leftarrow 2$ \;
@@ -184,14 +188,16 @@ For the proof, we will at first consider this optimization disabled.
 \end{algorithm}
 
 In the above algorithm, the line \ref{line:argmax} computes the maximum level a node has ever heard of.
-In the line \ref{line:argmin}, the expression $In^In_u^i(r-t:r) \nsubseteq In_u^i(r-t-1:r)$ can tell whether a node reached level $i$ in round $r-t$.
-This line computes the latest level up to level $i$.
+
+If a node $v$ moves from level $i-1$ to level $i$ in round $t$, then $v \notin In_u^i(t-1:t')$ for any $u$. However $v \in In_u^i(t:t')$ may be true.
+In the line \ref{line:argmin}, the expression $In_u^i(r-t:r) \nsubseteq In_u^i(r-t-1:r)$ can tell whether, according to $u$, a node reached level $i$ in round $r-t$.
+Thus, the line \ref{line:argmin} returns since how long has the latest node reached level $i$.
+
+The line \ref{line:levelup} tells whether a node may level up.
+Since we assumed $\mathcal{P}_{delayed-star}$, we know that $\cent \in In_u(r-k:r)$.
+This line ensures that a level up may happen only if $c_u$ is congruent with $c_\cent$. Moreover, a node may not reach level $i+1$ if $\cent$ has still not reached level $i$.
 
 \subsection{Proof}
-
-We consider an execution which verifies two assumptions:
-$\mathcal{P}_{delayed-star} \equiv \exists \cent, \forall u \in \Pi, \forall t \in \mathds{N}, \mathds{G}(t:t+k)$ is centered by $\cent$.
-Moreover, we assume that no node remains passive forever.
 
 \begin{lem} \label{lem:no-close-levelup}
 	If $\cent$ reaches level 1 in round $t+k$, no node can level up in any round between $t+k+1$ and $t+2k-1$.
