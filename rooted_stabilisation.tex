@@ -17,45 +17,92 @@
 
 \maketitle
 
-Given a graph $G = (N_G, A_G)$, we define $roots(G)$ as the set of roots of $G$.
-We also define $G_S$ as the restriction of $G$ over a set of nodes $S$ (i.e. $G_S = (S, A_G \cap (S \times S))$).
-We define $source(G)$ as $G_{roots(G)}$.
-
+Let $source_G(i)$ the set of nodes from which $i$ is accessible.
+Formally, $u \in source_G(i) \Rightarrow (u,i) \in \bar V$ where $\bar V$ is the set of edges of the transitive closure of $G$.
+Let $G[i]$ be the sub-graph of $G$ induced by $source_G(i)$.
 
 \begin{lem} \label{lem:safB} 
-	Let $G = (N_G, A_G)$ be a graph and $i$ a node reachable from any node of $G$.
+	Let $G = (N_G, A_G)$ be a graph and $i \in N_G$.
 	Let $B$ be a fibration-prime graph.
-	If $\exists j \in N_G, h(\tilde{G}^i \wedge \tilde{B}^j) \geq n_G + D_G$, then $\hat G = B$.
+	If $\exists j \in N_G, h(\tilde{G}^i \wedge \tilde{B}^j) \geq n_G + D_G$, then $\widehat{G[i]} = B$.
 \end{lem}
 
-\begin{thm}
-	For any rooted graph $G$, for any node $i$, for any $k \geq n_G + D_G$ we have $source(\mathcal{B}(\tilde{G}^i \uparrow k)) \backsimeq \widehat{source(G)}$
-\end{thm}
+\begin{lem} \label{lem:commuthat} 
+	Any graph $G$ verifies $\forall u \in N_G, \widehat{G[u]} \backsimeq \hat G[\mu_G(u)]$.
+\end{lem}
 \begin{proof}
-	First, using lemma \ref{lem:safB}, we can show that $\mathcal{B}(\tilde{G}^i \uparrow k) = \widehat{G_{S(i)}}$ where $S(i)$ is the set of nodes from which $i$ is reachable.
-	We now construct an isomorphism $\phi : \widehat{source(G)} \rightarrow source(\mathcal{B}(\tilde{G}^i \uparrow k))$.
+	Let $u$ be a node from $N_G$.
+	We construct an isomorphism $\phi : \widehat{G[u]} \rightarrow \hat G[\mu_G(u)]$.
 
-	Let $j \in \widehat{source(G)}$.
-	This node is a fiber containing several nodes from $roots(G)$.
-	Let $j' \in roots(G)$ be one of them. This node belongs to $S(i)$.
-	Thus we can construct a node $\bar j = \mu_{G_{S(i)}}(j')$ belonging to $\widehat{G_S(i)}$.
+	Let $j \in \widehat{G[u]}$.
+	This node is a fiber containing several nodes from $G[u]$.
+	Let $j' \in G[u]$ be one of them.
+	Then we can construct a node $\bar j = \mu_G(j')$ belonging to $\hat G$.
 
-	Now we show that $\bar j$ belongs to $roots(\mathcal{B}(\tilde{G}^i \uparrow k)) = roots(\widehat{G_S(i)})$
-	To do so, we  choose an arbitrary node $l \in G_{S(i)}$.
-	Since $j' \in roots(G)$, there exists a path in $G$ from $j'$ to $l$.
-	By lifting this path to $\hat G$, we obtain a path from $\bar j$ to any node of $\widehat{G_{S(i)}}$.
-	Thus $\bar j \in roots(\widehat{G_{S(i)}})$, we can set $\phi(j) = \bar j$.
+	Since $j' \in G[u]$, there exists a path in $G$ from $j'$ to $u$.
+	By lifting this path to $\hat G$, we obtain a path from $\bar j$ to $\mu_G(u)$.
+	Thus $\bar j \in \hat G[\mu_G(u)]$, we can set $\phi(j) = \bar j$.
 
 	We now need to prove that $\phi$ is an isomorphism.
 
-	\noindent \textbf{Injectivity: } Let $j_1$ and $j_2$ be two nodes in $\widehat{source(G)}$ verifying $\phi(j_1) = \phi(j_2)$.
-	This means that $j_1' \in roots(G)$ and $j_2' \in roots(G)$ both belong to the same fiber in $\widehat{G_S(i)}$.
-	They must also belong to the same fiber in $\widehat{source(G)}$ because the fibration $\mu_{source(G)}$ is minimal.
+	\noindent \textbf{Injectivity: } Let $j_1$ and $j_2$ be two nodes in $\widehat{G[u]}$ verifying $\phi(j_1) = \phi(j_2)$.
+	This means that $j_1' \in G[u]$ and $j_2' \in G[u]$ both belong to the same fiber in $\hat G$.
+	They must also belong to the same fiber in $\widehat{G[u]}$ because the fibration $\mu_{G[u]}$ is minimal.
+	That proves $j_1 = j_2$.
 
-	\noindent \textbf{Surjectivity: } Let $j$ be a node in $source(\widehat{G_S(i)})$.
-	This node is a fiber containing at least one node from $G_{S(i)}$.
+	\noindent \textbf{Surjectivity: } Let $\bar j$ be a node in $\hat G[\mu_G(u)]$.
+	We know that there exists a path $a$ from $\bar j$ to $\mu_G(u)$.
+	The lifted path $\tilde{a}^u$ must be a path from some node $j'$ verifying $\mu_G(j') = \bar j$ to $u$.
+	This node $j'$ must belong to $G[u]$.
+	Now, we claim that $\phi(\mu_{G[u]}(j')) = \bar j$.
+	Since any node $j''$ from $\mu_{G[u]}(j')$ and $j'$ must belong to the same fibre in $\widehat{G[u]}$, 
+	they must also belong to the same fiber in $\hat G$ because the fibration $\mu_G$ is minimal.
+	That justifies the claim, and proves surjectivity.
+
+	\noindent \textbf{Definition over edges:} We want $\phi$ to be an isomorphism. We must map each edge from $\widehat{G[u]}$ to an edge from $\hat G[\mu_G(u)]$.
+	This is possible if for any $v$ and $v'$ in $G[u]$, the multiplicity of edges between $v$ and $v'$ in $\widehat{G[u]}$
+	is equal to the multiplicity between $\phi(v)$ and $\phi(v')$ in $\hat G[\mu_G(u)]$.
+	This results from the fact that $\mu_G$ and $\mu_{G[u]}$ are both fibrations.
 
 \end{proof}
 
+\begin{thm}
+	Let $\mathcal{C}$ be a network class containing rooted graphs.
+	Let $S$ be a behaviour.
+	The following two conditions are equivalent:
+	\begin{itemize}
+		\item There exists a protocol $P$ which stabilizes on $S$.
+		\item There exists a function $y$ which map any fibration-prime $B$ to a sequence $y_B^0, y_B^1, \dots \in (Y^{N_B})^\omega$.
+			This function must verify $\forall G \in \mathcal{C}, \exists T \in \mathds{N}, (y_{\hat G}^0)^{\mu_G}, (y_{\hat G}^1)^{\mu_G}, \dots \in S_G$
+			and $\forall G \in \mathcal{C}, \forall u \in N_{G[u]}, \forall i \in \mathds{N}, proj_{\hat G[u]}(y^i_{\hat G}) = y^i_{\hat G[u]}$.
+	\end{itemize}
+\end{thm}
+\begin{proof}
+	First, we prove the direct implication. We assume the existence of a protocol $P$ stabilizing on $S$.
+	We obtain the sequence $y_B$ by executing $P$ on any fibration-prime graph $B$.
+	Let $G$ be a graph from $\mathcal{C}$.
+	The lifting lemma implies that $(y_{\hat G}^0)^{\mu_G}, (y_{\hat G}^1)^{\mu_G}, \dots$ is an execution on $G$.
+	By definition of stabilization, we obtain $\exists T \in \mathds{N}, (y_{\hat G}^0)^{\mu_G}, (y_{\hat G}^1)^{\mu_G}, \dots \in S_G$.
+	Moreover, a node $u$ cannot locally distinguish $G$ and $G[u]$. This remark justifies the proposition
+	$\forall G \in \mathcal{C}, \forall u \leq N_G, \forall i \in \mathds{N}, proj_{\hat G[u]}(y^i_{\hat G}) = y^i_{\hat G[u]}$.
+
+	Now, we prove the other implication. We construct a protocol which can stabilize on $S$:
+	$$T_i^{t+1} = U_i^t$$
+	$$B_i^{t+1} = \mathcal{B}(T_i^{t+1})$$
+	$$E_i^{t+1} = \epsilon_j T_i^{t+1} \leq B_i^{t+1}$$
+	$$h_i^{t+1} = todo$$
+	$$x_i^{t+1} = y_{B_i^{t+1}}^{h_i^{t+1}}(E_i^{t+1})$$
+
+	According to lemma \ref{lem:safB}, we ultimately have, from a certain round $T$, for any $t > T$, we have $\forall u \in N_G, B_u^t = \widehat{G[u]} \wedge E_i^t = \mu_G(u)$.
+	Moreover, we know that $\forall u \in N_{\hat G}, proj_{G[u]}(y^t_{\hat G}) = y^t_{\hat G[u]}$.
+	We ultimately get $\forall u \in N_G, x_u^t = y_{\widehat{G[u]}}^{h_i^t}(E_i^t) = y_{\hat G[\mu_G(u)]}^{h_i^t}(\mu_G(u)) = y^{h_i^t}_{\hat G}$.
+	\end{proof}
+
+
+\begin{thm}
+	For any rooted graph $G$, for any node $i$, for any $k \geq n_G + D_G$ we have $$source(\mathcal{B}(\tilde{G}^i \uparrow k)) \backsimeq \widehat{source(G)}$$
+\end{thm}
+	First, using lemma \ref{lem:safB}, we can show that $\mathcal{B}(\tilde{G}^i \uparrow k) \backsimeq \widehat{G_{S(i)}}$ where $S(i)$ is the set of nodes from which $i$ is reachable.
+	Then, using \ref{lem:commuthat}, we have $source(\mathcal{B}(\tilde{G}^i) \uparrow k) \backsimeq source(\widehat{G_{S(i)}}) = \widehat{source(G_{S(i)})} = \widehat{source(G)}$
 
 \end{document}
