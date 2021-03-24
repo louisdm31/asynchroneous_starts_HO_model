@@ -21,10 +21,19 @@ Let $source_G(i)$ the set of nodes from which $i$ is accessible.
 Formally, $u \in source_G(i) \Rightarrow (u,i) \in \bar V$ where $\bar V$ is the set of edges of the transitive closure of $G$.
 Let $G[i]$ be the sub-graph of $G$ induced by $source_G(i)$.
 
+\begin{lem} \label{lem:viewconst}
+	For any node $u$, from round $t > D_u$, we have
+	$\exists c \in \mathds{N}, T_u^t = \widetilde{G[u]}^u \uparrow t+c$.
+\end{lem}
+
 \begin{lem} \label{lem:safB} 
 	Let $G = (N_G, A_G)$ be a graph and $i \in N_G$.
 	Let $B$ be a fibration-prime graph.
-	If $\exists j \in N_G, h(\tilde{G}^i \wedge \tilde{B}^j) \geq n_G + D_G$, then $\widehat{G[i]} = B$.
+	If $\exists j \in N_G, h(\tilde{G}^i \wedge \tilde{B}^j) \geq n_G + D_i$, then $\widehat{G[i]} = B$.
+\end{lem}
+
+\begin{lem} \label{lem:getid}
+	If $\mathcal{B}(T)$ is defined, there exist a unique node $i$ from $\mathcal{B}(T)$ such that $T \leq \widetilde{\mathcal{B}(T)}^i$.
 \end{lem}
 
 \begin{lem} \label{lem:commuthat} 
@@ -83,7 +92,7 @@ Let $G[i]$ be the sub-graph of $G$ induced by $source_G(i)$.
 	Let $G$ be a graph from $\mathcal{C}$.
 	The lifting lemma implies that $(y_{\hat G}^0)^{\mu_G}, (y_{\hat G}^1)^{\mu_G}, \dots$ is an execution on $G$.
 	By definition of stabilization, we obtain $\exists T \in \mathds{N}, (y_{\hat G}^0)^{\mu_G}, (y_{\hat G}^1)^{\mu_G}, \dots \in S_G$.
-	Moreover, a node $u$ cannot locally distinguish $G$ and $G[u]$. This remark justifies the proposition
+	Moreover, a node $u$ cannot locally distinguish $G$ and $G[u]$ (then none of its predecessor can). This remark justifies the proposition
 	$\forall G \in \mathcal{C}, \forall u \leq N_G, \forall i \in \mathds{N}, proj_{\hat G[u]}(y^i_{\hat G}) = y^i_{\hat G[u]}$.
 
 	Now, we prove the other implication. We construct a protocol which can stabilize on $S$:
@@ -93,16 +102,11 @@ Let $G[i]$ be the sub-graph of $G$ induced by $source_G(i)$.
 	$$h_i^{t+1} = todo$$
 	$$x_i^{t+1} = y_{B_i^{t+1}}^{h_i^{t+1}}(E_i^{t+1})$$
 
-	According to lemma \ref{lem:safB}, we ultimately have, from a certain round $T$, for any $t > T$, we have $\forall u \in N_G, B_u^t = \widehat{G[u]} \wedge E_i^t = \mu_G(u)$.
+	According to lemma \ref{lem:viewconst}, the value of $T_i^t$ eventually verifies $T_i^t = \tilde{G}_i \uparrow t+c$.
+	According to lemma \ref{lem:safB}, we eventually have $\forall u \in N_G, B_u^t = \widehat{G[u]}$.
+	According to lemma \ref{lem:getid}, we ultimately have $E_i^t = \mu_G(i)$.
 	Moreover, we know that $\forall u \in N_{\hat G}, proj_{G[u]}(y^t_{\hat G}) = y^t_{\hat G[u]}$.
-	We ultimately get $\forall u \in N_G, x_u^t = y_{\widehat{G[u]}}^{h_i^t}(E_i^t) = y_{\hat G[\mu_G(u)]}^{h_i^t}(\mu_G(u)) = y^{h_i^t}_{\hat G}$.
-	\end{proof}
-
-
-\begin{thm}
-	For any rooted graph $G$, for any node $i$, for any $k \geq n_G + D_G$ we have $$source(\mathcal{B}(\tilde{G}^i \uparrow k)) \backsimeq \widehat{source(G)}$$
-\end{thm}
-	First, using lemma \ref{lem:safB}, we can show that $\mathcal{B}(\tilde{G}^i \uparrow k) \backsimeq \widehat{G_{S(i)}}$ where $S(i)$ is the set of nodes from which $i$ is reachable.
-	Then, using \ref{lem:commuthat}, we have $source(\mathcal{B}(\tilde{G}^i) \uparrow k) \backsimeq source(\widehat{G_{S(i)}}) = \widehat{source(G_{S(i)})} = \widehat{source(G)}$
+	We ultimately get $\forall u \in N_G, x_u^t = y_{\widehat{G[u]}}^{h_i^t}(E_i^t) = y_{\hat G[\mu_G(u)]}^{h_i^t}(\mu_G(u)) = y^{h_i^t}_{\hat G}(\mu_G(u))$.
+\end{proof}
 
 \end{document}

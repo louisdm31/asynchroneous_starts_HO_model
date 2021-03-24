@@ -1,0 +1,135 @@
+\documentclass[11pt,letterpaper]{article}
+\special{papersize=8.5in,11in}
+\setlength{\parskip}{1em}
+
+\usepackage[utf8]{inputenc}
+\usepackage[pdftex,pdfpagelabels,bookmarks,hyperindex,hyperfigures]{hyperref}
+\usepackage{fullpage}
+\usepackage{amsmath,amssymb,amsthm,dsfont}
+\newtheorem{thm}{Theorem}
+\newtheorem{pro}[thm]{Proposition}
+\newtheorem{lem}[thm]{Lemma}
+\newtheorem{cor}[thm]{Corollary}
+\newtheorem{defi}[thm]{Definition}
+
+\title{Stabilisation in rooted communication graph}
+\author{Bernadette Charron-Bost\textsuperscript{1} \and Louis Penet de Monterno\textsuperscript{1}}
+\date{\textsuperscript{1} \'Ecole polytechnique, 91128 Palaiseau, France\\~\\ \today}
+
+\begin{document}
+  \maketitle
+
+\section{Infinite-state synchronization}
+
+Let $\theta$ be a cut-off function.
+We give the following protocol:
+\begin{align}
+	& $$C_i^{t+1} = 1+min_{j \looparrowright i} C_j^t$$ \label{eq:counter} \\
+	& $$M_i^{t+1} = 1+M_i^t$$ \\
+	& $$\forall l \in \mathds{N}, AGE^{t+1}_i[l+1] \leftarrow 1+min_{j \looparrowright i} AGE_j^t[l]$$ \label{eq:age_rec} \\
+	& $$AGE_i^{t+1}[C_i^{t+1}] \leftarrow 0$$ \label{eq:age_init} \\
+	& $$y_i^{t+1} \leftarrow max \{l, AGE_i^{t+1}[l] \leq \theta(M_i^{t+1}\}) \label{eq:result} $$
+\end{align}
+
+\begin{thm}
+	This protocol stabilizes the synchronized clock's behaviour if the communication graph is rooted.
+\end{thm}
+
+\begin{proof}
+	Let $m$ be $min\{C_u^0, u \in Roots(G)\}$.
+
+	\noindent Claim 1:
+	$\forall t > D, \forall i \in Roots(G), \forall j \in N_G, C_j^t \leq C_i^0+t$
+
+	There exists a path $(i = i_0, i_1, \dots, i_h = j)$ from $i$ to $j$ in $G$.
+	We can show by induction on this path that $\forall l \leq h, C_{i(l)}^l \leq C_i^0+l$.
+	The induction case comes from the \eqref{eq:counter}.
+
+	\noindent Claim 2:
+	$\forall t > D, \forall i \in Roots(G), C_i^t = m+t$
+
+	This claim follows from the previous claim, applied to the node $i$ satisfying $C_i^0 = m$.
+
+	\noindent Claim 3:
+	$\forall t > 2D, \forall j \in N_G, AGE^t_i[m+t] \leq D$
+
+	Let $i$ be a node from $Roots(G)$.
+	There exists a path $(i = i_0, i_1, \dots, i_h = j)$ of length $h \leq D$ from $i$ to $j$ in $G$.
+	The previous claim shows that $C_i^{t-h} = m+t-h$.
+	We can show by induction on this path that $\forall l \leq h, AGE_{i(l)}^{t-h+l}[m+t-h] \leq l$.
+	The induction case comes from the \eqref{eq:age_rec}, and the base case from \eqref{eq:age_init}.
+
+	\noindent Claim 4:
+	$\forall t > D, \forall j \in N_G, C_j^t \leq m+t$
+
+	This claim follows from the first claim, applied to the node $i$ satisfying $C_i^0 = m$.
+
+	\noindent Claim 5:
+	$\forall t > D, \forall j \in N_G, \forall m' > m, AGE_j^t[m'+t] \geq t-D$
+
+	This claim can be proved by induction over $t-D$.
+	For the induction case, we know from the previous claim that no node may reset $AGE_j[m'+t]$ to 0 with \eqref{eq:age_init}.
+	The line \eqref{eq:age_rec} terminates the induction case.
+
+	\noindent Claim 6:
+	$\forall i \in N_G, \exists T \in \mathds{N}, \forall t > T, t-D > \theta(M_i^t) > D$
+
+	Since $\theta$ is a cut-off function, it verifies $\lim_{t \rightarrow \infty} \theta(t) = \infty$.
+	Then eventually $\theta(M_i^t) = \theta(M_i^0+t) > D$.
+	Moreover $\lim_{t \rightarrow \infty} t-\theta(t) = \infty$.
+	Then $\lim_{t \rightarrow \infty} M_i^t - \theta(M_i^t) = \infty$.
+	Eventually $t-D > \theta(M_i^t)$.
+
+	\noindent Claim 7:
+	$\forall i \in N_G, \exists T \in \mathds{N}, \forall t > T, y_i^t = m+t$
+
+	This claim results from \eqref{eq:result} and claims 3, 5 and 6.
+	The correctness of the protocol results from this last claim.
+
+\section{Synchronization modulo $P$}
+
+	We consider the protocol (6) from Boldi-Vigna's paper.
+
+\begin{thm}
+	The protocol (6) stabilizes on a modulo $P$-synchronized clock's behaviour if the communication graph is rooted.
+\end{thm}
+\begin{proof}
+	Let $D$ be the diameter of widest connected component of $G$.
+	We consider the condensation graph of $G$.
+	This graph is well-founded, so we can prove by induction over its node that the underlying components ultimately stabilize.
+
+	For the base base, we have to prove that the protocol (6) stabilizes on $Roots(G)$.
+	The proof is done in Boldi-Vigna's paper.
+
+	For the induction case, we consider $G'$ a strongly connected component from $G$.
+	By induction hypothesis, we know that every node in the incoming components ultimately stabilize.
+	Without loss of generality, we assume that they are already stabilized in the round 0.
+	Let $i(1), \dots, i(h)$ be the incoming neighbours of $G'$.
+	Let $M'$ be $max \{M_{i(l)}^0, 1 \leq l \leq h\}$.
+	Since the incoming connected components are already stabilized, their nodes ultimately adopt the highest $M_i^0$ possible,
+	and never increase their value.
+	Without loss of generality, we also assume that $M^0_{i(1)}, \dots, M^0_{i(h)}$ are already stabilized.
+	Let $k$ be $g^*(M'+D)$.
+
+	For any $i \in N_{G'}$, we have:
+	\begin{align*}
+		P(M_i^{kD})^2 - C_i^{kD} & \geq Pg^k(0)(g^k(0)+2M)-kD \\
+		& \geq P(M'+D)(M'+D+2M)-(M'+D)D \\
+		& \geq PM'^2+D^2+2DM'-(M'+D)D \\
+		& \geq PM'^2+D
+	\end{align}
+
+	Let $V_{kD}$ be the set $\{C_i^{kD}, i \in N_{G'}\}$.
+	In round $kD+PM'^2$, the nodes from $G'$ either have adopted a counter value from $i(1), \dots, i(h)$,
+	or keep a counter value from $V_{kD}$.
+	Moreover, the previous inequality guarantees that the values from $V_{kD}$ will not "wrap" between round $kD$ and $kD+PM'^2+D$.
+	Then $V_{kD+PM'^2} = \{C_{i(1)}^{kD+PM'^2} + rP, r \in \mathds{N}\} \cup \{v+PM'^2, v \in V_{kD}\}$.
+
+	In round $kD+PM'^2$, if a node $i \in N_{G'}$ is not synchronized with $i(1), \dots, i(h)$,
+	its counter value must be greater than $PM'^2$.
+	Whereas the counter values of $i(1), \dots, i(h)$ are bounded by $PM'^2$.
+	This shows that every node in $G'$ will ultimately synchronize with $i(1), \dots, i(h)$.
+	This terminates the induction case.
+\end{proof}
+
+\end{document}
