@@ -2,6 +2,7 @@
 \special{papersize=8.5in,11in}
 \setlength{\parskip}{1em}
 
+\usepackage{graphicx}
 \usepackage[utf8]{inputenc}
 \usepackage[pdftex,pdfpagelabels,bookmarks,hyperindex,hyperfigures]{hyperref}
 \usepackage{fullpage}
@@ -13,9 +14,17 @@
 \newtheorem{defi}[thm]{Definition}
 
 \title{Stabilisation in rooted communication graph}
-\author{Bernadette Charron-Bost\textsuperscript{1} \and Louis Penet de Monterno\textsuperscript{1}}
-\date{\textsuperscript{1} \'Ecole polytechnique, 91128 Palaiseau, France\\~\\ \today}
-
+\author{
+	Bernadette Charron-Bost \\
+	LIX, Palaiseau, France
+\and
+	Stephan Metz \\
+	LORIA, Nancy, France
+\and
+	Louis Penet de Monterno \\
+	LIX, Palaiseau, France
+}
+\date{\today}
 \begin{document}
   \maketitle
 
@@ -23,12 +32,13 @@
 
 Let $\theta$ be a cut-off function.
 We give the following protocol:
+
 \begin{align}
 	& $$C_i^{t+1} = 1+min_{j \looparrowright i} C_j^t$$ \label{eq:counter} \\
 	& $$M_i^{t+1} = 1+M_i^t$$ \\
 	& $$\forall l \in \mathds{N}, AGE^{t+1}_i[l+1] \leftarrow 1+min_{j \looparrowright i} AGE_j^t[l]$$ \label{eq:age_rec} \\
 	& $$AGE_i^{t+1}[C_i^{t+1}] \leftarrow 0$$ \label{eq:age_init} \\
-	& $$y_i^{t+1} \leftarrow max \{l, AGE_i^{t+1}[l] \leq \theta(M_i^{t+1}\}) \label{eq:result} $$
+	& $$y_i^{t+1} \leftarrow max \{l, AGE_i^{t+1}[l] \leq \theta(M_i^{t+1})\} $$ \label{eq:result}
 \end{align}
 
 \begin{thm}
@@ -86,11 +96,30 @@ We give the following protocol:
 	This claim results from \eqref{eq:result} and claims 3, 5 and 6.
 	The correctness of the protocol results from this last claim.
 
-\section{Synchronization modulo $P$}
+% \section{A detailed proof of Boldi-Vigna's protocol}
+
+\section{Synchronization modulo $P$ in fixed rooted topology}
 
 	We consider the protocol (6) from Boldi-Vigna's paper.
 
-\begin{thm}
+\begin{lem} \label{lem:9_extended}
+	We consider a graph $G$. Let $\{i(1), \dots, i(k)\} \subseteq N_G$.
+	Let $G'$ be the subgraph induced by $N_G \setminus \{i(1), \dots, i(k)\}$, we assume that $G'$ is strongly connected.
+	We assume that $i(1), \dots, i(k)$ have no incoming neighbours other that themselves.
+	We execute the protocol (6) on $G$, and we assume that the initial counters of $i(1), \dots, i(k)$ are congruent modulo $P$.
+	We let $M = min_{i \in N_G} M_i^0$ and $D$ the diameter of $G$.
+	Then, for all $k \in \mathds{N}$, one of the following property is verified:
+
+	\begin{enumerate}
+		\item $\forall i \in N_G, \forall j \in N_G, C_i^{kD} \equiv C_j^{kD} [k]$
+		\item $min_{i \in N_{G'}} M_i^{kD} \geq g^k(M)$
+	\end{enumerate}
+\end{lem}
+\includegraphics[width=7cm]{images/graphe}
+
+The proof of this lemma is strictly identical to the proof of lemma 9 of Boldi-Vigna's paper.
+
+\begin{thm} \label{thm:fixed_rooted}
 	The protocol (6) stabilizes on a modulo $P$-synchronized clock's behaviour if the communication graph is rooted.
 \end{thm}
 \begin{proof}
@@ -98,7 +127,7 @@ We give the following protocol:
 	We consider the condensation graph of $G$.
 	This graph is well-founded, so we can prove by induction over its node that the underlying components ultimately stabilize.
 
-	For the base base, we have to prove that the protocol (6) stabilizes on $Roots(G)$.
+	For the base base, we have to prove that the protocol (6) stabilizes on $Roots(G)$, which is strongly connected.
 	The proof is done in Boldi-Vigna's paper.
 
 	For the induction case, we consider $G'$ a strongly connected component from $G$.
@@ -121,15 +150,74 @@ We give the following protocol:
 
 	Let $V_{kD}$ be the set $\{C_i^{kD}, i \in N_{G'}\}$.
 	In round $kD+PM'^2$, the nodes from $G'$ either have adopted a counter value from $i(1), \dots, i(h)$,
-	or keep a counter value from $V_{kD}$.
+	or have kept a counter value from $V_{kD}$.
 	Moreover, the previous inequality guarantees that the values from $V_{kD}$ will not "wrap" between round $kD$ and $kD+PM'^2+D$.
-	Then $V_{kD+PM'^2} = \{C_{i(1)}^{kD+PM'^2} + rP, r \in \mathds{N}\} \cup \{v+PM'^2, v \in V_{kD}\}$.
+	Then $V_{kD+PM'^2} = \{C_{i(1)}^{kD+PM'^2} + rP, r \in \mathds{Z}\} \cup \{v+PM'^2, v \in V_{kD}\}$.
 
 	In round $kD+PM'^2$, if a node $i \in N_{G'}$ is not synchronized with $i(1), \dots, i(h)$,
 	its counter value must be greater than $PM'^2$.
 	Whereas the counter values of $i(1), \dots, i(h)$ are bounded by $PM'^2$.
-	This shows that every node in $G'$ will ultimately synchronize with $i(1), \dots, i(h)$.
+	This shows that every node in $G'$ will synchronize with $i(1), \dots, i(h)$ between round $kD+PM'^2$ and $kD+PM'^2+D$.
 	This terminates the induction case.
 \end{proof}
+
+\section{Synchronization modulo $P$ with dynamic topology}
+
+We execute the protocol (6) on a dynamic graph, assumed to be complete with delay $D$.
+
+\begin{lem}
+	For all $k \in \mathds{N}$, one of the following statements is true:
+	\begin{enumerate}
+		\item $\forall i \in N_G, \forall j \in N_G, C_i^{2kD} \equiv C_j^{2kD} [k]$
+		\item $min_i M_i^{2kD} \geq g^k(M)$
+	\end{enumerate}
+\end{lem}
+\begin{proof}
+	For $k=0$, we have $min_i M_i^0 = M = g^0(M)$, and
+	statement (ii) is true. Since statement (i) is stable, to make
+	the inductive step we can assume that statement (ii) is true
+	and statement (i) is false for $k$.
+	But if there are two clocks
+	with different values modulo $P$ at time $2kD$, then for every
+	processor $i$ there is a processor $j$ that
+	will apply $g$ at some point between round $2kD$ and $2kD+D$
+	(if we consider a path $(i, i_1, \dots, i_{D-1} = j)$ in the time interval $[2kD, 2kD+D]$,
+	we can show by contradiction that some processor on this path received non-congruent values
+	at some point in the interval).
+	We obtain
+	$M_j^{2kD+D} \geq g(min_i M_i^{2kD}) \geq g^{k+1}(M)$.
+
+	In $D$ more steps, this lower bound will propagate to all processes, that is
+	$min_i M_i^{2(k+1)D} \geq g^{k+1}(M)$
+\end{proof}
+
+\begin{thm}
+	The protocol (6) stabilizes on a modulo $P$-synchronized clock's behaviour if the dynamic graph is complete with delay $D$.
+\end{thm}
+\begin{proof}
+	Let $k = g^*(D)$.
+	At time $2kD$ either clocks are equal
+	modulo $P$ , or by Lemma 9 we have $\forall i \in N_G, M_i^{2kD} \geq g^k(M)$.
+	In this case,
+
+	\begin{align*}
+		P(M_i^{2kD})^2 - C_i^{2kD} & \geq P(g^k(M))^2-(PM^2+2kD) \\
+		& \geq P(g^k(M)-M)(g^k(M)+M)-2kD \\
+		& \geq Pg^k(0)(g^k(0)+2M)-2kD \\
+		& \geq PD(D+2)-2g^*(D)D \\
+		& \geq 2D(D+2)-2D^2 > D
+	\end{align*}
+
+	Thus, since the guesses are nondecreasing, between time $2kD$
+	and $2kD + D$ clock values will not "wrap", so by Proposition 1
+	at time $kD + D$ all clocks will have value $min_i C_i^{2kD}+D$.
+\end{proof}
+
+Now we assume that the graph is rooted with delay $D$.
+Using the proof of \ref{thm:fixed_rooted}, and the previous lemma, we can show the following theorem.
+
+\begin{thm}
+	The protocol (6) stabilizes on a modulo $P$-synchronized clock's behaviour if the dynamic graph is rooted with delay $D$.
+\end{thm}
 
 \end{document}
