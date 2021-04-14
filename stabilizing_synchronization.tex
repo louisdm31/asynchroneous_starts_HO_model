@@ -138,7 +138,20 @@ The proof of this lemma is strictly identical to the proof of lemma 9 of Boldi-V
 	Since the incoming connected components are already stabilized, their nodes ultimately adopt the highest $M_i^0$ possible,
 	and never increase their value.
 	Without loss of generality, we also assume that $M^0_{i(1)}, \dots, M^0_{i(h)}$ are already stabilized.
-	Let $k$ be $g^*(M'+D)$.
+
+	Claim 1: At round $D$, every node $u$ in $G'$ has adopted $M_u^D \geq M'$.
+
+	From round $D$, we apply lemma \ref{lem:9_extended} to the sub-graph of $G$ induced by $N_{G'} \cup \{i(1), \dots i(h)\}$.
+	Let $k = min \{k \in \mathds{N}, g^k(M') \geq M'+D\}$.
+	Either, in round $D + kD$, this sub-graph is synchronized, or we have $min_{u \in N_{G'}} \geq g^k(M') \geq M'+D$.
+	We now focus on the second case.
+
+	Claim 2: At the latest in round $D(k+1) + PM'^2$, some node $i \in \{i(1), \dots i(h)\}$ verifies $C_i^t = 0$.
+
+	This is true because the $M_i$ variable of $i(1), \dots i(h)$ cycles between 0 and $PM'^2$.
+	Let $t$ be the round in which this happens.
+
+	Claim 3: 
 
 	For any $i \in N_{G'}$, we have:
 	\begin{align*}
@@ -220,4 +233,82 @@ Using the proof of \ref{thm:fixed_rooted}, and the previous lemma, we can show t
 	The protocol (6) stabilizes on a modulo $P$-synchronized clock's behaviour if the dynamic graph is rooted with delay $D$.
 \end{thm}
 
+\section{Synchronization modulo $P$ with fixed roots in dynamic graphs}
+
+We assume that the communication topology is given by a dynamic graph $\mathds{G}$
+such that for any $i \in \mathds{N}$, the set $Roots(\mathds{G}_i)$ is a constant set noted $Roots(\mathds{G})$.
+We assume that $\mathds{G}$ is centerd with delay $D$.
+
+\begin{lem}
+	If $Roots(\mathds{G})$ is already stabilized in round 0, then
+	for all $k \in \mathds{N}$, for all $i \in N_\mathds{G}$,
+	one of the following statements is true:
+	\begin{enumerate}
+		\item $C_i^{kD} \equiv C_{Roots(\mathds{G})}^{kD} [k]$
+		\item $M_i^{(k+1)D} \geq g^{k+1}(M)$
+	\end{enumerate}
+	where $C_{Roots(\mathds{G})}^t \in \mathds{Z}/P\mathds{Z}$ is the common counter value of the nodes in $Roots(\mathds{G})$ in round $t$.
+\end{lem}
+\begin{proof}
+	We prove this lemma by induction over $k$.
+
+	For $k = 0$, we fix $i \in N_\mathds{G}$, and we assume that $i$ is not synchronized with the roots.
+	There must existe a path $j = j(0), j(1), \dots, j(D) = i$ between $j$ and $i$ in the round interval $[0, D]$.
+	Let $j(l)$ be the first node on this path such that $C_{j(l)}^l \not\equiv C_{j(l+1)}^l [k]$.
+	We obtain $M_{j(l+1)}^{l+1} = g(max_{u \looparrowright j(l+1)} M_u^l) \geq g(M)$.
+	We finally have $M_i^D \geq g(M)$.
+
+	For the induction case, we assume that a fixed node $i$ is not synchronized with $Roots(\mathds{G})$ in round $(k+1)D$.
+	We also assume that $\forall i \in N_\mathds{G}, C_i^{(k+1)D} \not\equiv C_{Roots(\mathds{G})} \Rightarrow M_i^{(k+1)D} \geq g^{k+1}(M)$.
+	There must existe a path $j = j(0), j(1), \dots, j(D) = i$ between $j \in N_{Roots(\mathds{G})}$ and $i$ in the round interval $[(k+1)D, (k+2)D]$.
+	Let $j(l)$ be the first node on this path such that $C_{j(l)}^{(k+1)D+l} \neg\equiv C_{j(l+1)}^{(k+1)D+l+1} [k]$.
+	There must be a path from a node $u$ to $j(l+1)$ in the round interval $[(k+1)D, (k+1)D+l+1]$ where $C_u^{(k+1)D} \not\equiv C^{(k+1)D}_{Roots(\mathds{G})}$.
+	By induction hypothesis, we have $M_u^{(k+1)D} \geq g^{k+1}(M)$.
+	Since there exists a path from $u$ to $i$ in the round interval $[(k+1)D, (k+2)D]$,
+	we obtain $M_i^{(k+2)D} \geq g(M_u^{(k+1)D}) \geq g^{k+2}(M)$.
+\end{proof}
+
+\begin{thm}
+	The protocol (6) stabilizes on a modulo $P$-synchronized clock's behaviour if the dynamic graph is centered with delay $D$.
+\end{thm}
+\begin{proof}
+	\noindent $Roots(\mathds{G})$ is a strongly connected component. It must stabilize, according to the Boldi-Vigna's proof.
+	Without loss of generality, we assume that $Roots(\mathds{G})$ has already stabilized in round 0.
+
+	\noindent Claim 1: In round $D$, all nodes in $N_{Roots(\mathds{G})}$ hold the same value $M$ as their $M_i^D$ variable, and will never adopt a different value.
+	Moreover $\forall i \in N_\mathds{G}, M_i^t \geq M$.
+
+	\noindent To prove this claim, we consider the node $i \in N_{Roots(\mathds{G})}$ holding the maximum $M_i^0$ value among $Roots(\mathds{G})$.
+	Its value must have propagated to the whole network in round $D$.
+	Let $k = min \{l \in \mathds{N}, g^l(M) \geq M+\frac{2D}{P}\}$.
+
+	\noindent Claim 2: At the latest in round $kD+D$ and beyond, we have $\forall i \in N_\mathds{G}, C_i^t \equiv C_{Roots(\mathds{G})}^t [P] \vee PM_i^t \geq PM+2D$
+
+	\noindent This results from the previous lemma.
+
+	\noindent Claim 3: $\forall i \in N_\mathds{G}, \forall l \geq D, C_i^l \leq PM+D$.
+
+	\noindent The counters in $Roots(\mathds{G})$ are upper-bounded by $PM$.
+	Moreover there always exists a path from $Roots(\mathds{G})$ to $i$.
+	This claim can be proved by induction over this path.
+
+	\noindent Claim 4: At the latest in round $kD+D+PM$, some node $i \in N_{Roots(\mathds{G})}$ reaches $C_i^t = 0$.
+
+	\noindent This results from the fact that as long as no node from $Roots(\mathds{G})$ rewinds to 0,
+	$min_{i \in N_{Roots(\mathds{G})}} C_i^t$ grows by 1 at each round. Moreover it is bound by $PM$.
+
+	\noindent Let $t$ be a round which verifies this claim.
+
+	\noindent Claim 5: $\forall i \in N_\mathds{G}, \forall l \geq D, C_i^{t+l} \leq l$.
+
+	This can be proved by induction over the path from the node $j$ reaching $C_j^t = 0$ to $i$ in the round interval $[t, t+l]$.
+
+	\noindent Claim 6: For any $D \geq l \geq PM+2D$, the global state verifies $\forall i \in N_\mathds{G}, C_i^{t+l} \not\equiv C_{Roots(\mathds{G})}^{t+l} \Rightarrow C_i^{t+l} \geq l-D$.
+
+	\noindent This claim can be proved by induction over $l-D$, using claim 2 and 5 to rule out a possible rewind to 0.
+
+	\noindent Claim 7: At the latest in round $kD+D+PM+PM+2D$, the system will be synchronized.
+
+	\noindent This results from claim 3 and 6.
+\end{proof}
 \end{document}
