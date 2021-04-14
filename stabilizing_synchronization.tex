@@ -169,27 +169,23 @@ We assume that $\mathds{G}$ is centerd with delay $D$.
 	one of the following statements is true:
 	\begin{enumerate}
 		\item $C_i^{kD} \equiv C_{Roots(\mathds{G})}^{kD} [k]$
-		\item $M_i^{(k+1)D} \geq g^{k+1}(M)$
+		\item $M_i^{kD} \geq g^{k}(M)$
 	\end{enumerate}
 	where $C_{Roots(\mathds{G})}^t \in \mathds{Z}/P\mathds{Z}$ is the common counter value of the nodes in $Roots(\mathds{G})$ in round $t$.
 \end{lem}
 \begin{proof}
 	We prove this lemma by induction over $k$.
 
-	For $k = 0$, we fix $i \in N_\mathds{G}$, and we assume that $i$ is not synchronized with the roots.
-	There must existe a path $j = j(0), j(1), \dots, j(D) = i$ between $j$ and $i$ in the round interval $[0, D]$.
-	Let $j(l)$ be the first node on this path such that $C_{j(l)}^l \not\equiv C_{j(l+1)}^l [k]$.
-	We obtain $M_{j(l+1)}^{l+1} = g(max_{u \looparrowright j(l+1)} M_u^l) \geq g(M)$.
-	We finally have $M_i^D \geq g(M)$.
+	For $k = 0$, we have $M^0_i \geq M = g^0(M)$.
 
 	For the induction case, we assume that a fixed node $i$ is not synchronized with $Roots(\mathds{G})$ in round $(k+1)D$.
-	We also assume that $\forall i \in N_\mathds{G}, C_i^{(k+1)D} \not\equiv C_{Roots(\mathds{G})} \Rightarrow M_i^{(k+1)D} \geq g^{k+1}(M)$.
-	There must existe a path $j = j(0), j(1), \dots, j(D) = i$ between $j \in N_{Roots(\mathds{G})}$ and $i$ in the round interval $[(k+1)D, (k+2)D]$.
-	Let $j(l)$ be the first node on this path such that $C_{j(l)}^{(k+1)D+l} \neg\equiv C_{j(l+1)}^{(k+1)D+l+1} [k]$.
-	There must be a path from a node $u$ to $j(l+1)$ in the round interval $[(k+1)D, (k+1)D+l+1]$ where $C_u^{(k+1)D} \not\equiv C^{(k+1)D}_{Roots(\mathds{G})}$.
-	By induction hypothesis, we have $M_u^{(k+1)D} \geq g^{k+1}(M)$.
-	Since there exists a path from $u$ to $i$ in the round interval $[(k+1)D, (k+2)D]$,
-	we obtain $M_i^{(k+2)D} \geq g(M_u^{(k+1)D}) \geq g^{k+2}(M)$.
+	We also assume that $\forall i \in N_\mathds{G}, C_i^{kD} \not\equiv C_{Roots(\mathds{G})} \Rightarrow M_i^{kD} \geq g^{k}(M)$.
+	There must existe a path $(j = j(0), j(1), \dots, j(D) = i)$ between some $j \in N_{Roots(\mathds{G})}$ and $i$ in the round interval $[kD, kD+D]$.
+	Let $j(l)$ be the first node on this path such that $C_{j(l)}^{kD+l} \not\equiv C_{j(l+1)}^{kD+l+1} [k]$.
+	There must be a path from some node $u$ to $j(l+1)$ in the round interval $[kD, kD+l+1]$ where $C_u^{kD} \not\equiv C^{kD}_{Roots(\mathds{G})}$.
+	By induction hypothesis, we have $M_u^{kD} \geq g^{k}(M)$.
+	Since there exists a path from $u$ to $i$ in the round interval $[kD, (k+1)D]$,
+	we obtain $M_i^{(k+1)D} \geq g(M_u^{kD}) \geq g^{k+1}(M)$.
 \end{proof}
 
 \begin{thm}
