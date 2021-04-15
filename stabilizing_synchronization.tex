@@ -100,7 +100,7 @@ We give the following protocol:
 
 \section{Synchronization modulo $P$ with dynamic topology}
 
-We execute the protocol (6) on a dynamic graph, assumed to be complete with delay $D$.
+	We execute the (sqared-version) protocol (6) on a shrinking dynamic graph, assumed to be complete with delay $D$.
 
 \begin{lem}
 	For all $k \in \mathds{N}$, one of the following statements is true:
@@ -150,20 +150,13 @@ We execute the protocol (6) on a dynamic graph, assumed to be complete with dela
 	at time $kD + D$ all clocks will have value $min_i C_i^{2kD}+D$.
 \end{proof}
 
-Now we assume that the graph is rooted with delay $D$.
-Using the proof of \ref{thm:fixed_rooted}, and the previous lemma, we can show the following theorem.
-
-\begin{thm}
-	The protocol (6) stabilizes on a modulo $P$-synchronized clock's behaviour if the dynamic graph is rooted with delay $D$.
-\end{thm}
-
 \section{Synchronization modulo $P$ with fixed roots in dynamic graphs}
 
 We assume that the communication topology is given by a dynamic graph $\mathds{G}$
 such that for any $i \in \mathds{N}$, the set $Roots(\mathds{G}_i)$ is a constant set noted $Roots(\mathds{G})$.
 We assume that $\mathds{G}$ is centerd with delay $D$.
 
-\begin{lem}
+\begin{lem} \label{lem:croissant}
 	If $Roots(\mathds{G})$ is already stabilized in round 0, then
 	for all $k \in \mathds{N}$, for all $i \in N_\mathds{G}$,
 	one of the following statements is true:
@@ -189,46 +182,46 @@ We assume that $\mathds{G}$ is centerd with delay $D$.
 \end{proof}
 
 \begin{thm}
-	The protocol (6) stabilizes on a modulo $P$-synchronized clock's behaviour if the dynamic graph is centered with delay $D$.
+	The (non-squared version) protocol (6) stabilizes on a modulo $P$-synchronized clock's behaviour if the dynamic graph is centered with delay $D$.
 \end{thm}
 \begin{proof}
-	\noindent $Roots(\mathds{G})$ is a strongly connected component. It must stabilize, according to the Boldi-Vigna's proof.
+	\noindent $Roots(\mathds{G})$ is a complete with delay $D$. It must stabilize, according to the previous section.
 	Without loss of generality, we assume that $Roots(\mathds{G})$ has already stabilized in round 0.
 
-	\noindent Claim 1: In round $D$, all nodes in $N_{Roots(\mathds{G})}$ hold the same value $M$ as their $M_i^D$ variable, and will never adopt a different value.
+	\noindent \textbf{Claim 1:} In round $D$, all nodes in $N_{Roots(\mathds{G})}$ hold the same value $M$ as their $M_i^D$ variable, and will never adopt a different value.
 	Moreover $\forall i \in N_\mathds{G}, M_i^t \geq M$.
 
-	\noindent To prove this claim, we consider the node $i \in N_{Roots(\mathds{G})}$ holding the maximum $M_i^0$ value among $Roots(\mathds{G})$.
+	To prove this claim, we consider the node $i \in N_{Roots(\mathds{G})}$ holding the maximum $M_i^0$ value among $Roots(\mathds{G})$.
 	Its value must have propagated to the whole network in round $D$.
 	Let $k = min \{l \in \mathds{N}, g^l(M) \geq M+\frac{2D}{P}\}$.
 
-	\noindent Claim 2: At the latest in round $kD+D$ and beyond, we have $\forall i \in N_\mathds{G}, C_i^t \equiv C_{Roots(\mathds{G})}^t [P] \vee PM_i^t \geq PM+2D$
+	\noindent \textbf{Claim 2:} At the latest in round $kD+D$ and beyond, we have $\forall i \in N_\mathds{G}, C_i^t \equiv C_{Roots(\mathds{G})}^t [P] \vee PM_i^t \geq PM+2D$
 
-	\noindent This results from the previous lemma.
+	This results from lemma \ref{lem:croissant}.
 
-	\noindent Claim 3: $\forall i \in N_\mathds{G}, \forall l \geq D, C_i^l \leq PM+D$.
+	\noindent \textbf{Claim 3:} $\forall i \in N_\mathds{G}, \forall l \geq D, C_i^l \leq PM+D$.
 
-	\noindent The counters in $Roots(\mathds{G})$ are upper-bounded by $PM$.
+	The counters in $Roots(\mathds{G})$ are upper-bounded by $PM$.
 	Moreover there always exists a path from $Roots(\mathds{G})$ to $i$.
 	This claim can be proved by induction over this path.
 
-	\noindent Claim 4: At the latest in round $kD+D+PM$, some node $i \in N_{Roots(\mathds{G})}$ reaches $C_i^t = 0$.
+	\noindent \textbf{Claim 4:} At the latest in round $kD+D+PM$, some node $i \in N_{Roots(\mathds{G})}$ reaches $C_i^t = 0$.
 
-	\noindent This results from the fact that as long as no node from $Roots(\mathds{G})$ rewinds to 0,
+	This results from the fact that as long as no node from $Roots(\mathds{G})$ rewinds to 0,
 	$min_{i \in N_{Roots(\mathds{G})}} C_i^t$ grows by 1 at each round. Moreover it is bound by $PM$.
 
-	\noindent Let $t$ be a round which verifies this claim.
+	Let $t$ be a round which verifies this claim.
 
-	\noindent Claim 5: $\forall i \in N_\mathds{G}, \forall l \geq D, C_i^{t+l} \leq l$.
+	\noindent \textbf{Claim 5:} $\forall i \in N_\mathds{G}, \forall l \geq D, C_i^{t+l} \leq l$.
 
 	This can be proved by induction over the path from the node $j$ reaching $C_j^t = 0$ to $i$ in the round interval $[t, t+l]$.
 
-	\noindent Claim 6: For any $D \geq l \geq PM+2D$, the global state verifies $\forall i \in N_\mathds{G}, C_i^{t+l} \not\equiv C_{Roots(\mathds{G})}^{t+l} \Rightarrow C_i^{t+l} \geq l-D$.
+	\noindent \textbf{Claim 6:} For any $D \geq l \geq PM+2D$, the global state verifies $\forall i \in N_\mathds{G}, C_i^{t+l} \not\equiv C_{Roots(\mathds{G})}^{t+l} \Rightarrow C_i^{t+l} \geq l-D$.
 
-	\noindent This claim can be proved by induction over $l-D$, using claim 2 and 5 to rule out a possible rewind to 0.
+	This claim can be proved by induction over $l-D$, using claim 2 and 5 to rule out a possible rewind to 0.
 
-	\noindent Claim 7: At the latest in round $kD+D+PM+PM+2D$, the system will be synchronized.
+	\noindent \textbf{Claim 7:} At the latest in round $kD+D+PM+PM+2D$, the system will be synchronized.
 
-	\noindent This results from claim 3 and 6.
+	This results from claim 3 and 6.
 \end{proof}
 \end{document}
