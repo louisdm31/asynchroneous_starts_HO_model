@@ -43,37 +43,37 @@
 \newcommand{\IC}{\mathds{C}}
 \newcommand{\M}{\mathcal{M}}
 
-\newcommand{\Bcnc}{A^{\Delta}_{\mathrm {c}}}
-\newcommand{\Bunu}{\tilde{B}}
-\newcommand{\Bms}{\tilde{B}}
-\newcommand{\Bep}{A^{\Delta}_\mathrm{e}}
-\newcommand{\Benp}{A^{\Delta}_\mathrm{e}}
-\newcommand{\Bneone}{A^{\Delta}_\mathrm{r}}
-\newcommand{\Bnetwo}{A^{\Delta}_\mathrm{r}^\mathrm{HA}}
+%\newcommand{\Bcnc}{A^{\Delta}_{\mathrm {c}}}
+%\newcommand{\Bunu}{\tilde{B}}
+%\newcommand{\Bms}{\tilde{B}}
+%\newcommand{\Bep}{A^{\Delta}_\mathrm{e}}
+%\newcommand{\Benp}{A^{\Delta}_\mathrm{e}}
+%\newcommand{\Bneone}{A^{\Delta}_\mathrm{r}}
+%\newcommand{\Bnetwo}{A^{\Delta}_\mathrm{r}^\mathrm{HA}}
 
-\newcommand{\SCC}{\mathcal{C}}
-\newcommand{\CP}{\mathcal{P}_\ccirclearrowleft}
+%\newcommand{\SCC}{\mathcal{C}}
+%\newcommand{\CP}{\mathcal{P}_\ccirclearrowleft}
 
-\newcommand{\IRmax}{\overline{\IR}}
-\newcommand{\IRmin}{{\IR}_{\min}}
-\newcommand{\wstar}{{w}_{*}}
-\newcommand{\ito}{{i\!\to}}
-\newcommand{\Pa}{{\mathcal{W}}}
+%\newcommand{\IRmax}{\overline{\IR}}
+%\newcommand{\IRmin}{{\IR}_{\min}}
+%\newcommand{\wstar}{{w}_{*}}
+%\newcommand{\ito}{{i\!\to}}
+%\newcommand{\Pa}{{\mathcal{W}}}
 
-\newcommand{\real}[1]{\mathbf{N}_{\geqslant {#1}}}
-\newcommand{\realrem}[2]{\mathbf{N}_{\geqslant {#1}}^{({#2})}}
+%\newcommand{\real}[1]{\mathbf{N}_{\geqslant {#1}}}
+%\newcommand{\realrem}[2]{\mathbf{N}_{\geqslant {#1}}^{({#2})}}
 
-\renewcommand{\le}{\leqslant}
-\renewcommand{\leq}{\leqslant}
-\renewcommand{\ge}{\geqslant}
-\renewcommand{\geq}{\geqslant}
+%\renewcommand{\le}{\leqslant}
+%\renewcommand{\leq}{\leqslant}
+%\renewcommand{\ge}{\geqslant}
+%\renewcommand{\geq}{\geqslant}
 
-\newcommand{\one}{\mathds{1}}
+%\newcommand{\one}{\mathds{1}}
 
-\newcommand{\shlomo}[1]{\comment{\textcolor{red}{Shlomo: #1}}}
-\newcommand{\be}[1]{\comment{\textcolor{blue}{b: #1}}}
-\newcommand{\comment}[1]{\textcolor{red}{\textbf{#1}}}
-\newcommand{\ignore}[1]{}
+%\newcommand{\shlomo}[1]{\comment{\textcolor{red}{Shlomo: #1}}}
+%\newcommand{\be}[1]{\comment{\textcolor{blue}{b: #1}}}
+%\newcommand{\comment}[1]{\textcolor{red}{\textbf{#1}}}
+%\newcommand{\ignore}[1]{}
 
 
 \newtheorem{thm}{Theorem}
@@ -108,9 +108,17 @@
 \newcommand{\SM}{{\em SynchMod}$_{\,k}\ $}
 
 \title{Synchronization Modulo $k$ in Dynamic Networks}
-\author{Bernadette Charron-Bost\textsuperscript{1} \and Louis Penet de Monterno\textsuperscript{1}}
-\date{\textsuperscript{1} \'Ecole polytechnique, 91128 Palaiseau, France\\~\\ \today}
-
+\author{
+	Bernadette Charron-Bost \\
+	LIX, Palaiseau, France
+\and
+	Stephan Merz \\
+	LORIA, Nancy, France
+\and
+	Louis Penet de Monterno \\
+	LIX, Palaiseau, France
+}
+\date{\today}
 \begin{document}
 
 \maketitle
@@ -134,12 +142,35 @@
 \section{Preliminaries}\label{sec:model}
 
 % section_algorithm (do not modify this comment)
-\section{The \SM algorithm}
+\section{Full-information protocol}
+
+\subsection{Construction of graph-theory primitives}
+
+Let $\mathds{G} = (\Pi, (E_r))$ be a dynamic graph and $\mathcal{A}$ an activation schedule.
+We construct the dynamic graph $\mathds{G}_\mathcal{A} = (\Pi, (E_r \setminus ((\Pi \setminus \mathcal{A}_r) \times \Pi)))$.
+$\mathds{G}_\mathcal{A}$ is actually the dynamic graph $\mathds{G}$ where the incoming edges from any passive node have been removed.
+
+Any active node in round $t$ is able to compute its set of incoming nodes, and their state at the end of the round $t-1$.
+
+Let $In_u(t:t')$ be the set of incoming neighbours of $u$ in the graph $\mathds{G}_\mathcal{A}(t:t')$.
+For convenience reasons, the definition of slices (e.g. $\mathds{G}(t:t')$) excludes the lower bound (i.e. $\mathds{G}(t)$).
+
+By induction over $t'-t$, we can show that $In_u(t:t')$ actually represents the set of nodes whose state in round $t$ is known by $u$ in round $t'$.
+For any $i \in \{0, 1, 2\}$, let $In_u^i(t:t')$ be the subset of $In_u(t:t')$ of nodes whose level is at least $i$ in round $t$.
+Those subsets are computable, since $u$ can compute in round $t'$ the state in round $t$ of any $v \in In_u(t:t')$.
+
+We have $In_u^2(t:t') \subseteq In_u^1(t:t') \subseteq In_u^0(t:t') \subseteq In_u(t:t')$.
+
+We consider an execution which verifies the following assumption:
+$$\mathcal{P}_{delayed-star} \equiv \exists \cent, \forall u \in \Pi, \forall t \in \mathds{N}, \mathds{G}(t:t+k)$$.
+Moreover, we assume that no node remains passive forever.
+
+\subsection{Algorithm}
 
 In this algorithm, the nodes hold a $level$ variable. When they start, they are level 0. They eventually reach level 1 then level 2.
 A node fires when it reaches level 2.
 
-The colored section in the algorithm actually implement an optimization.
+The colored lines in the algorithm actually implement an optimization.
 For the proof, we will at first consider this optimization disabled.
 
 \begin{algorithm}[htb]
