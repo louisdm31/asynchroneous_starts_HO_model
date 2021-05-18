@@ -36,9 +36,9 @@ We give the following protocol:
 \begin{align}
 	& $$C_i^{t+1} \leftarrow 1+min_{j \looparrowright i} C_j^t$$ \label{eq:counter} \\
 	& $$M_i^{t+1} \leftarrow 1+M_i^t$$ \\
-	& $$\forall l \in \mathds{N}, AGE^{t+1}_i[l+1] \leftarrow 1+min_{j \looparrowright i} AGE_j^t[l]$$ \label{eq:age_rec} \\
-	& $$AGE_i^{t+1}[C_i^{t+1}] \leftarrow 0$$ \label{eq:age_init} \\
-	& $$y_i^{t+1} \leftarrow max \{l, AGE_i^{t+1}[l] \leq \theta(M_i^{t+1})\} $$ \label{eq:result}
+	& $$\forall l \in \mathds{Z}, AGE^{t+1}_i[l] \leftarrow 1+min_{j \looparrowright i} AGE_j^t[l+M^t_i-M^t_j]$$ \label{eq:age_rec} \\
+	& $$AGE_i^{t+1}[C_i^{t+1}-M_i^t] \leftarrow 0$$ \label{eq:age_init} \\
+	& $$y_i^{t+1} \leftarrow M_i^t+max \{l, AGE_i^{t+1}[l] \leq \theta(M_i^{t+1})\} $$ \label{eq:result}
 \end{align}
 
 \begin{thm}
@@ -48,40 +48,40 @@ We give the following protocol:
 \begin{proof}
 	Let $m$ be $min\{C_u^0, u \in Roots(G)\}$.
 
-	\noindent Claim 1:
+	\noindent \textbf{Claim 1:}
 	$\forall t > D, \forall i \in Roots(G), \forall j \in N_G, C_j^t \leq C_i^0+t$
 
 	There exists a path $(i = i_0, i_1, \dots, i_h = j)$ from $i$ to $j$ in $G$.
 	We can show by induction on this path that $\forall l \leq h, C_{i(l)}^l \leq C_i^0+l$.
 	The induction case comes from the \eqref{eq:counter}.
 
-	\noindent Claim 2:
+	\noindent \textbf{Claim 2:}
 	$\forall t > D, \forall i \in Roots(G), C_i^t = m+t$
 
 	This claim follows from the previous claim, applied to the node $i$ satisfying $C_i^0 = m$.
 
-	\noindent Claim 3:
+	\noindent \textbf{Claim 3:}
 	$\forall t > 2D, \forall j \in N_G, AGE^t_i[m+t] \leq D$
 
 	Let $i$ be a node from $Roots(G)$.
 	There exists a path $(i = i_0, i_1, \dots, i_h = j)$ of length $h \leq D$ from $i$ to $j$ in $G$.
 	The previous claim shows that $C_i^{t-h} = m+t-h$.
-	We can show by induction on this path that $\forall l \leq h, AGE_{i(l)}^{t-h+l}[m+t-h] \leq l$.
+	We can show by induction on this path that $\forall l \leq h, AGE_{i(l)}^{t-h+l}[m+M_{i(l)}^{t-l+H}] \leq l$.
 	The induction case comes from the \eqref{eq:age_rec}, and the base case from \eqref{eq:age_init}.
 
-	\noindent Claim 4:
+	\noindent \textbf{Claim 4:}
 	$\forall t > D, \forall j \in N_G, C_j^t \leq m+t$
 
 	This claim follows from the first claim, applied to the node $i$ satisfying $C_i^0 = m$.
 
-	\noindent Claim 5:
+	\noindent \textbf{Claim 5:}
 	$\forall t > D, \forall j \in N_G, \forall m' > m, AGE_j^t[m'+t] \geq t-D$
 
 	This claim can be proved by induction over $t-D$.
 	For the induction case, we know from the previous claim that no node may reset $AGE_j[m'+t]$ to 0 with \eqref{eq:age_init}.
 	The line \eqref{eq:age_rec} terminates the induction case.
 
-	\noindent Claim 6:
+	\noindent \textbf{Claim 6:}
 	$\forall i \in N_G, \exists T \in \mathds{N}, \forall t > T, t-D > \theta(M_i^t) > D$
 
 	Since $\theta$ is a cut-off function, it verifies $\lim_{t \rightarrow \infty} \theta(t) = \infty$.
@@ -90,7 +90,7 @@ We give the following protocol:
 	Then $\lim_{t \rightarrow \infty} M_i^t - \theta(M_i^t) = \infty$.
 	Eventually $t-D > \theta(M_i^t)$.
 
-	\noindent Claim 7:
+	\noindent \textbf{Claim 7:}
 	$\forall i \in N_G, \exists T \in \mathds{N}, \forall t > T, y_i^t = m+t$
 
 	This claim results from \eqref{eq:result} and claims 3, 5 and 6.
@@ -107,7 +107,7 @@ We give the following protocol:
 \begin{lem} \label{lem:croissant2}
 	For all $k \in \mathds{N}$, one of the following statements is true:
 	\begin{enumerate}
-		\item $\forall i \in N_{\mathds{G}_k}, \forall j \in N_{\mathds{G}_k}, C_i^{2kD} \equiv C_j^{2kD} [k]$
+		\item $\forall i \in N_{\mathds{G}_k}, \forall j \in N_{\mathds{G}_k}, C_i^{2kD} \equiv C_j^{2kD} [P]$
 		\item $min_i M_i^{2kD} \geq g^k(M)$
 	\end{enumerate}
 \end{lem}
@@ -196,7 +196,7 @@ This set is noted $Roots(\mathds{G})$.
 	for all $k \in \mathds{N}$, for all $i \in N_\mathds{G}$,
 	one of the following statements is true:
 	\begin{enumerate}
-		\item $C_i^{kD} \equiv C_{Roots(\mathds{G})}^{kD} [k]$
+		\item $C_i^{kD} \equiv C_{Roots(\mathds{G})}^{kD} [P]$
 		\item $M_i^{kD} \geq g^{k}(M)$
 	\end{enumerate}
 	where $C_{Roots(\mathds{G})}^t \in \mathds{Z}/P\mathds{Z}$ is the common counter value of the nodes in $Roots(\mathds{G})$ in round $t$, and $M = min_i M_i^0$.
