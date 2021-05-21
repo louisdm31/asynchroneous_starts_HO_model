@@ -2,6 +2,7 @@
 \special{papersize=8.5in,11in}
 
 \usepackage[utf8]{inputenc}
+\usepackage[ruled, linesnumbered, noline]{algorithm2e}
 \usepackage[pdftex,pdfpagelabels,bookmarks,hyperindex,hyperfigures]{hyperref}
 \usepackage{amsmath,amssymb,amsthm,dsfont}
 \usepackage{fullpage}
@@ -37,130 +38,116 @@ This protocol is caracterized by:
 \begin{itemize}
 	\item a set of states $X$,
 	\item a transition function $\delta^c : X \times X^\oplus \rightarrow X$. Here, the colour $c$ of the nodes influences their transition function.
+		$X^\oplus$ is the set of muti-sets of elements of $X$.
 	\item an output function $Out : X \rightarrow \mathds{Z}$.
 \end{itemize}
 
+The way the transition function is expressed implies that processes are able to distinguish their state in the previous round from the state of their incoming neighbours.
 This protocol $A$ is assumed to self-stabilize to the following predicate:
 $$Cons = \{\dots \langle -2,-2,\dots \rangle, \langle -1,-1,\dots \rangle, \langle 0,0,\dots \rangle, \langle 1,1,\dots \rangle, \dots\}$$
 
-\section{Translation to full-information protocol}
 
-We consider an arbitrary initial state $x_{init} \in X$.
-We use the simple view-construction defined in BV to define the protocol $A_{FI}$, whose state space is the set of colored finite trees:
+\section{Translation function}
 
-$$\delta^c_{FI}(T_i, T_{i(1)}, T_{i(2)}, \dots) = Node_c(T_i, T_{i(1)}, T_{i(2)}, \dots)$$
+Let $Trans_h : X \rightarrow X$ be a function parametered by $h \in \mathds{Z}$.
+For any $\mathcal{X} \in X^\oplus$, we note $Trans_h(\mathcal{X})$ the application of $Trans_h$ to every elements of $\mathcal{X}$.
+$Trans_h$ is said to be a \textit{translation function} of the algorithm $A$ if, for any $h, h' \in \mathds{Z}$, for any $x \in X$, the following conditions apply:
+\begin{enumerate}
+	\item $Trans_0 = Id_{X \rightarrow \mathds{Z}}$
+	\item $Trans_h \circ Trans_{h'} = Trans_{h+h'}$
+	\item $\forall \mathcal{X} \in X^\oplus, Trans_h(\delta_{h'}(x, \mathcal{X})) = \delta_{h'+h}(Trans_h(x), Trans_h(\mathcal{X}))$
+	\item $Out(Trans_h(x)) = h+Out(x)$
+\end{enumerate}
 
-where $i(1), i(2), \dots$ are the incoming neighbours of the node $i$, and $Node_{c_i}$ is the constructor of a tree node coloured by $c$.
-
-The output function of this protocol is defined by:
-
-$$Eval(T_i) = \left \{ \begin{array}{l ll}
-	\delta^c(Eval(T_i), Eval(T_{i(1)}), Eval(T_{i(2)}), \dots) & \mbox{if}~T_i = Node_c(T_i, T_{i(1)}, T_{i(2)}, \dots) \\
-	x_{init} & \mbox{otherwise} \end{array} \right $$
-
-and
-
-	$$Out_{FI} = Out \circ Eval.$$
-
-Here, the $Eval$ function computes the state of every incoming neighbours, applying recursively $\delta$, and $Out_{FI}$ deduces the output from the latest state.
-
-\begin{lem}
-	The protocol $A_{FI}$ auto-stabilizes to $Cons$.
-\end{lem}
-\begin{proof}
-	Let $G$ be a network from $\mathcal{C}$.
-	We consider $(T_i^t)_{t \in \mathds{N}, i \in \Pi}$ an execution of $A_{FI}$ in $G$.
-	Let $x_i^0 = Eval(T^0_i)$ for every $i \in \Pi$.
-	We can construct an execution of $A$ using $(x_i^0)_{i \in \Pi}$ as initial values. Now we can show by induction over $t \in \mathds{N}$ that:
-
-	$$\forall t \in \mathds{N}, \forall i \in \Pi, x_i^t = Eval(T_i^t).$$
-
-	We know that $(x^t)_{t \in \mathds{N}}$ is supposed to stabilize to some behaviour in $Cons$.
-	Thus, any execution of $A_{FI}$ converges into $Cons$.	
-\end{proof}
-
-We recursively define the following translation function, which translates every initial values (i.e. every colours) by some integer $h \in \mathds{Z}$:
-
-$$Trans_h(T_i) = \left \{ \begin{array}{l ll}
-	Node_{c+h}(Trans_h(T_i), Trans_h(T_{i(1)}), \dots) & \mbox{if}~T = Node_c(T_i, T_{i(1)}, T_{i(2)}, \dots) \\
-	Leaf & \mbox{otherwise} \end{array} \right $$
-
-
-The protocol $A_{FI}$ is said to be \textit{invariant by translation} if $Out_{FI}(Trans_h(T_i)) = Out_{FI}(T_i)+h$.
-In practice, most consensus protocols are invariant by translation.
+\noindent Intuitively, these properties are simple neutral-element, transitivity and commutativity properties.
+We assume that this function is provided.
 
 \section{Construction of synchronization protocol}
 
-Let $M : Tree \rightarrow \mathds{N}$ be the following function:
+We define the protocol $Sync$ with the following pseudo-code, where $y_i$ is the output variable:
 
-$$M(T) = \left \{ \begin{array}{l ll}
-	1+M(T_0)& \mbox{if}~T = Node_c(T_0, T_1, T_2, \dots) \\
-	0 & \mbox{otherwise} \end{array} \right $$
-
-
-We define the protocol $Sync$, whose state space is $\mathds{Z}$, with the following transition function:
-
-$$\delta_{Sync}(T_i, T_{i(1)}, T_{i(2)}, \dots) = Node_0(T_i, Trans_{M(T_i)-M(T_{i(1)})}(T_{i(1)}), Trans_{M(T_i)-M(T_{i(2)})}(T_{i(2)}), \dots)$$
-
-and
-
-$$Out_{Sync}(T) = M(T) + Out_{FI}(T).$$
-
-\begin{lem}
-	For any execution of $Sync$, we have $\forall i \in \Pi, \forall t \in \mathds{N}, M(T_i^t) = M(T_i^0)+t$.
-\end{lem}
+\begin{algorithm}[H]
+	\DontPrintSemicolon
+	\textbf{State space:} \;
+	\Indp
+		$M_j \in \mathds{Z}$ \;
+		$x_j \in X$ \;
+		$y_j \in \mathds{Z}$ \;
+	\BlankLine
+	\Indm
+	\textbf{At each round:} \;
+	\Indp
+		$M_j \leftarrow 1+M_j$ \;
+		$x_j \leftarrow \delta_0(x_j, \{Trans_{M_l - M_j}(x_l), l \looparrowright i\})$ \;
+		$y_j \leftarrow M_j+Out(x_j)$ \;
+	\Indm
+\caption{The $Sync$ algorithm} 
+\end{algorithm}
 
 \section{Translation lemma}
 
 We consider an execution of $Sync$.
-This execution is perfectly caracterized by the initial state $(T_i^0)_{i \in \Pi}$.
-Using this execution, we construct a new protocol $Cons(i)$ in which the transition function of a node $j \in \Pi$ is:
+This execution is perfectly caracterized by the initial global state $((M_j^0, x_j^0))_{j \in \Pi}$.
+We fix a node $i \in \Pi$.
+Using this execution, we construct a new protocol $Cons(i)$ in which the pseudo-code of a node $j \in \Pi$ is:
 
-$$\delta_{Cons(i)}(T_i, T_{i(1)}, T_{i(2)}, \dots) = Node_{M(T_j^0)-M(T_i^0)}(T_i, T_{i(1)}, T_{i(2)}, \dots)$$
+\begin{algorithm}[H]
+	\DontPrintSemicolon
+	\textbf{State space:} \;
+	\Indp
+		$\bar x_j \in X$ \;
+		$\bar y_j \in \mathds{Z}$ \;
+	\BlankLine
+	\Indm
+	\textbf{At each round:} \;
+	\Indp
+		$\bar x_j \leftarrow \delta_{M_j^0 - M_i^0}(\bar x_j, \{\bar x_l, l \looparrowright j\})$ \;
+		$\bar y_j \leftarrow Out(\bar x_j)$ \;
+	\Indm
+	\caption{The $Cons(i)$ algorithm} 
+\end{algorithm}
 
-\noindent We also set $Out_{Cons(i)} = Out_{FI}$.
-We construct $(\bar T_i^t)_{t \in \mathds{N}, i \in \Pi}$ an exection of this protocol, by choosing the following initial values:
-
-$$\bar{T}_j^0 = Trans_{M(T_j^0) - M(T_i^0)}(T_j^0).$$
+We construct an execution $(\bar x_j^t)_{j \in \Pi, t \in \mathds{N}}$ of this algorithm by fixing the communication graph to $\mathds{G}$,
+and fixing the initial global state to $\bar x_j^0 = Trans_{M_j^0 - M_i^0}(x_j^0)$ for every $j \in \Pi$.
 
 \begin{lem}
-	$\forall t \in \mathds{N}, \forall j \in \Pi, \bar{T}^t_j = Trans_{M(T_j^0) - M(T_i^0)}(T_j^t)$
+	$\forall t \in \mathds{N}, \forall j \in \Pi, \bar{x}^t_j = Trans_{M_j^0 - M_i^0}(x_j^t)$
 \end{lem}
 \begin{proof}
 	We show this lemma by induction on $t$.
-	The base case results from the definition of $Cons(i)$.
-	For the inductive case, we consider a node $j \in \Pi$ and $j(1), j(2), \dots$ its incoming neighbours.
-	We have (using the definition of $\delta_{Cons(i)}$, then the induction hypothesis, and finally $\delta_{Sync}$):
+	The base case results from the choice of initial state of $Cons(i)$.
+	For the inductive case, we consider a node $j \in \Pi$.
+	We have: 
 
 	\begin{align*}
-		\bar T_j^{t+1} &= Node_{M(T^0_j)-M(T^0_i)}(\bar T_j, \bar T_{j(1)}, \bar T_{j(2)}, \dots) \\
-		&= Trans_{M(T^0_j)-M(T^0_i)}(Node_0(Trans_{M(T^0_i)-M(T^0_j)}(\bar T_j), Trans_{M(T^0_i)-M(T^0_{j(1)})}(\bar T_{j(1)}),  \dots)) \\
-		&= Trans_{M(T^0_j)-M(T^0_i)}(Node_0(T_j, Trans_{M(T^0_j)-M(T^0_{j(1)})}(T_{j(1)}), \dots)) \\
-		&= Trans_{M(T^0_j)-M(T^0_i)}(T_j^{t+1})
+		\bar x_j^{t+1} &= \delta_{M^0_j-M^0_i}(\bar x_j^t, \{\bar x_l^t, l \looparrowright j\}) \\
+		&= Trans_{M^0_j-M^0_i}(\delta_0(Trans_{M^0_i-M^0_j}(\bar x_j^t), \{Trans_{M^0_i-M^0_j}(\bar x_l^t), l \looparrowright j\})) \\
+		&= Trans_{M^0_j-M^0_i}(\delta_0(x_j^t, \{Trans_{M^0_l-M^0_j}(x_l^t), l \looparrowright j\})) \\
+		&= Trans_{M^0_j-M^0_i}(x_j^{t+1})
 	\end{align*}
+
+	\noindent Here we use the pseudo-code of $Cons(i)$, then the properties of $Trans$, then the induction hypothesis, and finally the pseudo-code of $Sync$.
 \end{proof}
 
 \section{Reduction of synchronization to consensus}
 
-\begin{lem}
-	$Cons(i)$ stabilizes to $Cons$.
-\end{lem}
-\begin{proof}
-	$Cons(i)$ is an instance of $A_{FI}$ where the initial value of $j \in \Pi$ is $M_j^0-M_i^0$.
-\end{proof}
 \begin{thm}
-	If $A_{FI}$ is invariant by translation, then $Sync$ stabilizes to the behaviour of a synchronized clock.
+	$Sync$ stabilizes to the behaviour of a synchronized clock.
 \end{thm}
 \begin{proof}
-	There exists a round $t$ in which the execution of $Cons(i)$ has stabilized to some value $v$.
+	$Cons(i)$ is an instance of $A$ where the initial value of $j \in \Pi$ is $M_j^0-M_i^0$.
+	Then there exists a round $t$ from which $Out(\bar x^t_j)$ has stabilized to some value $v$.
 	For all $t' \geq t$, for any $j \in \Pi$, we have:
-	$$Out_{Sync}(T_j^{t'}) = M(T_j^{t'}) + Out_{FI}(T_j^{t'}) = M(T_j^{t'}) + Out_{FI}(Trans_{M(T_i^0)-M(T_j^0)}(\bar T_j^{t'})).$$
 
-	\noindent Since $A_{FI}$ is invariant by translation, we have:
-	$$Out_{FI}(Trans_{M(T_i^0)-M(T_j^0)}(\bar T_j^{t'})) = M(T_i^0)-M(T_j^0) + Out_{FI}(\bar T_j^{t'}) = M(T_i^0)-M(T_j^0) + v.$$
+	\begin{align*}
+		y_j^{t'} &= M_j^{t'} + Out(x_j^{t'}) \\
+		&= M_j^{t'} + Out(Trans_{M_i^0-M_j^0}(\bar x_j^{t'})) \\
+		&= t' + M_j^0 + Out(Trans_{M_i^0-M_j^0}(\bar x_j^{t'}))  \\
+		&= t' + M_j^0 + M_i^0-M_j^0 + Out(\bar x_j^{t'}) \\
+		&= t' + M_i^0 + v
+	\end{align*}
 
-	\noindent We obtain:
-	$$Out_{Sync}(T_j^{t'}) = M(T_j^{t'}) + M(T_i^0)-M(T_j^0) + v = t' + M(T_i^0) + v.$$
+	\noindent Since $M_i^0+v$ is a constant, the system is synchronized after round $t$.
 \end{proof}
 
 \end{document}
