@@ -1,0 +1,264 @@
+\documentclass[11pt,letterpaper]{article}
+\special{papersize=8.5in,11in}
+\setlength{\parskip}{1em}
+
+\usepackage{graphicx}
+\usepackage[utf8]{inputenc}
+\usepackage[pdftex,pdfpagelabels,bookmarks,hyperindex,hyperfigures]{hyperref}
+\usepackage{fullpage}
+\usepackage{amsmath,amssymb,amsthm,dsfont}
+\newtheorem{thm}{Theorem}
+\newtheorem{pro}[thm]{Proposition}
+\newtheorem{lem}[thm]{Lemma}
+\newtheorem{cor}[thm]{Corollary}
+\newtheorem{defi}[thm]{Definition}
+
+\title{Stabilisation in rooted communication graph}
+\author{
+	Bernadette Charron-Bost \\
+	LIX, Palaiseau, France
+\and
+	Stephan Merz \\
+	LORIA, Nancy, France
+\and
+	Louis Penet de Monterno \\
+	LIX, Palaiseau, France
+}
+\date{\today}
+\begin{document}
+  \maketitle
+
+\section{Infinite-state synchronization}
+
+Let $\theta$ be a cut-off function.
+We give the following protocol:
+
+\begin{align}
+	& $$C_i^{t+1} \leftarrow 1+min_{j \looparrowright i} C_j^t$$ \label{eq:counter} \\
+	& $$M_i^{t+1} \leftarrow 1+M_i^t$$ \\
+	& $$\forall l \in \mathds{Z}, AGE^{t+1}_i[l] \leftarrow 1+min_{j \looparrowright i} AGE_j^t[l+M^t_i-M^t_j]$$ \label{eq:age_rec} \\
+	& $$AGE_i^{t+1}[C_i^{t+1}-M_i^t] \leftarrow 0$$ \label{eq:age_init} \\
+	& $$y_i^{t+1} \leftarrow M_i^t+max \{l, AGE_i^{t+1}[l] \leq \theta(M_i^{t+1})\} $$ \label{eq:result}
+\end{align}
+
+\begin{thm}
+	This protocol stabilizes the synchronized clock's behaviour if the communication graph is rooted.
+\end{thm}
+
+\begin{proof}
+	Let $m$ be $min\{C_u^0, u \in Roots(G)\}$.
+
+	\noindent \textbf{Claim 1:}
+	$\forall t > D, \forall i \in Roots(G), \forall j \in N_G, C_j^t \leq C_i^0+t$
+
+	There exists a path $(i = i_0, i_1, \dots, i_h = j)$ from $i$ to $j$ in $G$.
+	We can show by induction on this path that $\forall l \leq h, C_{i(l)}^l \leq C_i^0+l$.
+	The induction case comes from the \eqref{eq:counter}.
+
+	\noindent \textbf{Claim 2:}
+	$\forall t > D, \forall i \in Roots(G), C_i^t = m+t$
+
+	This claim follows from the previous claim, applied to the node $i$ satisfying $C_i^0 = m$.
+
+	\noindent \textbf{Claim 3:}
+	$\forall t > 2D, \forall j \in N_G, AGE^t_i[m+t] \leq D$
+
+	Let $i$ be a node from $Roots(G)$.
+	There exists a path $(i = i_0, i_1, \dots, i_h = j)$ of length $h \leq D$ from $i$ to $j$ in $G$.
+	The previous claim shows that $C_i^{t-h} = m+t-h$.
+	We can show by induction on this path that $\forall l \leq h, AGE_{i(l)}^{t-h+l}[m+M_{i(l)}^{t-l+H}] \leq l$.
+	The induction case comes from the \eqref{eq:age_rec}, and the base case from \eqref{eq:age_init}.
+
+	\noindent \textbf{Claim 4:}
+	$\forall t > D, \forall j \in N_G, C_j^t \leq m+t$
+
+	This claim follows from the first claim, applied to the node $i$ satisfying $C_i^0 = m$.
+
+	\noindent \textbf{Claim 5:}
+	$\forall t > D, \forall j \in N_G, \forall m' > m, AGE_j^t[m'+t] \geq t-D$
+
+	This claim can be proved by induction over $t-D$.
+	For the induction case, we know from the previous claim that no node may reset $AGE_j[m'+t]$ to 0 with \eqref{eq:age_init}.
+	The line \eqref{eq:age_rec} terminates the induction case.
+
+	\noindent \textbf{Claim 6:}
+	$\forall i \in N_G, \exists T \in \mathds{N}, \forall t > T, t-D > \theta(M_i^t) > D$
+
+	Since $\theta$ is a cut-off function, it verifies $\lim_{t \rightarrow \infty} \theta(t) = \infty$.
+	Then eventually $\theta(M_i^t) = \theta(M_i^0+t) > D$.
+	Moreover $\lim_{t \rightarrow \infty} t-\theta(t) = \infty$.
+	Then $\lim_{t \rightarrow \infty} M_i^t - \theta(M_i^t) = \infty$.
+	Eventually $t-D > \theta(M_i^t)$.
+
+	\noindent \textbf{Claim 7:}
+	$\forall i \in N_G, \exists T \in \mathds{N}, \forall t > T, y_i^t = m+t$
+
+	This claim results from \eqref{eq:result} and claims 3, 5 and 6.
+	The correctness of the protocol results from this last claim.
+
+% \section{A detailed proof of Boldi-Vigna's protocol}
+
+\section{Synchronization modulo $P$ with dynamic topology}
+
+	We execute the (sqared-version) protocol (6) on a dynamic graph
+	% (i.e. a series of graphs $\mathds{G}_i = (N_{\mathds{G}_i}, A_{\mathds{G}_i})$ verifying $\forall i \in \mathds{N}, N_{\mathds{G}_{i+1}} \subseteq N_{\mathds{G}_i}$),
+	assumed to be complete with delay $D$. Let $M = min_i M_i^0$.
+
+\begin{lem} \label{lem:croissant2}
+	For all $k \in \mathds{N}$, one of the following statements is true:
+	\begin{enumerate}
+		\item $\forall i \in N_{\mathds{G}_k}, \forall j \in N_{\mathds{G}_k}, C_i^{2kD} \equiv C_j^{2kD} [P]$
+		\item $min_i M_i^{2kD} \geq g^k(M)$
+	\end{enumerate}
+\end{lem}
+\begin{proof}
+	For $k=0$, we have $min_i M_i^0 = M = g^0(M)$, and
+	statement (ii) is true. Since statement (i) is stable, to make
+	the inductive step we can assume that statement (ii) is true
+	and statement (i) is false for $k$.
+	But if there are two clocks
+	with different values modulo $P$ at time $2kD$, then 
+	there is a processor $j$ that
+	will apply $g$ at some point between round $2kD$ and $2kD+D$
+	(if we consider a path $(i_0, i_1, \dots, i_D)$ in the time interval $[2kD, 2kD+D]$ where $C_{i_0}^{2kD} \not\equiv C_{i_D}^{2kD} [P]$,
+	we can show by contradiction that some processor on this path must receive non-congruent values
+	at some point in the interval).
+	We obtain
+	$M_j^{2kD+D} \geq g(min_i M_i^{2kD}) \geq g^{k+1}(M)$.
+
+	In $D$ more steps, this lower bound will propagate to all processes, that is
+	$min_i M_i^{2(k+1)D} \geq g^{k+1}(M)$
+\end{proof}
+
+\begin{lem} \label{lem:growing_set}
+	If $\forall i \in N_G, P(M_i^0)^2 - C_i^0 > h$ for some $h \in \mathds{N}$, then for any $l \leq h$,
+	we have $\forall i \in N_G, P(M_i^l)^2 - C_i^l > h - l$.
+	Moreover, one of the following propositions is verified:
+	\begin{enumerate}
+		\item $\forall i \in N_G, C_i^l = min_j C_j^l$
+		\item $\{i \in N_G, C_i^l = min_j C_j^l\} \subsetneq \{i \in N_G, C_i^{l+1} = min_j C_j^{l+1}\}$
+	\end{enumerate}
+\end{lem}
+\begin{proof}
+	We show the first part of the lemma by induction over $l$.
+	For the inductive case, we have:
+
+	\begin{align*}
+		min_i (P(M_i^{l+1})^2 - C_i^{l+1}) &= min_i (P(max_{j \looparrowright i} M_j^l)^2 - 1 - min_{j \looparrowright i} C_j^l) \\
+		& \geq min_i (P(M_i^l)^2 - C_i^l - 1) \\
+		& > h - l - 1.
+	\end{align*}
+
+	From this we obtain 
+	\begin{align*}
+		C_i^{l+1} &= 1+min_{j \looparrowright i}~C_j^l mod~P(M_i^l)^2 \\
+		&= 1+min_{j \looparrowright i} C_j^l.
+	\end{align*}
+
+	Then, we consider the set $V_{out}$ of outgoing neighbours of $V = \{i \in N_G, C_i^l = min_j C_j^l\}$.
+	$V_{out}$ must contain $V$ because of self-loops.
+	Moreover, if (1) is false, $V_{out}$ must be strictly larger $V$, because $G$ is strongly connected.
+	Using $C_i^{l+1} = 1+min_{j \looparrowright i} C_j^l$,
+	we obtain that $V_{out}$ must equal $\{i \in N_G, C_i^{l+1} = min_j C_j^{l+1}\}$.
+	This proves the second part of the lemma.
+\end{proof}
+
+\begin{thm}
+	The protocol (6) stabilizes on a modulo $P$-synchronized clock's behaviour if the dynamic graph is complete with delay $D$.
+\end{thm}
+\begin{proof}
+	Let $k = g^*(D)$.
+	At time $2kD$ either clocks are equal
+	modulo $P$, or by lemma \ref{lem:croissant2} we have $\forall i \in N_G, M_i^{2kD} \geq g^k(M)$.
+	In this case,
+
+	\begin{align*}
+		P(M_i^{2kD})^2 - C_i^{2kD} & \geq P(g^k(M))^2-(PM^2+2kD) \\
+		& \geq P(g^k(M)-M)(g^k(M)+M)-2kD \\
+		& \geq Pg^k(0)(g^k(0)+2M)-2kD \\
+		& \geq PD(D+2)-2g^*(D)D \\
+		& \geq 2D(D+2)-2D^2 > D
+	\end{align*}
+
+	Thus, between time $2kD$ and $2kD + D$,
+	the minimum clock value will be adopted by a growing number of node (see lemma \ref{lem:growing_set}).
+	The network will eventually synchronize.
+\end{proof}
+
+\section{Synchronization modulo $P$ with fixed roots in dynamic graphs}
+
+We assume that the communication topology is given by a dynamic graph $\mathds{G}$.
+For any $i \in \mathds{N}$, the set of centers of the graph $\mathds{G}(i:i+D-1)$ is assumed to be non-empty and constant over time.
+This set is noted $Roots(\mathds{G})$.
+
+\begin{lem} \label{lem:croissant}
+	If $Roots(\mathds{G})$ is already stabilized in round 0, then
+	for all $k \in \mathds{N}$, for all $i \in N_\mathds{G}$,
+	one of the following statements is true:
+	\begin{enumerate}
+		\item $C_i^{kD} \equiv C_{Roots(\mathds{G})}^{kD} [P]$
+		\item $M_i^{kD} \geq g^{k}(M)$
+	\end{enumerate}
+	where $C_{Roots(\mathds{G})}^t \in \mathds{Z}/P\mathds{Z}$ is the common counter value of the nodes in $Roots(\mathds{G})$ in round $t$, and $M = min_i M_i^0$.
+\end{lem}
+\begin{proof}
+	We prove this lemma by induction over $k$.
+
+	For $k = 0$, we have $M^0_i \geq M = g^0(M)$.
+
+	For the induction case, we assume that a fixed node $i$ is not synchronized with $Roots(\mathds{G})$ in round $(k+1)D$.
+	We also assume that $\forall i \in N_\mathds{G}, C_i^{kD} \not\equiv C_{Roots(\mathds{G})} \Rightarrow M_i^{kD} \geq g^{k}(M)$.
+	There must existe a path $(j = j(0), j(1), \dots, j(D) = i)$ between some $j \in N_{Roots(\mathds{G})}$ and $i$ in the round interval $[kD, kD+D]$.
+	Let $j(l)$ be the first node on this path such that $C_{j(l)}^{kD+l} \not\equiv C_{j(l+1)}^{kD+l+1} [P]$.
+	There must be a path from some node $u$ to $j(l+1)$ in the round interval $[kD, kD+l+1]$ where $C_u^{kD} \not\equiv C^{kD}_{Roots(\mathds{G})}$.
+	By induction hypothesis, we have $M_u^{kD} \geq g^{k}(M)$.
+	Since there exists a path from $u$ to $i$ in the round interval $[kD, (k+1)D]$,
+	we obtain $M_i^{(k+1)D} \geq g(M_u^{kD}) \geq g^{k+1}(M)$.
+\end{proof}
+
+\begin{thm}
+	The (non-squared version) protocol (6) stabilizes on a modulo $P$-synchronized clock's behaviour if the dynamic graph is centered with delay $D$.
+\end{thm}
+\begin{proof}
+	\noindent The subgraph $Roots(\mathds{G})$ is a complete with delay $D$. It must stabilize, according to the previous section.
+	Without loss of generality, we assume that $Roots(\mathds{G})$ has already stabilized in round 0.
+
+	\noindent \textbf{Claim 1:} In round $D$, all nodes in $N_{Roots(\mathds{G})}$ hold the same value $M$ as their $M_i^D$ variable, and will never adopt a different value.
+	Moreover $\forall i \in N_\mathds{G}, M_i^t \geq M$.
+
+	To prove this claim, we consider the node $i \in N_{Roots(\mathds{G})}$ holding the maximum $M_i^0$ value among $Roots(\mathds{G})$.
+	Its value must have propagated to the whole network in round $D$.
+
+	Let $k = min \{l \in \mathds{N}, g^l(M) > M+\frac{2D+1}{P}\}$.
+
+	\noindent \textbf{Claim 2:} At the latest in round $kD+D$ and beyond, we have $\forall i \in N_\mathds{G}, C_i^t \equiv C_{Roots(\mathds{G})}^t [P] \vee PM_i^t > PM+2D+1$
+
+	This results from lemma \ref{lem:croissant} and the definition of $k$.
+
+	\noindent \textbf{Claim 3:} $\forall i \in N_\mathds{G}, \forall l \geq D, C_i^l \leq PM+D$.
+
+	The counters in $Roots(\mathds{G})$ are upper-bounded by $PM$.
+	Moreover there always exists a path from $Roots(\mathds{G})$ to $i$.
+	This claim can be proved by induction over this path.
+
+	\noindent \textbf{Claim 4:} At the latest in round $kD+D+PM$, some node $i \in N_{Roots(\mathds{G})}$ reaches $C_i^t = 0$.
+
+	
+	This results from the fact that $min_{i \in N_{Roots(\mathds{G})}} C_i^t$ is bounded by $PM$.
+	This quantity must grows by 1 at each round, as long as no node from $Roots(\mathds{G})$ rewinds to 0.
+
+	Let $t$ be a round which verifies this claim.
+
+	\noindent \textbf{Claim 5:} $\forall i \in N_\mathds{G}, \forall l \geq D, C_i^{t+l} \leq l$.
+
+	This can be proved by induction over the path from the node $j$ reaching $C_j^t = 0$ to $i$ in the round interval $[t, t+l]$.
+
+	\noindent \textbf{Claim 6:} For any $D \leq l \leq PM+2D+1$, the global state verifies $\forall i \in N_\mathds{G}, C_i^{t+l} \not\equiv C_{Roots(\mathds{G})}^{t+l} \Rightarrow C_i^{t+l} \geq l-D$.
+
+	This claim can be proved by induction over $l-D$, using claim 2 and 5 in induction case to rule out a possible rewind to 0.
+
+	\noindent \textbf{Claim 7:} At the latest in round $kD+D+PM+PM+2D$, the system will be synchronized.
+
+	This results from claim 3 and 6.
+\end{proof}
+\end{document}
