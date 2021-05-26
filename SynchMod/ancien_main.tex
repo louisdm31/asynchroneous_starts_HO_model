@@ -130,8 +130,151 @@
 % section_intro (do not modify this comment)
 \section{Introduction}
 
+Distributed algorithms are often designed in a synchronous computing model, in which computation
+	is divided into communication {\em closed rounds}:
+	any message  sent at some round  can be received only at that round.
+In this model it is classically assumed that each run of an algorithm is started by all nodes simultaneously, i.e., at the same round,
+	or even at round one.
+For instance, most of synchronous consensus algorithms
+	(e.g.,~\cite{PSL80,DS83,ST87}), as well as many distributed algorithms for dynamic networks (e.g.,~\cite{KLO10,KMO11})
+	require synchronous starts.
+
+This assumption makes the sequential composition of two distributed algorithms $A;B$
+	-- in which each node starts executing $B$ when it has completed the execution of~$A$ --
+	quite problematic.
+Indeed, nodes start the algorithm~$B$ asynchronously when the algorithm~$A$ terminates asynchronously,
+	and the properties of~$B$ are no more guaranteed in this context of asynchronous starts.
+
+This leads to the problem of simulating synchronous starts, classically referred to as
+	the {\em firing squad problem}:
+Each node is  initially  {\em passive} and then become {\em active}  at an unpredictable round.
+The goal is to guarantee that   the nodes, when all active, eventually synchronize
+	by {\em firing} -- i.e., entering a designated state for the first time -- at the same round.
+
+Unfortunately, the impossibility result in~\cite{CBM18} demonstrates that the firing squad problem
+	is not solvable without a strong connectivity property of the network, namely, there exists  some positive
+	integer~$T$ such that communication graph within  every period of $T$ consecutive
+	rounds is strongly connected and the delay~$T$ is known.
+In many situations,  this connectivity property is not guaranteed:
+	as an example, in the dynamic graphs corresponding to any system model with benign failures,
+	a node  that experiments permanent and complete send omissions
+	is  constantly a sink in the  communication graph.
+
+However, with a closer look at many distributed algorithms designed in the round-based model,  we see that
+	these algorithms actually  do not require perfect synchronous starts, and still work under the weaker condition that all the nodes
+	start executing the algorithms in rounds with numbers that are equal modulo~$k$, for some positive integer~$k$.
+The corresponding synchronization problem, that we call ${\mathrm{mod}\,k}$  \emph{synchronization}, is formally specified as follows:
+	\begin{description}
+	\item[Termination:]   If all nodes are eventually active, then  every node eventually fires.
+	\item[ $\mathbf{\mathrm{mod}\,k}$-simultaneity:]  If two nodes fire at round~$t$ and $t'$, then $t' \equiv t \mod k$.
+	\end{description}
+
+Indeed, let $A$ be an algorithm  organized into regular  \emph{phases} consisting of  a fixed number  $k$ of consecutive rounds:
+	the sending and transition functions of every node at round~$t$ are entirely determined by the value of~$t$ modulo~$k$.
+Moreover, assume that $A$ has been proved correct (with respect to some given specification) when all nodes start $A$
+	synchronously (at round one) and with any dynamic graph in a family~${\cal G}$ that is stable  under
+	addition of arbitrary finite prefixes.
+For instance, the \emph{ThreePhaseCommit} algorithm for non-blocking atomic commitment~\cite{BHG87},
+	as well as the consensus algorithms in~\cite{DLS88} or the \emph{LastVoting} algorithm ~\cite{CBS09}
+	-- corresponding to the consensus core of \emph{Paxos} -- fulfill all the above requirements
+	for phases of length $k=3$ and $k=4$, respectively, and the family ${\cal G}$ of dynamic graphs in which
+	there exists an infinite number of ``good'' communication patterns
+	(eg., a sequence of $2k-1$ consecutive communication graphs  in which a majority of nodes is heard by all
+	in   each graph).
+The use of a ${\mathrm{mod}\,k}$-synchronization algorithm on the top of the algorithm $A$ yields a new algorithm that executes
+	exactly like $A$ does, after a finite preliminary period during which every node becomes active and fires.
+The above property on the set of dynamic graphs ${\cal G}$ then guarantees this variant of $A$ to be correct with
+	asynchronous starts and dynamic graphs in ${\cal G}$.
+
+Another typical example for which perfect synchronization can be weakening into synchronization modulo $k$ is
+	the development of the basic \emph{rotating coordinator} strategy in the context of asynchronous starts.
+Roughly speaking, this strategy consists in the following: if nodes have unique identifiers in $\{1,\dots,n\}$,
+	the coordinator at round~$t$ is the node whose identifier is  $t$ modulo~$n$.
+For that, 	 each node~$u$ maintains a local counter $c_u$
+	whose current value is the number of rounds where it has been active.
+At each round, the  coordinator of $u$ is the  node with the identifier that is equal to the current value of $c_u$ modulo~$n$.
+Since there may be only one coordinator per round, such a selection rule requires synchronous starts.
+Clearly, with the use of a ${\mathrm{mod}\,n}$-synchronization algorithm in a preliminary phase and a
+	counter for each node that now counts the number of rounds elapsed since the node fired, the above scheme correctly\footnote{%
+	With respect to a specification that lets a passive node to be  a coordinator.}
+	implements the rotating coordinator strategy in the context of asynchronous starts.
+
 % section_model (do not modify this comment)
 \section{Preliminaries}\label{sec:model}
+ 
+\subsection{The computational model}
+	
+We consider a networked system with a {\em fixed} set $V$ of $n$ nodes.
+We assume a round-based computational model  in the spirit of the Heard-Of model~\cite{CBS09}, 
+	in which point-to-point communications are organized into \emph{synchronized rounds}: 
+	each node can send messages  to all nodes and can receive messages sent  by some of the nodes.
+Rounds are communication closed in the sense that no node receives messages in round~$t$ that are sent 
+	in a round different from~$t$. 
+The collection of \emph{possible} communications (which nodes can communicate to which nodes) at each round $t$
+	is modelled by a directed graph (digraph, for short) with a set of nodes equal to~$V$.
+The digraph at round~$t$ is  denoted $\dG(t)=(V,E_t)$, and is called the \emph{communication graph at round}~$t$. 
+The set of $u$'s incoming neighbors in the digraph $\dG(t)$ is denoted by $\In_u(t)$.
+
+We assume a self-loop at each node in all these digraphs  since every node can communicate with 
+	itself instantaneously.	
+The sequence of such digraphs~$\dG=\left (\dG(t) \right )_{t\in\IN}$ is called a {\em dynamic graph}~\cite{CFQS11:TVG}. 
+
+In round $t$ ($t = 1, 2 , \ldots $), each node~$ u $ successively
+	(a) broadcasts  messages determined by its state at the beginning of round~$ t $
+	(b) receives \emph{some} of the messages sent to it,
+	and finally (c) undergoes an internal transition to a new state.
+A  \emph{local algorithm} for a node corresponds to a pair of
+	a \emph{sending function} that determines the messages to be sent in step~(a)
+	and a \emph{transition function} for state updates in step (c).
+An \emph{algorithm} for the set of nodes~$V$ is a collection of local algorithms, one per node.
+
+We also introduce the notion of  \emph{start schedules}
+	that are collections~$\IS= \left (s_u \right )_{u \in V}$,
+	where each~$s_u$ is  a positive integer or is equal to $\infty$.
+
+	
+The execution of the algorithm $ A $  with the dynamic graph $\dG$ and the start schedule $\IS$ then proceeds
+	as follows:
+Each node~$u$ is initially  \emph{passive}. 
+If $s_u = \infty$, then  the node~$u$ remains passive forever.
+Otherwise, $s_u $ is a positive integer, and $u$ becomes {\em active} 
+	at the beginning of round~$s_u$, sets up its local variables.
+In  round~$t$ $(t = 1,2\dots)$, a passive  node
+	sends only heartbeats, corresponding to  \emph{null} messages,  and  cannot change its state. 	
+An active node 	applies its sending function in~$A$ to its current state to generate the message to be sent to all nodes,
+	then it receives the messages sent by its incoming neighbors in the directed graph~$\dG(t)$, and finally 
+	applies its transition function ${\cal T}_u$ in~$A$ to its current state and the list of messages it has just received,
+	(including the null messages from passive nodes) to go to  a next state. 
+Since each local algorithm is deterministic, an execution of the algorithm~$A$  is entirely determined 
+	by the initial state of the network,  the dynamic graph $\dG$,
+	and  the  start schedule~$\IS$.
+	
+The states ``passive'' and ``active'' do not refer to any physical notion, and are relative to the algorithm under consideration:
+	as an example, if two algorithms $A$ and $B$ are sequentially executed according to the order ``$A$ followed by $B$'',
+	then at some round, a node may be active w.r.t. $A$ while it is passive w.r.t. $B$.
+In such a situation, the node  is integrally part of the system and can send messages, but  these messages are empty 
+	with respect to the semantics of~$B$.
+	
+\subsection{Network model and start model}
+
+A \emph{network model} is any non-empty set of dynamic graphs with a permanent self-loop at each node.
+We will focus on the specific network model of \emph{centered} dynamic graphs~$\dG$ defined as follows: 
+	there exists some node~$\cent$ in $V$ such that every digraph $\dG(t)$ has a spanning star centered 
+	at~$\cent$, i.e., 
+	$$\exists \cent \in V, \, \forall u \in V, \, \forall t \in \mathds{N}, \ \cent \in \In_u(t) .$$
+Note that there may be several fixed centers for~$\dG$.
+
+As demonstrated in~\cite{CBS09}, centered dynamic graphs in the Heard-Of model captures the
+	classical model of synchronous systems with a (fixed) complete communication graph and 
+	 at most $n-1$ faulty senders, including the case of crashes.
+
+Similarly, we define a \emph{start model} as a non-empty set of start schedules.
+A start schedule $\IS = (s_u)_{u\in V}$ is \emph{complete} if every $s_u$ is finite, i.e.,
+	no node is passive forever, yielding the model of complete start schedules.
+Synchronous starts correspond to complete start schedules $\IS = (s_u)_{u\in V}$ with
+	equal start rounds.	
+The property of synchronous starts can be relaxed into \emph{$\mathrm{mod}\,k$-synchronous starts},
+	where $k$ is any positive integer: for every pair of nodes~$u$ and $v$, it holds that $s_u \equiv s_v \!\mod k$.
 
 % section_algorithm (do not modify this comment)
 \section{The \SM algorithm}
@@ -313,8 +456,172 @@ contains a spanning star centered in $\cent$. We also assume that $D < k$.
 % section_cons (do not modify this comment)
 \section{Use-cases of $\mathrm{mod}\,n$-synchronization}
 
+\subsection{Algorithms without safety assumption}
+
+Let us consider a given algorithm $A$, which can solve a problem $\mathcal{A}$ when the starts are synchronous.
+The correctness of $A$ may depend on some assumptions.
+Usually, the assumptions required for safety are expressed as invariants on the dynamic graph: $\forall r \in \mathds{N}, P_{saf}(\mathds{G}_r)$.
+Whereas the assumptions required for liveness are expressed as infinitely often verified predicates on the dynamic graph: $\forall r \in \mathds{N}, \exists r' > r, P_{liv}(\mathds{G}_{r'})$.
+The case where no invariant is required for safety is easier to deal with. At first we focus on this case.
+
+We assume that $A$ is structured as $k$ rotating phases, which means that $A$ needs $\mathrm{mod}\,k$-synchronization.
+We construct the algorithm $SynchMod_k \lozenge A$ in the following way:
+we consider a node $u$. 
+\begin{enumerate}
+	\item At first, $u$ is passive, and sends null messages, according to the model.
+	\item From round $s_u$, the node $u$ is active. It starts the \SM algorithm. It sends and receives messages according to the \SM algorithm and ignore the messages related to $A$.
+	\item In round $\tf_u$, the node $u$ fires. From this round, $u$ executes \SM in parallel with $A$. Both $A$ and \SM send and receive messages according to their pseudo-code.
+		In some cases, $u$ may receive from a neighbor $v$ a message related to \SM, and no message related to $A$. Then $u$ can guess that $v$ has not fired yet.
+		The $A$ instance of $u$ interpret that as a null message received from $v$.
+\end{enumerate}
+
+We now wonder whether $SynchMod_k \lozenge A$ solves $\mathcal{A}$ with asynchronous starts, and how $A$ should deal with null message.
+In the case without required invariant, $A$ could assimilate null messages as lost messages,
+and we could reasonably expect that $SynchMod_k \lozenge A$ solves $\mathcal{A}$ with asynchronous starts.
+Indeed, the drop of the null messages in $A$ is equivalent with the drop of some edges in the dynamic graph.
+The safety proof without invariant is not affected by the modification of the dynamic graph, and should be easily extended from synchronous starts system to asynchronous starts system.
+Moreover, if we assume that no node remains passive forever, no edge is dropped in the dynamic graph beyond a certain round.
+Then, the liveness proof with synchronous starts should be still valid if applied from that round.
+
+Some notable examples of algorithms which can be adapted with this approach include the LastVoting \cite{CBS09} algorithm (an round-based adaptation of Paxos \cite{paxos}) which solves consensus,
+and the ThreePhaseCommit \cite{BT93} algorithm, which solves the database commit problem.
+
+\subsection{Algorithms with safety assumption}
+
+When the safety proof of an algorithm relies on some invariant, the drop of edges in the dynamic graph might break the safety proof.
+A possible fix could consist in changing the way the algorithm $A$ deals with null message. This must be done in a case-by-case basis.
+We exemplify that with an adaptation of the UniformVoting \cite{CBS09} \cite{Ben83} algorithm.
+
+
+\begin{algorithm}[htb]
+\begin{distribalgo}[1]
+\begin{tabular}{ll}
+\begin{minipage}{33em}
+
+
+\INDENT{\textbf{Initialisation:}}
+	\STATE $x_u := v_u$ ~~~~~~~~\{\emph{$v_u$ is the initial value of $p$}\}
+	\STATE $vote_u \in V\cup\{ ? \}$, initially $?$
+	\STATE $phase_u = true$ ~~~~~~\{\textit{variable which organises the two-phase rotation}\}
+
+\ENDINDENT
+\BLANK
+
+\INDENT{\textbf{Round $r$:}}
+	\IF{$phase_u$}
+		\STATE send $\langle x_u , vote_u \rangle$ to all
+	\ELSE
+		\STATE send $\langle x_u \rangle$ to all
+	\ENDIF
+	\STATE receive incoming messages
+	\IF{$phase_u$}
+		\IF{a node voted for $v$}
+			\STATE $x_u:= v$ \label{line:adopt_vote}
+		\ELSE
+			\STATE $x_u :=$ smallest  $w$ from  $\langle w , ? \rangle$ received \label{line:min_vote}
+		\ENDIF
+		\IF{every node voted for $v$, none sent null} \label{line:cond1}
+			\STATE $DECIDE(v)$
+		\ENDIF
+		\STATE $vote_u :=\ ?$
+	\ELSE
+		\STATE $ x_u :=$ minimum value received (excluding null) \label{line:min_val}
+		\IF{every node sent $v$, none sent null} \label{line:cond2}
+			\STATE $vote_u := v$
+		\ENDIF
+	\ENDIF
+	\STATE $phase_u := \neg phase_u$
+\ENDINDENT
+
+\end{minipage}
+\end{tabular}
+
+\caption{The {\em AdaptedUniformVoting} algorithm}
+\label{unifvotfig}
+\end{distribalgo}
+\end{algorithm}
+
+This pseudo-code is almost identical to the pseudo-code used in the systems with synchronous starts.
+However, you can see that in lines \ref{line:cond1} and \ref{line:cond2}, the effect of the null messages is precised.
+In that case, the null messages are not dropped. They prevent the nodes from voting and deciding.
+
+It is possible to prove the following theorem:
+
+\begin{thm}
+	The $SynchMod_4 \lozenge AdaptedUniformVoting$ algorithm solves the consensus problem under the condition of a centered dynamic graph and a complete activation schedule.
+\end{thm}
+
+The proof of validity and agreement for UniformVoting given in \cite{CBS09} can easily be transposed to \newline $SynchMod_4 \lozenge AdaptedUniformVoting$.
+The proof of termination, which is radically different, is detailed below.
+
+\begin{proof}
+	We consider an execution of $SynchMod_4 \lozenge AdaptedUniformVoting$.
+	Let $r$ be the round in which $\cent$ fires.
+	In round $r+1$, the $AdaptedUniformVoting$ algorithm is started by $\cent$.
+
+	We claim that the sequence $(x_\cent(r+i+1))_{i \in \mathds{N}}$ is decreasing.
+	\begin{enumerate}
+		\item If $i+2$ is odd, the line \ref{line:min_val} guarantees that $x_\cent(r+i+2) \leq x_\cent(r+i+1)$.
+		\item If $i+2$ is even and a node $u$ voted for $v$, the only possibility is $v = x_\cent(r+i+1)$. This is because $\cent$ sent $x_\cent(r+i+1)$ to $u$ in round $r+i+2$.
+			Then $x_\cent(r+i+2) = x_\cent(r+i+1)$.
+		\item If $i+2$ is even and no node voted, the line \ref{line:min_vote} guarantees that $x_\cent(r+i+2) \leq x_\cent(r+i+1)$.
+	\end{enumerate}
+	That proves the claim.
+
+	Since this series is decreasing, and the set of initial decision values is finite, it must reach a minimum.
+	We consider the earliest round $r_0 \geq \phi^{max}$ in which every node have already fired and the series has stabilized to $v$.
+
+	Without loss of generality, we assume that the round $r_0+1$ is a round of exchange of value (i.e. $\forall u \in \Pi, \neg phase_u(r_0)$).
+	Since $x_\cent(r_0+1) = x_\cent(r_0)$, we know that $\cent$ only receives messages containing $v$ in round $r_0+1$ (see line \ref{line:min_val}).
+	Then $\cent$ must vote $v$ in round $r_0+2$ (see line \ref{line:cond2}).
+	Then every node must adopt $v$ in round $r_0+2$ (see line \ref{line:adopt_vote}).
+	Then, in round $r_0+3$ every node must send $v$ to all.
+	Then, in round $r_0+3$ every node can only receive $v$.
+	Then, in round $r_0+3$ every node must vote for $v$ (see line \ref{line:cond2}).
+	Then, in round $r_0+4$ every node must decide $v$.
+	That proves termination.
+\end{proof}
+
+\subsection{$\mathrm{mod}\,k$-synchronization and coordinated algorithms}
+
+Some algorithms like Paxos rely on the existence of a shared coordinator in each round.
+A simple implementation consists in setting a rotating coordinator: 
+each node holds the list of nodes. In the first round, the chosen coordinator is the first node in the list.
+In the $i^{th}$ round, the chosen coordinator is the $i~mod~k^{th}$ node on the list.
+This works out-of-the box when the starts are assumed to be synchronous.
+However, when the starts are asynchronous, a prior $\mathrm{mod}\,n$-synchronization is required, where $n$ is the number of nodes in the shared list.
+This is another typical use case of the \SM algorithm.
+
+\subsection{A much simpler approach ?}
+
+In the case of the problem of consensus, we have mentioned in a previous paragraph the possibility to use Paxos.
+Since we only consider synchronous systems, much simpler algorithms like FloodSet \cite{Lyn96} exists.
+As mentioned in \cite{CDDS85}, the FloodSet algorithm can be adapted to solve consensus in a system with asynchronous starts.
+Using a variant of the firing squad algorithm (called $AdaptedFiringSquad_f$ here),
+where the nodes hold a counter $c_u \in \mathds{N}$, and fire when they reach an upper bound $f$ on the number of failure.
+Using $AdaptedFiringSquad_f \lozenge FloodSet$, we get a simple consensus algorithm.
+This approach has some shortcomings, though.
+Firstly, the nodes have to "know" an shared upper bound on the number of failures.
+Then, only the simplest form of failure is supported: the crash-failures.
+More importantly, this method achieves \textit{non-uniform} consensus: only the non-crashed nodes are required to decide.
+
 % section_conclusion (do not modify this comment)
 \section{Conclusion and future work}
+
+As any complex reasoning by cases, the correctness proof  of the \SM   algorithm, 
+	and more specifically the proof of the liveness property, is very error prone. 
+This is a typical example of the relevance of formal verification for distributed algorithms. 
+Indeed, in a later work~\cite{}, we used the interactive theorem prover Isabelle \cite{Merz12} to encode the complete proof 
+	of Theorem~\ref{thm:k>2}, and thus obtained a certificate for  \SM\!\!'s correctness when $k$ is greater than 2.
+	
+Since $\mathrm{mod}\,2$-synchronization is reducible to $\mathrm{mod}\,4$-synchronization,
+	 our algorithm solves the $\mathrm{mod}\,k$-synchronization problem for any positive integer~$k$
+	 in the class of  dynamic  graphs with a fixed center.
+This class of dynamic graphs plays a crucial role regarding benign failures as it captures 
+	the synchronous model with at most $n-1$ faulty senders, including the one with at most $n-1$ crashes.
+In the wilder context of dynamic graphs, a natural question is whether the problem is still solvable 
+	under weaker connectivity assumptions, in particular, in the class of dynamic graphs with a fixed root, 
+	i.e., with a time-varying spanning tree at each round rooted at a fixed node.
 
 % end_section (do not modify this comment)
 
