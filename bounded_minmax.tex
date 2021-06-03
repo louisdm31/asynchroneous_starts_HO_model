@@ -1,0 +1,166 @@
+\documentclass[11pt,letterpaper]{article}
+\special{papersize=8.5in,11in}
+
+\usepackage[utf8]{inputenc}
+\usepackage[ruled, linesnumbered, noline]{algorithm2e}
+\usepackage[pdftex,pdfpagelabels,bookmarks,hyperindex,hyperfigures]{hyperref}
+\usepackage{fullpage}
+\usepackage{amsmath,amssymb,amsthm,dsfont}
+\newtheorem{thm}{Theorem}
+\newtheorem{pro}[thm]{Proposition}
+\newtheorem{lem}[thm]{Lemma}
+\newtheorem{cor}[thm]{Corollary}
+\newtheorem{defi}[thm]{Definition}
+
+\title{Stabilisation in rooted communication graph}
+\author{
+	Bernadette Charron-Bost \\
+	LIX, Palaiseau, France
+\and
+	Stephan Merz \\
+	LORIA, Nancy, France
+\and
+	Louis Penet de Monterno \\
+	LIX, Palaiseau, France
+}
+\date{\today}
+
+\begin{document}
+  \maketitle
+
+We parameter our algorithm by a function $\delta$ in $\mathds{N} \rightarrow \mathds{N}$.
+We assume that it fulfills the following constraints:
+\begin{itemize}
+	\item $\lim_{t \rightarrow \infty} \delta(t) = \infty.$
+	\item $\lim_{t \rightarrow \infty} t-\delta(t) = \infty.$
+\end{itemize}
+
+\begin{algorithm}[htb]
+	\DontPrintSemicolon
+	\textbf{Initialization:} \;
+	\Indp
+		$x_i \in \mathcal{V}$, initially $\mu_i$ \;
+		$AGE_i \in \mathcal{V} \rightarrow \mathds{N} \cup \infty$ initially $\forall v \in \mathcal{V}, AGE[v] = \infty$ \;
+		$y_i \in \mathcal{V}$ \;
+		$AGE_i[x_i] \leftarrow 0$ \;
+		$T_i \in \mathds{N}$, initially 1 \;
+	\BlankLine
+	\Indm
+	\textbf{At each round:} \;
+	\Indp
+		$T_i \leftarrow max_{j \looparrowright i} T_j$ \label{line:maxT} \;
+		\For{$v \in \mathcal{V}$}{
+			$AGE_i[v] \leftarrow 1+min_{j \looparrowright i} AGE_j[v]$ \label{line:minAGE} \;
+			\If{$AGE_i[v] > \delta(T_i)$}{
+				$AGE_i[v] \leftarrow \infty$ \label{line:cut}
+			}
+		}
+		\If{$\exists j \looparrowright i, y_j > y_i$}{
+			$T_i \leftarrow T_i+1$ \label{line:increm}
+		}
+		$x_i \leftarrow min \{v \in \mathcal{V}, AGE_i[v] < \infty\}$ \;
+		$y_i \leftarrow max \{v \in \mathcal{V}, AGE_i[v] < \infty\}$ \;
+		$AGE_i[x_i] \leftarrow 0$ \;
+	\Indm
+\caption{The $BoundedMinMax$ algorithm} 
+\end{algorithm}
+
+We define the following functions:
+\begin{itemize}
+	\item $m_i(t) = min \{\mu_j, j \in In_i^a(0:t)\}$
+	\item $m_i^* = min_{t \in \mathds{N}} m_i(t)$
+	\item $m^* = max_{i \in \Pi} m_i^*$
+\end{itemize}
+
+We assume the following hypothesis:
+
+$$\exists D \in \mathds{N}, \exists \gamma \in \Pi, \exists t \in \mathds{N}, \forall t' > t, \forall i \in \Pi, \gamma \in In_i(t':t'+D).$$
+
+\begin{lem} \label{lem:stabX}
+	For all $i \in \Pi$, for any round $t$, we have $x_i(t) = m_i(t)$.
+\end{lem}
+\begin{proof}
+	We prove this lemma by induction over $t$.
+	The base case results from the initialization of $x_i$.
+	For the inductive case, we have:
+
+	$$m_i(t+1) = min \{m_j(t), j \looparrowright i\} = min \{x_j(t), j \looparrowright i\} = x_i(t+1).$$
+\end{proof}
+
+\begin{lem} \label{lem:stabM}
+	$m_\gamma^* = m^*$
+\end{lem}
+\begin{proof}
+	Let $t$ be the first round from which $m_\gamma(t) = m^*_\gamma$ and the graph $\mathds{G}(t:t+D)$ is centered.
+	By hypothesis, for every $i \in \Pi$, we have $\gamma \in In_i(t:t+D)$.
+	Hence $In_\gamma^a(0:t) \subseteq In_i^a(0:t+D)$.
+	Then, $m_i^* \leq m_i(t+D) \leq m_\gamma(t) = m_\gamma^*$.
+	Thus $m_\gamma^* = m^*$.
+\end{proof}
+
+\begin{lem} \label{lem:learnBound}
+	$\forall i \in \Pi, \exists t \in \mathds{N}, \forall t' > t, \delta(T_i^{t'}) > D \vee y_i^{t'} \geq m^*$
+\end{lem}
+\begin{proof}
+	We partition $\Pi$ into two subsets: $\Pi_{fin}$ contains the nodes whose $T$ variable ultimately stabilize, whereas $\Pi_{inf}$ contains the nodes
+	whose $T$ variable goes to infinity.
+	We consider the first round $t$ in which every node is active, and its $m_i(t)$ has already stabilized,
+	and every node in $i \in \Pi_{inf}$ verifies $\delta(T_i^t) > D$,
+	and the $T$ variable of every node in $\Pi_{fin}$ has already stabilized,
+	and the dynamic graph verifies $\forall t' > t, \forall i \in \Pi, \gamma \in In_i(t':t'+D)$.
+	By contradiction, we assume that there exists some node $i \in \Pi$
+	such that, in some round $t' > t$, we have $\delta(T_i^{t'}) \leq D \wedge y_i^{t'} < m^*$.
+	Using the assumption on the dynamic graph, we can obtain a path $(\gamma = j(0), j(1), \dots, j(D) = i)$,
+	such that $\forall h < D, j(h) \in In_{j(h+1)}(t'+h+1)$.
+
+	We can show by backward induction on this path that every node on this path belongs to $\Pi_{fin}$.
+	For the base case, we know that the value of $\delta(T_i)$ must have stabilized to some value below $D$.
+	Whereas the value $\delta(T_j)$ of every node in $\Pi_{inf}$ is assumed to have already overcome $D$ in round $t'$.
+	For the inductive case, we use the line \ref{line:maxT} to prove that every node on the path verifies $\delta(T_{j(h)}^{t'+h}) < D$.
+
+	We can show by induction on this path that:
+
+	$$\forall h < D, y_{j(h)}^{t'+h} \geq m^*$$
+
+	For the base case, we have $y_\gamma^{t'} \geq x_\gamma^{t'} = m^*$.
+	This results from the lemmas \ref{lem:stabX} and \ref{lem:stabM}, and the assumption that $m_\gamma(t')$ is supposed to be stabilized already.
+	For the induction case, we assume that $y_{j(h)}^{t'+h} \geq m^*$.
+	We cannot have $y_{j(h+1)}^{t'+h+1} < m^*$, otherwise $j(h+1)$ would execute the line \ref{line:increm}. We showed that $j(h+1)$ was belonging to $\Pi_{fin}$,
+	and its $T_{j(h+1)}$ is supposed to be stabilized already.
+	
+	We ultimately have $y_i^{t'+D} \geq m^*$, which leads to a contradiction.
+\end{proof}
+
+\begin{lem} \label{lem:supprOld}
+	$\forall i \in \Pi, \exists t \in \mathds{N}, \forall t' > t, y_i^{t'} \leq m^*$
+\end{lem}
+\begin{proof}
+	Let $t$ be the first round in which every $m_i(t)$ has already stabilized.
+	We show by induction over $t'$ that $\forall v > m^*, \forall t' \in \mathds{N}, min_{i \in \Pi} AGE_i^{t+t'}[v] \geq t'$.
+	For the induction case, we know that no node verifies $x_i^{t+t'} > m^*$. We use the line \ref{line:minAGE} to prove this case.
+	We also have $\forall t \in \mathds{N}, max_{i \in \Pi} T_i^t \leq t$. That can be proved by induction over $t$.
+	Finally, using $\lim_{t \rightarrow \infty} t-\delta(t) = \infty$, we ultimately have $AGE_i^t[v] > \delta(T_i^t)$ and $v \notin max \{v \in \mathcal{V}, AGE_i[v] < \infty\}$.
+\end{proof}
+
+\begin{thm}
+	The $BoudedMinMax$ algorithm solves consensus with finite amount of memory.
+\end{thm}
+\begin{proof}
+	We want to show that we ultimately have $y_i^t = m^*$ for every $i \in \Pi$.
+	We consider a round $t$ from which lemmas \ref{lem:supprOld} and \ref{lem:learnBound} is verified, and from which the graph is centered with delay $D$.
+	We consider a node $i \in \Pi$, and we show that $\forall t' \geq t+D, y_i^{t'} \geq m^*$.
+	Using the assumption on the dynamic graph, we can obtain a path $(\gamma = j(0), j(1), \dots, j(D) = i)$,
+	such that $\forall h < D, j(h) \in In_{j(h+1)}(t'-D+h+1)$.
+	We show by induction over $h$ that $\forall h \leq D, AGE_{j-h}^{t'-D+h}[m^*] \leq h$.
+	For the inductive case, we assume that $AGE_{j-h}^{t'-D+h} \leq h$.
+	We must have $\delta(T_{j(h+1)}^{t'-D+h+1}) > h+1$.
+	Otherwise, line \ref{line:cut} would be executed by $j(h+1)$. We would obtain $m^* \notin max \{v \in \mathcal{V}, AGE_i[v] < \infty\}$.
+	Lemma \ref{lem:supprOld} would imply $y_{j(h+1)}^{t'-D+h+1} < m^*$, that would violate lemma \ref{lem:learnBound}.
+	Once we have $\delta(T_{j(h+1)}^{t'-D+h+1}) > h+1$, we can conclude the inductive case using line \ref{line:minAGE}.
+
+	We obtain $AGE_i^{t'}[m^*] \leq D$. We can conclude the proof using lemma \ref{lem:supprOld}.
+	Moreover, once the nodes have stabilized to the decision value, the line \ref{line:increm} cannot be executed.
+	This means that the $T_i$ variables are bounded, thus the memory used is finite.
+\end{proof}
+
+\end{document}

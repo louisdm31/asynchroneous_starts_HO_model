@@ -1,0 +1,173 @@
+\documentclass[11pt,letterpaper]{article}
+\special{papersize=8.5in,11in}
+
+\usepackage[utf8]{inputenc}
+\usepackage[ruled, linesnumbered, noline]{algorithm2e}
+\usepackage[pdftex,pdfpagelabels,bookmarks,hyperindex,hyperfigures]{hyperref}
+\usepackage{fullpage}
+\usepackage{amsmath,amssymb,amsthm,dsfont}
+\newtheorem{thm}{Theorem}
+\newtheorem{pro}[thm]{Proposition}
+\newtheorem{lem}[thm]{Lemma}
+\newtheorem{cor}[thm]{Corollary}
+\newtheorem{defi}[thm]{Definition}
+
+\title{Reduction of asynchronous starts model to self-stabilizing model}
+\author{
+	Bernadette Charron-Bost \\
+	LIX, Palaiseau, France
+\and
+	Stephan Merz \\
+	LORIA, Nancy, France
+\and
+	Louis Penet de Monterno \\
+	LIX, Palaiseau, France
+}
+\date{\today}
+
+\begin{document}
+  \maketitle
+
+We consider a set of colors $C$.
+
+\section{Asynchronous starts model}
+
+We consider an algorithm $A$ in the asynchronous starts model.
+This algorithm is characterized by the following data:
+
+\begin{itemize}
+	\item A set of states $X$.
+	\item An inactive state $x_{passive} \notin X$.
+	\item An initial state $x_{init} \in X$.
+	\item A computable transition function $\delta^c : X \times X^\oplus \rightarrow X$ where the $\oplus$ operator constructs the set of possible multi-sets and $c \in C$.
+\end{itemize}
+
+\noindent An execution in this model may be defined by:
+\begin{itemize}
+	\item An activation schedule $(s_i)_{i \in \Pi} \in (\mathds{N} \cup \{\infty\})^\Pi$.
+	\item A coloring $(c_i)_{i \in \Pi} \in C^\Pi$.
+	\item A communication graph $\mathds{G} = (\Pi, E_t)$ where $\forall t \in \mathds{N}, E_t \subseteq \Pi \times \Pi$.
+\end{itemize}
+
+\noindent The states of the nodes may be derived from the above variables by stating:
+
+$$x_i^{t+1} = \left \{ \begin{array}{l l} x_{passive} & \mbox{if}~t < s_i \\
+	x_{init} & \mbox{if}~t = s_i \\
+\delta^{c_i}(x_i^t, \{x_j^t, (j,i) \in E_{t+1}\}) & \mbox{otherwise} \end{array} \right.$$
+
+\section{Self-stabilizing model}
+
+We now consider an algorithm $A$ in the self-stabilizing model.
+This algorithm is characterized by the following data:
+
+\begin{itemize}
+	\item A set of states $X$.
+	\item A computable transition function $\delta^c : X \times X^\oplus \rightarrow X$.
+\end{itemize}
+
+\noindent An execution in this model may be defined by:
+\begin{itemize}
+	\item A family of initial states $(x_i^0)_{i \in \Pi}$ where $x_i^0$ is an arbitrary state in $X$.
+	\item A coloring $(c_i)_{i \in \Pi} \in C^\Pi$.
+	\item A communication graph $\mathds{G} = (\Pi, E_t)$ where $\forall t \in \mathds{N}, E_t \subseteq \Pi \times \Pi$.
+\end{itemize}
+
+The states of the nodes may be derived from the above variables by stating:
+
+$$x_i^{t+1} = \delta^{c_i}(x_i^t, \{x_j^t, (j,i) \in E_{t+1}\}).$$
+
+\section{Problem}
+
+We consider $\mathcal{C} \subseteq \mathcal{G} \times C^\Pi$, where $\mathcal{G}$ is the set of possible dynamic graph.
+$\mathcal{C}$ represents a class of colored graphs, and we want to solve some problem on a network which belongs to this class.
+We consider a computable function $Out : X \rightarrow \mathcal{V}$ which returns the output of a node in some set $\mathcal{V}$
+(for example, in leader election problem, $\mathcal{V} = \{0,1\}$, and the leader must ultimately return 1, while non-leaders must return 0).
+We define the specification of the problem as a mapping from any $\mathds{G} \in \mathcal{C}$ to a suffix-closed subset $S_\mathds{G} \subseteq (\mathcal{V}^\Pi)^\omega$.
+$S_\mathds{G}$ is a set of sequences of output vectors.
+We say that an algorithm $A$ (in both presented models) stabilizes to $S$ if, for any colored graph $\mathds{G} \in \mathcal{C}$,
+for any execution of $A$ in this colored graph, there exists some bound $T \in \mathds{N}$ such that we have:
+
+$$\langle Out(x^T_i), i \in \Pi \rangle, \langle Out(x^{T+1}_i), i \in \Pi \rangle, \dots \in S_\mathds{G}$$
+
+where $\langle Out(x^T_i), i \in \Pi \rangle \in \mathcal{V}^\Pi$ is the vector of outputs of the nodes in round $T$.
+We will refer to $T$ as the \textit{quiescence time}.
+For the leader election problem, the specification would look like:
+
+$$S_\mathds{G} = \left \{ \begin{array}{l}
+	(\langle 1, 0, 0 \dots \rangle, \langle 1, 0, 0 \dots \rangle, \langle 1, 0, 0 \dots \rangle, \dots) \\
+	(\langle 0, 1, 0 \dots \rangle, \langle 0, 1, 0 \dots \rangle, \langle 0, 1, 0 \dots \rangle, \dots) \\
+	\dots \\
+	(\langle 0, 0, \dots 1 \rangle, \langle 0, 0, \dots 1 \rangle, \langle 0, 0, \dots 1 \rangle, \dots)
+\end{array} \right \}$$
+
+Here, each line corresponds to one of the possible output (i.e. one line for each possible leader).
+Every execution which stabilizes to some leader will have a suffix in this set.
+
+For the rest of this article, we fix some specification $S$.
+We make the assumption that for any $\mathds{G} \in \mathcal{C}$, the set $S_\mathds{G}$ is a singleton containing a constant sequence.
+This hypothesis is necessary to implement a self-stabilizing implementation which actually stabilizes.
+
+\section{Self-stabilizing implementation}
+
+We assume we have an asynchronous-start algorithm $A$ which stabilizes to the specification $S$.
+The aim of this document is to construct an self-stabilizing algorithm $A'$ which self-stabilizes to the same specification.
+We parameter our algorithm by a function $g$ in $\mathds{N} \rightarrow \mathds{N}$.
+We assume that it fulfills the following constraints:
+\begin{itemize}
+	\item $\lim_{t \rightarrow \infty} g(t) = \infty.$
+	\item $\lim_{t \rightarrow \infty} t-g(t) = \infty.$
+\end{itemize}
+
+\begin{algorithm}[htb]
+	\DontPrintSemicolon
+	\textbf{State variables:} \;
+	\Indp
+		$t_i \in \mathds{N}$ \;
+		$INST_i[l] \in X$, for every $l \in \{0, \dots, t_i\}$ \;
+		$y_i \in \mathcal{V}$ \;
+	\BlankLine
+	\Indm
+	\textbf{At each round:} \;
+	\Indp
+		$t_i \leftarrow 1+t_i$ \;
+		\For{$l \in \{0, \dots, t_i-1\}$}{
+			$INST_i[l] \leftarrow \delta^{c_i}(INST_i[l], \{INST_j[l], (j,i) \in E_t \wedge t_j \geq l\})$
+		}
+		$INST_i[t_i] \leftarrow x_{init}$ \;
+		$y_i \leftarrow Out(INST_i[g(t_i)])$ \;
+	\Indm
+	\caption{The $Stab(A)$ algorithm} 
+\end{algorithm}
+
+\section{Proof}
+
+We consider an execution of $Stab(A)$, characterized by $\mathds{G}$, the coloring $(c_i)_{i \in \Pi}$ and some initial variables.
+We consider the vector $v \in \mathcal{V}^\Pi$ such that $S_\mathds{G} = \{(v, v, v, \dots)\}$.
+We want to prove that the output of $Stab(A)$ converges to $v$.
+We assume that $A$ self-stabilizes \textit{with bounded delay}, that is, for every execution,
+$T-max\{s_i, i \in \Pi\}$ is bounded by some natural number $T_{max}$.
+
+\begin{lem}
+	For any $l \geq max_{i \in \Pi} t_i^0$, we have:
+	$$\forall i \in \Pi, \forall t \geq T_{max}+l+1, Out(INST_i^t[l]) = v_i.$$
+\end{lem}
+\begin{proof}
+	We can prove by induction over $t$ that, for any $j$ verifying $\forall i \in \Pi, l \geq t_i^0$,
+	the $Stab(A)$ algorithm emulates an execution of $A$ where $\forall i \in \Pi, s_i = l-t_i^0+1$,
+	by executing the transition function of $A$ at each round.
+	Since $A$ is assumed to self-stabilize with bounded delay, we know that the output of the instances converge to $v$ from some round $T$ where
+	$$T \leq T_{max} + max\{s_i, i \in \Pi\} \leq T_{max} + l + 1.$$
+\end{proof}
+
+\begin{thm}
+	If $A$ stabilizes to $S$ with bounded delay, then $Stab(A)$ stabilizes to $S$.
+\end{thm}
+\begin{proof}
+	According to previous lemma, for any $i \in \Pi$, for any $l \leq t_i$, we have
+	$$l \in [max_{i \in \Pi} t_i^0, t_i-T_{max}-1] \Rightarrow Out(INST_i^{t_i}[l]) = v_i.$$
+	Because $\lim_{t \rightarrow \infty} g(t) = \infty$, we know that $g(t_i)$ ultimately exceeds $max_{i \in \Pi} t_i^0$.
+	Because $\lim_{t \rightarrow \infty} t-g(t) = \infty$, we know that $g(t_i)$ is ultimately below $t_i-T_{max}-1$.
+	That proves the stabilization property.
+\end{proof}
+
+\end{document}
