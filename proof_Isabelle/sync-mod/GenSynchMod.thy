@@ -42,7 +42,7 @@ definition ready_level1 where
 "ready_level1 msgs s == isConc msgs & minMsgs msgs mod k = k - 1 & level s = 0"
 
 definition ready_level2 where
-"ready_level2 msgs s == (maxForce msgs = 2 | (isConc msgs & isReady msgs))
+"ready_level2 msgs s == isConc msgs & isReady msgs
     & minMsgs msgs mod k = k - 1 & level s = 1"
 
 definition gen_nextState :: "Proc => locState => (Proc => locState message) => locState => bool" where
@@ -54,7 +54,7 @@ definition gen_nextState :: "Proc => locState => (Proc => locState message) => l
         else
             conc s' = isConc msgs & ready s' = isReady msgs)
     else
-        x s' = 0 & forc s' = (if ready_level1 msgs s then 1 else 2) & level s' = forc s' & ready s' & conc s'"
+        x s' = 0 & forc s' = (if ready_level1 msgs s then 1 else 2) & level s' = forc s' & ready s' = (level s' > 0) & conc s'"
 
 definition gen_sendMsg where
 "gen_sendMsg p q st == st"
