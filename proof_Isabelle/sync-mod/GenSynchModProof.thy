@@ -355,7 +355,24 @@ proof (rule ccontr)
   thus "False" using val_xi `~ i >= k` `i > 0` by auto
 qed
 
+lemma increasing_force:
+assumes star:"ALL p n. k_mod.path HO xi p n k"
+and loop:"ALL p r. p : HO r p"
+and run: "HORun (k_mod.gen_HOMachine k) rho HO" (is "HORun ?A _ _")
+and "k > 2"
+and sp:"rho t p = Active sp"
+shows "k_mod.path HO p q t r --> rho (t+r) q = Active sq --> forc sp <= forc sq"
+proof (induction r arbitrary:sq q)
+  case 0
+  show "k_mod.path HO p q t 0 --> rho (t+0) q = Active sq --> forc sp <= forc sq" using sp unfolding k_mod.path_def by fastforce
+next
+    proof
+    assume "k_mod.path HO p q t 0"
+    hence "p = q" unfolding k_mod.path_def by auto
+    thus ?thesis by auto
 
+(*
+and "k_mod.maxForce (HOrcvdMsgs (k_mod.gen_HOMachine k) p (HO (Suc r) p) (rho r)) < 2" (is "k_mod.maxForce ?msgp < 2")
 lemma A4:
 assumes star:"ALL p n. k_mod.path HO xi p n k"
 and loop:"ALL p r. p : HO r p"
@@ -365,12 +382,12 @@ and sp:"rho r p = Active sp"
 and ssp:"rho (Suc r) p = Active ssp"
 and "level sp = 1"
 and "level ssp = 2"
+and "k_mod.maxForce (HOrcvdMsgs (k_mod.gen_HOMachine k) p (HO (Suc r) p) (rho r)) < 2" (is "k_mod.maxForce ?msgp < 2")
 shows "EX s ss i. rho (r-i) xi = Active s & rho (Suc r-i) xi = Active ss & level s = 0 & level ss = 1 & x ssp <= i"
 proof -
   let ?n = "LEAST nn. EX s. rho nn xi = Active s & level s > 0"
   have "r >= k" using assms A2[of HO xi k rho r p sp] by auto
-  have transp:"k_mod.gen_nextState k p sp (HOrcvdMsgs ?A p (HO (Suc r) p) (rho r)) ssp"
-    (is "k_mod.gen_nextState _ _ _ ?msgp _") using assms transition by auto
+  have transp:"k_mod.gen_nextState k p sp ?msgp ssp" using assms transition by auto
   hence lev2p:"k_mod.ready_level2 k ?msgp sp" using assms transp unfolding k_mod.gen_nextState_def by simp 
   hence "k_mod.isConc k ?msgp" and "x ssp = 0" using transp unfolding k_mod.ready_level2_def k_mod.gen_nextState_def by auto
   then obtain sxi where sxi:"rho (Suc r-k) xi = Active sxi" and "x sxi mod k = 0" and "k_mod.isReady ?msgp --> ready sxi"
@@ -386,7 +403,8 @@ proof -
   hence "k_mod.path HO xi p ?n (Suc r-?n)" using path_extend[of HO xi k p] `2 < k` star
     by (metis (no_types, lifting) Nat.add_diff_assoc `k <= r` add_Suc_right add_diff_cancel_left' less_nat_zero_code neq0_conv)
   from this obtain seq where "seq 0 = xi" and "seq (Suc r-?n) = p" and
-    pat:"ALL j < Suc r-?n. seq j : HO (?n+Suc j) (seq (Suc j))" unfolding k_mod.path_def by auto
+    pat:"ALL j < Suc r-?n. seq j : HO (?n+Suc j) (seq (Suc j))" (is "ALL j < _. _ : ?HOseq j") unfolding k_mod.path_def by auto
+  let ?mseq = "%j. HOrcvdMsgs ?A (seq (Suc j)) (?HOseq j) (rho r)"
   have "ALL j s. j < Suc r-?n --> rho (?n+j) (seq j) = Active s --> x s <= j"
   proof (rule allI)+
     fix j s
@@ -398,11 +416,18 @@ proof -
       from this obtain sxx where sxx:"rho (?n-1) xi = Active sxx" by (cases "rho (?n-1) xi") auto
       hence transx:"k_mod.gen_nextState k xi sxx (HOrcvdMsgs ?A xi (HO ?n xi) (rho (?n-1))) sx"
         (is "k_mod.gen_nextState _ _ _ ?msgx _") using assms transition[of rho "?n-1" xi sxx sx] sx n_1 by auto
-      have "level sxx <= 0" using sxx n_1 Least_def by auto
+      have "EX s. rho ?n xi = Active s & level s > 0" using `level sx > 0` and sx by blast
+      hence "level sxx <= 0" using sxx n_1 Least_def
+        by (smt (verit, ccfv_threshold) diff_less dual_order.strict_trans1 less_one not_le_imp_less not_less_Least zero_less_diff zero_less_one)
+      hence "k_mod.ready_level1 k ?msgx sxx" using transx sxx sx `level sx > 0` unfolding k_mod.gen_nextState_def
+        by (metis (no_types, lifting) bot_nat_0.extremum_uniqueI gr_implies_not_zero k_mod.ready_level2_def zero_neq_one)
+      hence "x sx <= 0" using transx sxx unfolding k_mod.gen_nextState_def by auto
+      thus "0 < Suc r-?n --> rho (?n+0) (seq 0) = Active s --> x s <= 0" using sx `seq 0 = xi` by fastforce
+    next
+      case (Suc jj)
 
 
 
-(*
 lemma A5:
 assumes star:"ALL p n. k_mod.path HO xi p n (k div 2)"
 and loop:"ALL p r. p : HO r p"

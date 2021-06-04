@@ -234,13 +234,13 @@ At any round, they know that $c_u$ rounds ago, some node reached level $force_u$
 and, in their available history, no node reached level $force_u$ (or higher) in any more recent round.
 With line \ref{line:force} and \ref{line:min-z-end}, they use the values from their incoming neighbors to update theirs.
 
-Secondly, \textbf{a node may level-up only if it is in sync with the center.}
+Secondly, \textbf{a node may level-up only if it is in sync with $\gamma$.}
 A nodes can level-up in round $t$ if its counter $c_u$ is congruent with 0.
 A subset $In_u(t-k:t)$ of nodes were able to transmit some information about their state in round $t-k$ to $u$ in round $t$
 (those nodes are the left-most nodes in the figures \ref{fig:fig1} and \ref{fig:fig2}).
-By hypothesis, the center belongs to this set.
-We want to guarantee that the value of the center in round $t-k$ is congruent to 0.
-However, since the nodes cannot know the identity of the center from the other nodes, they conservatively level-up only if every node
+By hypothesis, $\gamma$ belongs to this set.
+We want to guarantee that the value of $\gamma$ in round $t-k$ is congruent to 0.
+However, since the nodes cannot know the identity of $\gamma$ from the other nodes, they conservatively level-up only if every node
 in $In_u(t-k:t)$ is congruent to 0 in round $t-k$.
 The variable $conc_u$ is aimed at determining this.
 
@@ -262,7 +262,7 @@ The variable $conc_u$ is aimed at determining this.
 
 If $conc_u$ is true at the beginning of round $t$ (see figure \ref{fig:fig1}),
 then every node $j \in In_u(t-k+i:t)$ verifies $c_j(t-k+i) = true$ and $c_j(t-k+i) \equiv i [k]$ (see lemma \ref{lem:conc-safety}).
-Ultimately, every node in $In_u(t-k:t)$ (including the center) is congruent with 0 in round $t-k$.
+Ultimately, every node in $In_u(t-k:t)$ (including $\gamma$) is congruent with 0 in round $t-k$.
 In opposition, if some node $j \in In_u(t-k:t)$ is not congruent with 0 in round $t-k$,
 then the line \ref{line:conc-gossip} guarantees that $conc_u$ will ultimately be false at the beginning of round $t$.
 
@@ -294,7 +294,7 @@ For the proof, we will at first consider this optimization disabled.
 				$force_u \leftarrow 1$ \; \label{line:force2}
 				$c_u \leftarrow 0$ \; \label{line:force3}
 			}
-			\If{$\textcolor{teal}{force_u = 2 \vee}~ready_u$}{ \label{line:cond-firing}
+			\ElseIf{$\textcolor{teal}{force_u = 2 \vee}~ready_u$}{ \label{line:cond-firing}
 				$\color{teal} force_u \leftarrow 2$ \;
 				$level_u \leftarrow 2$ \;
 				$c_u \leftarrow 0$ \; 
