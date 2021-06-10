@@ -355,24 +355,65 @@ proof (rule ccontr)
   thus "False" using val_xi `~ i >= k` `i > 0` by auto
 qed
 
+definition active_path where 
+"active_path rho HO p q n D == EX seq. seq 0 = p & seq D = q &
+    (ALL i < D. rho (n+i) (seq (Suc i)) ~= Asleep & seq i : HO (n+Suc i) (seq (Suc i)))"
+
 lemma increasing_force:
 assumes star:"ALL p n. k_mod.path HO xi p n k"
 and loop:"ALL p r. p : HO r p"
 and run: "HORun (k_mod.gen_HOMachine k) rho HO" (is "HORun ?A _ _")
 and "k > 2"
 and sp:"rho t p = Active sp"
-shows "k_mod.path HO p q t r --> rho (t+r) q = Active sq --> forc sp <= forc sq"
+shows "active_path rho HO p q t r --> rho (t+r) q = Active sq --> forc sp <= forc sq"
 proof (induction r arbitrary:sq q)
   case 0
-  show "k_mod.path HO p q t 0 --> rho (t+0) q = Active sq --> forc sp <= forc sq" using sp unfolding k_mod.path_def by fastforce
+  show "active_path rho HO p q t 0 --> rho (t+0) q = Active sq --> forc sp <= forc sq" using sp unfolding active_path_def by fastforce
 next
-    proof
-    assume "k_mod.path HO p q t 0"
-    hence "p = q" unfolding k_mod.path_def by auto
-    thus ?thesis by auto
+  case (Suc rr)
+  show "active_path rho HO p q t (Suc rr) --> rho (t+Suc rr) q = Active sq --> forc sp <= forc sq"
+  proof (rule impI)+
+    assume "active_path rho HO p q t (Suc rr)" and sq:"rho (t+Suc rr) q = Active sq"
+    then obtain seq where seq0:"seq 0 = p" and "seq (Suc rr) = q" and seqSuc:"ALL j < Suc rr. rho (t+j) (seq (Suc j)) ~= Asleep & seq j : HO (t+Suc j) (seq (Suc j))"
+      unfolding active_path_def by auto
+    have "rho (t+rr) (seq rr) ~= Asleep"
+    proof (cases "rr")
+      case 0
+      thus "rho (t+rr) (seq rr) ~= Asleep" using seq0 sp by auto
+    next
+      case (Suc rrr)
+      hence "rho (t+rr-1) (seq rr) ~= Asleep" using `seq (Suc rr) = q` seqSuc by auto
+      thus "rho (t+rr) (seq rr) ~= Asleep" using run nonAsleepAgain
+        unfolding HORun_def by (smt (z3) Suc add.commute add_Suc less_add_Suc2 plus_1_eq_Suc proc_state.simps(3) seqSuc)
+    qed
+    then obtain sqq where sqq:"rho (t+rr) (seq rr) = Active sqq" using run
+      unfolding HORun_def by (cases "rho (t+rr) (seq rr)") auto
+    have "seq rr : HO (t+Suc rr) q" using seqSuc `seq (Suc rr) = q` by auto
+    hence "active_path rho HO p (seq rr) t rr" using seq0 seqSuc unfolding active_path_def by auto
+    hence "forc sp <= forc sqq" using sqq Suc.IH by simp
+    have "HOrcvdMsgs ?A q (HO (t+Suc rr) q) (rho (t+rr)) (seq rr) = Content sqq" (is "?msgs (seq rr) = _")
+      using sending[of rho "t+rr" "seq rr" sqq k HO] assms sqq `seq rr : HO (t+Suc rr) q` by auto
+    hence maxf:"k_mod.maxForce ?msgs >= forc sp" using `forc sp <= forc sqq` unfolding k_mod.maxForce_def
+      by (smt (verit) Max_ge_iff UNIV_I UNIV_not_empty finite finite_imageI image_eqI image_is_empty k_mod.forceMsgs.simps(1))
+    from `seq (Suc rr) = q` seqSuc obtain ssq where "rho (t+rr) q = Active ssq" by (cases "rho (t+rr) q") auto
+    hence "k_mod.gen_nextState k q ssq ?msgs sq" using assms sq transition[of _ "t+rr" q ssq sq] by auto
+    thus "forc sp <= forc sq" using maxf unfolding k_mod.gen_nextState_def by auto
+  qed
+qed
 
-(*
-and "k_mod.maxForce (HOrcvdMsgs (k_mod.gen_HOMachine k) p (HO (Suc r) p) (rho r)) < 2" (is "k_mod.maxForce ?msgp < 2")
+lemma path_shrink:
+assumes "seq 0 = p"
+and "seq k = q"
+and "ALL j < k. seq j : HO (n+Suc j) (seq (Suc j))"
+and "i <= k"
+shows "k_mod.path HO (seq i) q (n+i) (k-i)"
+proof  -
+  have "ALL j < k-i. seq (i+j) : HO (n+i+Suc j) (seq (i+Suc j))" using assms(3) 
+      by (smt (z3) add.commute add.left_commute add_Suc_right less_diff_conv)
+  thus ?thesis using assms exI[of _ "%l. seq(i+l)"] unfolding k_mod.path_def by auto
+qed
+
+
 lemma A4:
 assumes star:"ALL p n. k_mod.path HO xi p n k"
 and loop:"ALL p r. p : HO r p"
@@ -400,6 +441,62 @@ proof -
     (is "k_mod.gen_nextState _ _ _ ?msgxi _") using assms transition sxi `r >= k` Suc_diff_le by auto
   hence "level sxi > 0" using `ready sxi` `x sxi mod k = 0` unfolding k_mod.gen_nextState_def by auto
   hence "?n <= Suc r-k" using sxi by (simp add:Least_le)
+  have "EX s. rho (Suc r-k) xi = Active s & level s > 0" using sxi `level sxi > 0` by auto
+  hence "rho ?n xi ~= Asleep" using LeastI[of "%l. EX s. rho l xi = Active s & level s > 0" "Suc r-k"] by auto
+
+
+  from star obtain seq where "seq 0 = xi" and "seq k = p" and
+    pat:"ALL j < k. seq j : HO (Suc r-k+Suc j) (seq (Suc j))" (is "ALL j < _. _ : ?HOseq j") unfolding k_mod.path_def by meson
+  have "ALL i < k. rho (Suc r-k+i) (seq (Suc i)) ~= Asleep"
+  proof (rule+)
+    fix i
+    assume "i < k" and "rho (Suc r-k+i) (seq (Suc i)) = Asleep"
+    show "False"
+    proof (cases "Suc i = k")
+      case True
+      thus "False" using `rho r p = Active sp` `rho (Suc r-k+i) (seq (Suc i)) = Asleep` `r >= k` `seq k = p` by fastforce
+    next
+      case False
+      have "k_mod.path HO (seq (Suc i)) p (Suc r - k + Suc i) (k - Suc i)"
+        using path_shrink[of seq xi k p HO "Suc r - k" "Suc i"] `seq k = p` `seq 0 = xi` pat `i < k` by auto
+      moreover from transp lev2p have "x ssp mod k = 0" unfolding k_mod.gen_nextState_def by auto
+      ultimately obtain ss where ss:"rho (Suc r-k+Suc i) (seq (Suc i)) = Active ss & x ss mod k = Suc i"
+        using assms `r >= k` `k_mod.isConc k ?msgp` A1[of HO "seq (Suc i)" p "Suc r-k" "Suc i" k rho ssp] `i < k` False by auto
+      hence "ss ~= k_mod.gen_initState" using `rho (Suc r-k+i) (seq (Suc i)) = Asleep` starting unfolding k_mod.gen_initState_def by auto
+      thus "False" using `rho (Suc r-k+i) (seq (Suc i)) = Asleep` starting[of "r-k+i"] `k <= r` run ss
+        by (metis add_Suc_right diff_Suc_1 starting)
+    qed
+  qed
+  let ?exseq = "%l. if l <= Suc r - k - ?n then xi else seq (l - (Suc r - k - ?n))"
+  have "?exseq 0 = xi & ?exseq (Suc r - ?n) = p" using `seq k = p` `?n <= Suc r - k` `k <= r` assms(4) by force 
+  moreover have "ALL l < Suc r - ?n. rho (?n+l) (?exseq (Suc l)) ~= Asleep & ?exseq l : HO (Suc ?n+l) (?exseq (Suc l))"
+  proof (rule allI impI)+
+    fix l
+    assume "l < Suc r - ?n"
+    show "rho (?n+l) (?exseq (Suc l)) ~= Asleep & ?exseq l : HO (Suc ?n+l) (?exseq (Suc l))" 
+    proof (cases "l < Suc r - k - ?n")
+      case True
+      hence "rho (?n+l) (?exseq (Suc l)) ~= Asleep" using nonAsleepAgain[of rho ?n xi] `rho ?n xi ~= Asleep` run
+        unfolding HORun_def by (smt (verit, best) Suc_leI proc_state.simps(3))
+      thus "rho (?n+l) (?exseq (Suc l)) ~= Asleep & ?exseq l : HO (Suc ?n+l) (?exseq (Suc l))" using loop True by auto
+    next
+      case False
+      hence "l-(Suc r-k-?n) < k" using `l < Suc r - ?n` by linarith
+      hence "seq (l-(Suc r-k-?n)) : HO (Suc r-k+(Suc l-(Suc r-k-?n))) (seq (Suc l-(Suc r-k-?n)))" using pat False Suc_diff_le by auto
+      hence "?exseq l : HO (Suc ?n+l) (?exseq (Suc l))"
+        by (smt (z3) False `?n <= Suc r - k` `seq 0 = xi` add_Suc_shift diff_is_0_eq' group_cancel.add1 le_add_diff_inverse nat_le_linear not_le not_less_eq)
+      moreover have "rho (?n+l) (?exseq (Suc l)) ~= Asleep" using `ALL i < k. rho (Suc r-k+i) (seq (Suc i)) ~= Asleep` False
+        by (smt (z3) Nat.diff_diff_right Suc_diff_le `?n <= Suc r - k` `l - (Suc r - k - ?n) < k` add_diff_inverse_nat diff_add_inverse2
+        le_add2 le_add_diff_inverse less_diff_conv less_eq_Suc_le)
+      ultimately show "rho (?n+l) (?exseq (Suc l)) ~= Asleep & ?exseq l : HO (Suc ?n+l) (?exseq (Suc l))" by simp
+    qed
+  qed
+  ultimately have "active_path rho HO xi p ?n (Suc r - ?n)" using `seq k = p`
+    exI[of "%seqq. seqq 0 = xi & seqq (Suc r - ?n) = p & (ALL i < Suc r - ?n. rho (?n+i) (seqq (Suc i)) ~= Asleep & seqq i : HO (?n+Suc i) (seqq (Suc i)))" ?exseq]
+    unfolding active_path_def by auto
+
+
+(*
   hence "k_mod.path HO xi p ?n (Suc r-?n)" using path_extend[of HO xi k p] `2 < k` star
     by (metis (no_types, lifting) Nat.add_diff_assoc `k <= r` add_Suc_right add_diff_cancel_left' less_nat_zero_code neq0_conv)
   from this obtain seq where "seq 0 = xi" and "seq (Suc r-?n) = p" and
@@ -427,6 +524,7 @@ proof -
       case (Suc jj)
 
 
+and "k_mod.maxForce (HOrcvdMsgs (k_mod.gen_HOMachine k) p (HO (Suc r) p) (rho r)) < 2" (is "k_mod.maxForce ?msgp < 2")
 
 lemma A5:
 assumes star:"ALL p n. k_mod.path HO xi p n (k div 2)"

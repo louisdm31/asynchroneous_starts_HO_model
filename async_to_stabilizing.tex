@@ -6,6 +6,7 @@
 \usepackage[pdftex,pdfpagelabels,bookmarks,hyperindex,hyperfigures]{hyperref}
 \usepackage{fullpage}
 \usepackage{amsmath,amssymb,amsthm,dsfont}
+\usepackage{graphicx}
 \newtheorem{thm}{Theorem}
 \newtheorem{pro}[thm]{Proposition}
 \newtheorem{lem}[thm]{Lemma}
@@ -28,7 +29,12 @@
 \begin{document}
   \maketitle
 
-We consider a set of colors $C$.
+This document defines a reduction from a asynchronous-starts model to the self-stabilizing models:
+given an algorithm written in the asynchronous-starts framework, we construct a self-stabilizing algorithm which solves the same problem.
+These models (formally defined in first two sections) are widely used in distributed computing.
+This document only focuses on the subclass of \textit{deterministic} problems (this notion is formally defined at the end of the third section):
+given some input vector $(c_i)_{i \in \Pi}$ (where $\Pi$ is set set of nodes), given a dynamic communication graph, the system must eventually stabilize to some output vector.
+The set of possible input values is noted $C$, whereas $\mathcal{V}$ is the set of possible output values.
 
 \section{Asynchronous starts model}
 
@@ -45,11 +51,11 @@ This algorithm is characterized by the following data:
 \noindent An execution in this model may be defined by:
 \begin{itemize}
 	\item An activation schedule $(s_i)_{i \in \Pi} \in (\mathds{N} \cup \{\infty\})^\Pi$.
-	\item A coloring $(c_i)_{i \in \Pi} \in C^\Pi$.
+	\item An input vector $(c_i)_{i \in \Pi} \in C^\Pi$.
 	\item A communication graph $\mathds{G} = (\Pi, E_t)$ where $\forall t \in \mathds{N}, E_t \subseteq \Pi \times \Pi$.
 \end{itemize}
 
-\noindent The states of the nodes may be derived from the above variables by stating:
+\noindent The states of the nodes may be inductively derived from this data by stating:
 
 $$x_i^{t+1} = \left \{ \begin{array}{l l} x_{passive} & \mbox{if}~t < s_i \\
 	x_{init} & \mbox{if}~t = s_i \\
@@ -68,26 +74,32 @@ This algorithm is characterized by the following data:
 \noindent An execution in this model may be defined by:
 \begin{itemize}
 	\item A family of initial states $(x_i^0)_{i \in \Pi}$ where $x_i^0$ is an arbitrary state in $X$.
-	\item A coloring $(c_i)_{i \in \Pi} \in C^\Pi$.
+	\item An input vector $(c_i)_{i \in \Pi} \in C^\Pi$.
 	\item A communication graph $\mathds{G} = (\Pi, E_t)$ where $\forall t \in \mathds{N}, E_t \subseteq \Pi \times \Pi$.
 \end{itemize}
 
-The states of the nodes may be derived from the above variables by stating:
+The state of the nodes may be inductively derived from this data by stating:
 
 $$x_i^{t+1} = \delta^{c_i}(x_i^t, \{x_j^t, (j,i) \in E_{t+1}\}).$$
 
-\section{Problem}
+Although the initial state of a node in this model must be arbitrary, its input value is viewed as a static value,
+that the node can access in every round. That's why the transition function is indexed by $c$.
+In other words, the state of a node might be affected by \textit{transient faults} (arbitrary modification of the state),
+whereas the input value is fixed.
+
+\section{Stabilizing problems}
 
 We consider $\mathcal{C} \subseteq \mathcal{G} \times C^\Pi$, where $\mathcal{G}$ is the set of possible dynamic graph.
-$\mathcal{C}$ represents a class of colored graphs, and we want to solve some problem on a network which belongs to this class.
-We consider a computable function $Out : X \rightarrow \mathcal{V}$ which returns the output of a node in some set $\mathcal{V}$
+$\mathcal{C}$ represents a class of tuples, and we want to solve some problem on a network which belongs to this class.
+We consider a computable function $Out : X \rightarrow \mathcal{V}$ which returns the output of a node
 (for example, in leader election problem, $\mathcal{V} = \{0,1\}$, and the leader must ultimately return 1, while non-leaders must return 0).
-We define the specification of the problem as a mapping from any $\mathds{G} \in \mathcal{C}$ to a suffix-closed subset $S_\mathds{G} \subseteq (\mathcal{V}^\Pi)^\omega$.
-$S_\mathds{G}$ is a set of sequences of output vectors.
-We say that an algorithm $A$ (in both presented models) stabilizes to $S$ if, for any colored graph $\mathds{G} \in \mathcal{C}$,
-for any execution of $A$ in this colored graph, there exists some bound $T \in \mathds{N}$ such that we have:
+We define the specification of the problem as a mapping from any tuple $\mathds{G}, (c_i)_{i \in \Pi} \in \mathcal{C}$
+to a suffix-closed subset $S_{\mathds{G}, (c_i)_{i \in \Pi}} \subseteq (\mathcal{V}^\Pi)^\omega$.
+$S_{\mathds{G}, (c_i)_{i \in \Pi}}$ is a set of sequences of output vectors.
+We say that an algorithm $A$ (in both presented models) stabilizes to $S$ if, for any tuple $\mathds{G}, (c_i)_{i \in \Pi} \in \mathcal{C}$,
+for any execution of $A$ in this graph and with this input, there exists some bound $T \in \mathds{N}$ such that we have:
 
-$$\langle Out(x^T_i), i \in \Pi \rangle, \langle Out(x^{T+1}_i), i \in \Pi \rangle, \dots \in S_\mathds{G}$$
+$$\langle Out(x^T_i), i \in \Pi \rangle, \langle Out(x^{T+1}_i), i \in \Pi \rangle, \dots \in S_{\mathds{G}, (c_i)_{i \in \Pi}}$$
 
 where $\langle Out(x^T_i), i \in \Pi \rangle \in \mathcal{V}^\Pi$ is the vector of outputs of the nodes in round $T$.
 We will refer to $T$ as the \textit{quiescence time}.
@@ -101,60 +113,105 @@ $$S_\mathds{G} = \left \{ \begin{array}{l}
 \end{array} \right \}$$
 
 Here, each line corresponds to one of the possible output (i.e. one line for each possible leader).
+This problem do not require input values.
 Every execution which stabilizes to some leader will have a suffix in this set.
 
-For the rest of this article, we fix some specification $S$.
-We make the assumption that for any $\mathds{G} \in \mathcal{C}$, the set $S_\mathds{G}$ is a singleton containing a constant sequence.
+This document only considers deterministic specifications.
+This means that for any $\mathds{G}, (c_i)_{i \in \Pi} \in \mathcal{C}$, the set $S_{\mathds{G}, (c_i)_{i \in \Pi}}$ is a singleton containing a constant sequence.
+Then $S$ can be viewed as a mapping from $\mathcal{C}$ to $\mathcal{V}^\Pi$.
 This hypothesis is necessary to implement a self-stabilizing implementation which actually stabilizes.
+The leader-election problem and consensus problem are typical example of non-deterministic problems.
 
-\section{Self-stabilizing implementation}
+\section{Implementation in self-stabilizing model}
 
-We assume we have an asynchronous-start algorithm $A$ which stabilizes to the specification $S$.
-The aim of this document is to construct an self-stabilizing algorithm $A'$ which self-stabilizes to the same specification.
-We parameter our algorithm by a function $g$ in $\mathds{N} \rightarrow \mathds{N}$.
-We assume that it fulfills the following constraints:
+We assume we have an asynchronous-start algorithm $A$ which stabilizes to some specification $S$.
+The aim of this document is to construct an self-stabilizing algorithm $Stab(A)$ which stabilizes to $S$.
+
+$Stab(A)$ emulates a growing number of instances of $A$, stored in a variable $INST$.
+The set of states of $Stab(A)$ is the set of finite sequences of $X$.
+At each rounds, each node:
+\begin{enumerate}
+	\item updates its existing instances by applying the transition function of $A$,
+	\item creates a new instance by appending the initial state $x_{init}$ to its $INST$ variable,
+	\item picks some instance, according to some function $g$, and returns its output value.
+\end{enumerate}
+
+The operator $|\cdot|$ is used to get the length of the sequence.
+Initially, every node holds an arbitrary sequence of instances, of various length (see figure \ref{fig:fig1}), and the sequence of instances grows in each round (see figure \ref{fig:fig2}).
+
+\begin{figure}[h!]
+	\includegraphics[width=0.8\textwidth]{images/instances-1}
+	\caption{Initial state}
+	\label{fig:fig1}
+\end{figure}
+
+\begin{figure}[h!]
+	\includegraphics[width=0.8\textwidth]{images/instances-2}
+	\caption{Fourth round}
+	\label{fig:fig2}
+\end{figure}
+
+You can see on figure \ref{fig:fig2} that the first four instances are (at least in one node) inherited from the initial state.
+In the self-stabilizing model, the initial state is arbitrary, whereas the algorithm $A$ is supposed to be correct only if every node has been initialized by $x_{init}$.
+As a consequence, the output of these early instances is not reliable.
+In opposition, the fifth instance and every subsequent instances are initialized by line \ref{line:create}
+(in figure \ref{fig:fig2}, the node $i$ initialize its fifth instance in round 1, whereas $j$ initialize its in round 3).
+Since the algorithm $A$ is assumed to tolerate asynchronous starts, we know that the latest instances will eventually stabilize to the expected output vector.
+We make the additional assumption that the nodes stabilize \textit{within bounded delay} (more details in next section).
+
+\begin{figure}[h!]
+	\includegraphics[width=0.8\textwidth]{images/instances-3}
+	\caption{Fifteenth round}
+	\label{fig:fig3}
+\end{figure}
+
+In the long run (see figure \ref{fig:fig3}), a finite number of early instances are unreliable, whereas a finite number of late instances have not stabilized yet.
+There is a growing segment in the middle of the sequences (bold green instances on the figure \ref{fig:fig3}) which have already stabilized to the expected output vector.
+We just need to pick one of those instances, and returns its output value.
+That's why we parameter $Stab(A)$ by a function $g : \mathds{N} \rightarrow \mathds{N}$ verifying:
+
 \begin{itemize}
 	\item $\lim_{t \rightarrow \infty} g(t) = \infty.$
 	\item $\lim_{t \rightarrow \infty} t-g(t) = \infty.$
 \end{itemize}
 
-\begin{algorithm}[htb]
+\begin{algorithm}[h!]
 	\DontPrintSemicolon
-	\textbf{State variables:} \;
+	\textbf{Variables:} \;
 	\Indp
-		$t_i \in \mathds{N}$ \;
-		$INST_i[l] \in X$, for every $l \in \{0, \dots, t_i\}$ \;
-		$y_i \in \mathcal{V}$ \;
+		$c_i \in C$ \tcc*[f]{input variable} \;
+		$INST_i \in X^*$ \tcc*[f]{state variable} \;
+		$y_i \in \mathcal{V}$ \tcc*[f]{output variable} \;
 	\BlankLine
 	\Indm
 	\textbf{At each round:} \;
 	\Indp
-		$t_i \leftarrow 1+t_i$ \;
-		\For{$l \in \{0, \dots, t_i-1\}$}{
-			$INST_i[l] \leftarrow \delta^{c_i}(INST_i[l], \{INST_j[l], (j,i) \in E_t \wedge t_j \geq l\})$
+		\For{$l \in \{0, \dots, |INST_i| \}$}{
+			$INST_i[l] \leftarrow \delta^{c_i}(INST_i[l], \{INST_j[l], (j,i) \in E_t \wedge |INST_j| \geq l\})$ \label{line:update}
 		}
-		$INST_i[t_i] \leftarrow x_{init}$ \;
-		$y_i \leftarrow Out(INST_i[g(t_i)])$ \;
+		$INST_i \leftarrow INST_i + [x_{init}]$ \tcc*[f]{append new instance} \label{line:create} \;
+		$y_i \leftarrow Out(INST_i[g(|INST_i|)])$ \label{line:output} \;
 	\Indm
 	\caption{The $Stab(A)$ algorithm} 
 \end{algorithm}
 
 \section{Proof}
 
-We consider an execution of $Stab(A)$, characterized by $\mathds{G}$, the coloring $(c_i)_{i \in \Pi}$ and some initial variables.
-We consider the vector $v \in \mathcal{V}^\Pi$ such that $S_\mathds{G} = \{(v, v, v, \dots)\}$.
+We consider an execution of $Stab(A)$, characterized by $\mathds{G}$, the input vector $(c_i)_{i \in \Pi}$ and some initial sequences $(INST_i)_{i \in \Pi}$.
+We consider the expected output vector $v \in \mathcal{V}^\Pi$ (i.e. such that $S_{\mathds{G}, (c_i)_{i \in \Pi}} = \{(v, v, v, \dots)\}$).
 We want to prove that the output of $Stab(A)$ converges to $v$.
 We assume that $A$ self-stabilizes \textit{with bounded delay}, that is, for every execution,
 $T-max\{s_i, i \in \Pi\}$ is bounded by some natural number $T_{max}$.
+In other words, once every node is active, $A$ must return the correct output at most within $T_{max}$ rounds.
 
 \begin{lem}
-	For any $l \geq max_{i \in \Pi} t_i^0$, we have:
+	For any $l \geq max_{i \in \Pi} |INST_i^0|$, we have:
 	$$\forall i \in \Pi, \forall t \geq T_{max}+l+1, Out(INST_i^t[l]) = v_i.$$
 \end{lem}
 \begin{proof}
-	We can prove by induction over $t$ that, for any $j$ verifying $\forall i \in \Pi, l \geq t_i^0$,
-	the $Stab(A)$ algorithm emulates an execution of $A$ where $\forall i \in \Pi, s_i = l-t_i^0+1$,
-	by executing the transition function of $A$ at each round.
+	We can prove by induction over $t$ that, for any $j$ verifying $\forall i \in \Pi, l \geq |INST_i^0|$,
+	the $Stab(A)$ algorithm emulates an execution of $A$ by executing the transition function of $A$ at each round.
+	The activation schedule of the instance $l$ of $i$ is given by $s_i = l-|INST_i^0|+1$.
 	Since $A$ is assumed to self-stabilize with bounded delay, we know that the output of the instances converge to $v$ from some round $T$ where
 	$$T \leq T_{max} + max\{s_i, i \in \Pi\} \leq T_{max} + l + 1.$$
 \end{proof}
@@ -163,10 +220,10 @@ $T-max\{s_i, i \in \Pi\}$ is bounded by some natural number $T_{max}$.
 	If $A$ stabilizes to $S$ with bounded delay, then $Stab(A)$ stabilizes to $S$.
 \end{thm}
 \begin{proof}
-	According to previous lemma, for any $i \in \Pi$, for any $l \leq t_i$, we have
-	$$l \in [max_{i \in \Pi} t_i^0, t_i-T_{max}-1] \Rightarrow Out(INST_i^{t_i}[l]) = v_i.$$
-	Because $\lim_{t \rightarrow \infty} g(t) = \infty$, we know that $g(t_i)$ ultimately exceeds $max_{i \in \Pi} t_i^0$.
-	Because $\lim_{t \rightarrow \infty} t-g(t) = \infty$, we know that $g(t_i)$ is ultimately below $t_i-T_{max}-1$.
+	According to previous lemma, for any $i \in \Pi$, in any round $t \in \mathds{N}$, we have
+	$$l \in [max_{i \in \Pi} |INST_i^0|, t-T_{max}-1] \Rightarrow Out(INST_i^t[l]) = v_i.$$
+	Because $\lim_{t \rightarrow \infty} g(t) = \infty$, we know that $g(|INST_i|)$ ultimately exceeds $max_{i \in \Pi} |INST_i^0|$.
+	Because $\lim_{t \rightarrow \infty} t-g(t) = \infty$, we know that $g(|INST_i|)$ is ultimately below $t-T_{max}-1$.
 	That proves the stabilization property.
 \end{proof}
 
