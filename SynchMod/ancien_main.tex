@@ -200,6 +200,9 @@ For any dynamic graph $\mathds{G}$ and any integer $t' > t \geq 1$, we let $\mat
 When $t' \leq t$, $\mathds{G}(t:t')$ is the graph with only a self-loop at each node.
 Intuitively, the graph $\mathds{G}(t:t')$ contains an edge $(u,v)$ if some information about the state of node $u$ in round $t$ may reach node $v$ in round $t'$.
 The set of incoming neighbors of $u$ in $\mathds{G}(t:t')$ is noted as $In_u(t:t')$.
+A \textit{path from $u$ to $v$ in the interval $[t,t']$} is a finite sequence $(u = w(t), w(t+1), \dots, w(t') = v)$
+such that for any $l < t'-t$, the edge $(w(t+l),w(t+l+1))$ belongs to $E_{t+l+1}$.
+There exists a path from $u$ to $v$ in the interval $[t,t']$ if and only if $v \in In_u(t:t')$.
 
 A \emph{network model} is any non-empty set of dynamic graphs with a permanent self-loop at each node.
 We will focus on the specific network model of \emph{centered with delay $k$} dynamic graphs~$\mathds{G}$ defined as follows: 
@@ -207,10 +210,7 @@ We will focus on the specific network model of \emph{centered with delay $k$} dy
 $$\mathcal{P}_{k-centered} \triangleq \exists \cent \in V, \forall t \in \mathds{N}, \forall u \in V, \cent \in In_u(t:t+k).$$
 
 Here, $k$ is the parameter of the $mod-k$-synchronization problem.
-In other words, for any $u$ and $t$, there must exist a path $(\cent = j(0), j(1), \dots, j(k) = u)$ such that $\cent$ can communicate with $j(1)$ in round $t$ (i.e. $j(0) \in In_{j(1)}(t)$),
-$j(1)$ can communicate with $j(2)$ in round $t+1$ (i.e. $j(1) \in In_{j(2)}(t+1)$), and so on.
-
-Note that there may be several fixed centers for $\mathds{G}$.
+There may be several fixed centers for $\mathds{G}$.
 
 Similarly, we define a \emph{start model} as a non-empty set of start schedules.
 A start schedule $\mathds{S} = (s_u)_{u\in V}$ is \emph{complete} if every $s_u$ is finite, i.e.,
@@ -223,32 +223,38 @@ where $k$ is any positive integer: for every pair of nodes~$u$ and $v$, it holds
 % section_algorithm (do not modify this comment)
 \section{The algorithm}
 
-In this algorithm, the nodes hold a $level$ variable. When they start, they are level 0. They eventually reach level 1 then level 2.
+In this algorithm, the nodes hold a $level$ variable. When they start, they move from passive state to level 0. They later move to level 1, then to level 2.
+Each time a node moves from some level to the next, this constitutes a \textit{level-up} event.
 A node fires when it reaches level 2.
 The conditional statements \ref{line:level1up} and \ref{line:cond-firing} are executed when the node reaches level 1 and 2 respectively.
 The intuition of the algorithm can be summarized by two simple ideas:
 
-Firstly, \textbf{each node keep track of the most recent highest level level-up.}
+Firstly, \textbf{each node keeps track of the most recent highest level level-up.}
+Only the highest level level-up events are considered: if some node "knows" about a level-up from level 1 to level 2,
+it will not record a level-up from level 0 to level 1, nor a level-up from passive state to level 0.
+Among the highest level level-up, the nodes keep track of the age of the most recent one.
 On that purpose, they hold a $c_u$ and a $force_u$ variable.
 At any round, they know that $c_u$ rounds ago, some node reached level $force_u$ from the previous level,
-and, in their available history, no node reached level $force_u$ (or higher) in any more recent round.
-With line \ref{line:force} and \ref{line:min-z-end}, they use the values from their incoming neighbors to update theirs.
+and, in their view, no node reached level $force_u$ (or higher) in any more recent round.
+With line \ref{line:force} and \ref{line:min-z-end}, they use at each round the values from their incoming neighbors to update theirs.
 
-Secondly, \textbf{a node may level-up only if it is in sync with $\gamma$.}
-A nodes can level-up in round $t$ if its counter $c_u$ is congruent with 0.
-A subset $In_u(t-k:t)$ of nodes were able to transmit some information about their state in round $t-k$ to $u$ in round $t$
-(those nodes are the left-most nodes in the figures \ref{fig:fig1} and \ref{fig:fig2}).
-By hypothesis, $\gamma$ belongs to this set.
-We want to guarantee that the value of $\gamma$ in round $t-k$ is congruent to 0.
-However, since the nodes cannot know the identity of $\gamma$ from the other nodes, they conservatively level-up only if every node
-in $In_u(t-k:t)$ is congruent to 0 in round $t-k$.
-The variable $conc_u$ is aimed at determining this.
+Secondly, \textbf{a node may level up only if its counter $c_u$ is congruent to 0 and the counter of $\gamma$ was also congruent to 0 $k$ rounds ago.}
+On that purpose, they use a $concordant$ boolean variable.
+When the counter of some node $u$ becomes congruent to 0 in some round $t$, it sets its $concordant_u$ variable to $true$ in line \ref{line:conc-true}.
+During all subsequent rounds $t+i$, it will check whether its incoming neighbors are congruent one another (line \ref{line:conc-gossip}).
+In the case they are not, the node will set its $concordant_u$ variable to $false$ (see figure \ref{fig:fig2}).
+This $false$ value will spread in its outgoing neighbors (also line \ref{line:conc-gossip}).
+If, in round $t+k$, its $concordant_u$ variable is still true, it will know that no non-congruence was detected between round $t$ and round $t+k$.
+This means that $\cent$ was congruent with 0 in round $t$.
+In that case, a level-up is allowed (see figure \ref{fig:fig1}).
+In opposition, if some node $j \in In_u(t:t+k)$ is not congruent with 0 in round $t$,
+then the line \ref{line:conc-gossip} guarantees that $concordant_u$ will ultimately be false at the beginning of round $t+k$ (see figure \ref{fig:fig2}).
 
 \begin{figure}[h]
     \centering
     \def\svgwidth{0.8\columnwidth}
 	\input{/home/louis/Documents/doctorat/images/illustration-conc-1.pdf_tex}
-	\caption{case where $conc_u$ is true}
+	\caption{case where $concordant_u$ is true}
 	\label{fig:fig1}
 \end{figure}
 
@@ -256,25 +262,17 @@ The variable $conc_u$ is aimed at determining this.
     \centering
     \def\svgwidth{0.8\columnwidth}
 	\input{/home/louis/Documents/doctorat/images/illustration-conc-2.pdf_tex}
-	\caption{case where $conc_u$ is false}
+	\caption{case where $concordant_u$ is false}
 	\label{fig:fig2}
 \end{figure}
 
-If $conc_u$ is true at the beginning of round $t$ (see figure \ref{fig:fig1}),
-then every node $j \in In_u(t-k+i:t)$ verifies $c_j(t-k+i) = true$ and $c_j(t-k+i) \equiv i [k]$ (see lemma \ref{lem:conc-safety}).
-Ultimately, every node in $In_u(t-k:t)$ (including $\gamma$) is congruent with 0 in round $t-k$.
-In opposition, if some node $j \in In_u(t-k:t)$ is not congruent with 0 in round $t-k$,
-then the line \ref{line:conc-gossip} guarantees that $conc_u$ will ultimately be false at the beginning of round $t$.
-
-The colored section in the algorithm actually implement an optimization.
-For the proof, we will at first consider this optimization disabled.
 
 \begin{algorithm}[htb]
 	\DontPrintSemicolon
 	\textbf{Initialization:} \;
 	\Indp
 		$c_u \in \mathds{N}$, initially 0 \;
-		$conc_u \leftarrow false$ \;
+		$concordant_u \leftarrow false$ \;
 		$ready_u \leftarrow false$ \;
 		$force_u \in \{0, 1, 2\}$, initially 0 \;
 		$level_u \in \{0, 1, 2\}$, initially 0 \;
@@ -282,24 +280,24 @@ For the proof, we will at first consider this optimization disabled.
 	\Indm
 	\textbf{At each round $r$:} \;
 	\Indp
-		send $\langle c_u, conc_u, force_u, ready_u \rangle$ to all  \;
+		send $\langle c_u, concordant_u, force_u, ready_u \rangle$ to all  \;
 		receive incoming messages from all $v \looparrowright u$ \;
-		$conc_u \leftarrow \forall v \looparrowright u, conc_v \wedge c_v \equiv c_u [k]$ and no null received \; \label{line:conc-gossip}
+		$concordant_u \leftarrow \forall v \looparrowright u, concordant_v \wedge c_v \equiv c_u [k]$ and no null received \; \label{line:conc-gossip}
 		$ready_u \leftarrow \forall v \looparrowright u, ready_v$ \; \label{line:ready-gossip} 
 		$force_u \leftarrow max \{force_v, v \looparrowright u \}$ \;\label{line:force}
 		$c_u \leftarrow 1+ min \{c_v, v \looparrowright u \wedge force_v = force_u\}$ \;\label{line:min-z-end} 
-		\If{$c_u \equiv 0 [k] \wedge (conc_u \textcolor{teal}{\vee force_u = 2)}$}{ \label{line:cond-levelup} 
+		\If{$c_u \equiv 0 [k] \wedge concordant_u$}{ \label{line:cond-levelup} 
 			\If{$level_u = 0$}{ \label{line:level1up}
 				$level_u \leftarrow 1$ \;
-				$force_u \leftarrow 1$ \; \label{line:force2}
+				$force_u \leftarrow max(1, force_u)$ \; \label{line:force2}
 				$c_u \leftarrow 0$ \; \label{line:force3}
 			}
-			\ElseIf{$\textcolor{teal}{force_u = 2 \vee}~ready_u$}{ \label{line:cond-firing}
-				$\color{teal} force_u \leftarrow 2$ \;
+			\ElseIf{$ready_u$}{ \label{line:cond-firing}
+				$force_u \leftarrow 2$ \;
 				$level_u \leftarrow 2$ \;
 				$c_u \leftarrow 0$ \; 
 			}
-			$conc_u \leftarrow true$ \; \label{line:conc-true}
+			$concordant_u \leftarrow true$ \; \label{line:conc-true}
 			$ready_u \leftarrow level_u > 0$ \; \label{line:init-ready}
 		}
 	\Indm
@@ -307,33 +305,34 @@ For the proof, we will at first consider this optimization disabled.
 \end{algorithm}
 
 We consider an execution of the $SyncMod$ algorithm.
-We note $c_u(t), conc_u(t), \dots$ the value of the $c, conc, \dots$ variable of node $u$ in round $t$, if $u$ is active in round $t$.
+We note $c_u(t), concordant_u(t), \dots$ the value of the $c, concordant, \dots$ variables of node $u$ at the end of round $t$, if $u$ is active in round $t$.
+We also note $c^{prelim}_u(t), concordant^{prelim}_u(t), \dots$ the value of the $c, concordant, \dots$ variables
+of node $u$ in line \ref{line:conc-levelup} during round $t$, if $u$ is active in round $t$.
 We now prove that this execution verifies the safety and liveness properties of the $mod-k$-synchronization problem.
 
 \begin{lem} \label{lem:conc-safety}
-	Let $i$ be an integer verifying $i \leq k$, $t$ a round, and $u$ a node.
-	If the condition $c_u \equiv 0 [k] \wedge conc_u$ is true in line \ref{line:cond-levelup} in round $t+k$, then $c_\cent(t+i) \equiv i [k]$.
+	Let $i$ be an integer verifying $i < k$, $t$ a round. Let $u$ and $v$ be two nodes such that there exists a path from $u$ to $v$ in the interval $[t+i,t+k]$.
+	If $c^{prelim}_v(t+k) \equiv 0 [k] \wedge concordant^{prelim}_v(t+k)$, then $c_u(t+i) \equiv i [k]$.
 \end{lem}
 \begin{proof}
-	We denote $(\cent = w(t+i), \dots, w(t+k) = u)$ the path between $\cent$ and $u$.
-	This path must exist according to $\mathcal{P}_{k-centered}$.
-	We can now show using a backward induction on this path that every node $w(t+j)$ on this path is active and verifies $c_{w(t+j)}(t+j) \equiv j [k]$ and $conc_{w(t+j)}(t+j)$.
+	We denote $(u = w(t+i), \dots, w(t+k) = v)$ the path between $u$ and $v$.
+	We can now show using a backward induction on this path that every node $w(t+j)$ on this path is active and verifies $c_{w(t+j)}(t+j) \equiv j [k]$ and $concordant_{w(t+j)}(t+j)$.
 
-	The base case is the hypothesis of the lemma.
-	For the induction case, we assume that $i \leq j < k$, and $c_{w(t+j+1)}(t+j+1) \equiv j+1 [k]$ and $conc_{w(t+j+1)}(t+j+1)$.
-	By the definition of a path, we know that $w(t+j)$ sent a message $\langle x, conc_{w(t+j)}(t+j), *, * \rangle$ to $w(t+j+1)$ in round $t+j+1$.
-	If $j = 1$, we get directly from line \ref{line:conc-true} that $conc_{w(t+j)}(t+j)$.
-	Otherwise, from line \ref{line:conc-gossip}, we get that $w(t+j)$ is active and $conc_{w(t+j)}(t+j)$. Moreover, the received messages are concordant.
-	Then, from line \ref{line:min-z-end}, we get $c_{w(t+j+1)}(t+j+1) \equiv x+1 [k]$, then $c_{w(t+j)}(t+j) \equiv x \equiv j [k]$.
+	We prove the base case for $w(t+k-1)$. We use the hypothesis of the lemma and the line \ref{line:conc-gossip}.
+	For the induction case, we assume that $i \leq j < k$, and $c_{w(t+j+1)}(t+j+1) \equiv j+1 [k]$ and $concordant_{w(t+j+1)}(t+j+1)$.
+	We know that $w(t+j)$ sent to $w(t+j+1)$ in round $t+j+1$ either a null message, or a message of the form $\langle x, concordant_{w(t+j)}(t+j), *, * \rangle$.
+	From line \ref{line:conc-gossip}, we get that $w(t+j)$ is active in round $t+j$ and $concordant_{w(t+j)}(t+j)$ is true. Moreover, the received messages are concordant.
+	Then, from line \ref{line:min-z-end} and the induction hypothesis, we get $c_{w(t+j+1)}(t+j+1) \equiv x+1 \equiv j+1 [k]$.
+	Finally $c_{w(t+j)}(t+j) \equiv j [k]$.
 \end{proof}
 
 \noindent Using the exact same reasoning, we can prove the following lemma.
 \begin{lem} \label{lem:conc-safety-bis}
-	If $conc_u \wedge ready_u \wedge c_u \equiv 0 [k]$ is true in line \ref{line:cond-levelup} in round $t+k$, then $level_\cent(t) \geq 1$.
+	If $concordant_u \wedge ready_u \wedge c_u \equiv 0 [k]$ is true in line \ref{line:cond-levelup} in round $t+k$, then $level_\cent(t) \geq 1$.
 \end{lem}
 \begin{proof}
 	We consider a path $(\cent = w(t), \dots, w(t+k) = u)$. Such a path must exist because we assumed that $\mathcal{P}_{k-centered}$.
-	We can show using a backward induction on this path that any node on this path is active and verifies $conc_{w(t+i)} \wedge ready_{w(t+i)}$.
+	We can show using a backward induction on this path that any node on this path is active and verifies $concordant_{w(t+i)} \wedge ready_{w(t+i)}$.
 	We eventually get $ready_\cent(t)$. The line \ref{line:init-ready} proves the lemma.
 \end{proof}
 
@@ -342,39 +341,38 @@ We now prove that this execution verifies the safety and liveness properties of 
 \end{lem}
 \begin{proof}
 	We assume that some node $u$ levels up in round $t+k+i$ where $i \in \{1, \dots, k-1\}$.
-	Applying the lemma \ref{lem:conc-safety} to $u$ and $\cent$, we get respectively $c_\cent(t+i) \equiv 0 [k]$ and $c_\cent(t+i) \equiv i [k]$.
+	We apply the lemma \ref{lem:conc-safety} to $u$ and $\cent$.
 	We use the path between $\cent$ and $u$ in the interval $[t+i,t+k+i]$ and the path between $\cent$ and $\cent$ in the interval $[t+i,t+k]$ respectively.
 	These paths are guaranteed to exist because of $\mathcal{P}_{k-centered}$ and the assumption of existence of self-loops respectively.
+	We get respectively $c_\cent(t+i) \equiv 0 [k]$ and $c_\cent(t+i) \equiv i [k]$.
 	We get a contradiction from $i \equiv 0 [k]$.
 \end{proof}
 
+\begin{lem} \label{lem:safety-force}
+	If $c_u(t) = i$, then some node must have reached level $force_u(t)$ in round $t-i$.
+\end{lem}
+\begin{proof}
+	We show this lemma by induction over $i$.
+	For the base case, from $c_u(t) = 0$, we get that $u$ leveled up in round $t$ (otherwise $c_u(t)$ would be greater than 0, see line \ref{line:min-z-end}).
+	For the induction case, we assume that $c_u(t) = i+1$.
+	Then, some node $v$ sent to $u$ a message which looks like $\langle i, *, force_u(t), * \rangle$ (see lines \ref{line:force} and \ref{line:min-z-end}).
+	We conclude with the induction hypothesis.
+\end{proof}
+
 \begin{lem} \label{lem:ready-safety}
-	If node $u$ reaches level 2 in round $t+i$, then $\cent$ must have reached level 1 in a previous round $t$. Moreover $c_u(t+i) \leq i$.
+	If node $u$ reaches level 2 in round $t$, then $\cent$ must have reached level 1 in a previous round $t-i$.
+	Moreover $c^{prelim}_u \leq i$ where $c_u^{prelim}$ is the value of $c_u$ after line \ref{line:min-z-end}.
 \end{lem}
 \begin{proof}
 	The first part of the lemma results from lemma \ref{lem:conc-safety-bis}. We now prove the second part.
+	From
 	The lemma \ref{lem:no-close-level2} tells us that $i \geq k$.
-	We consider a path $(\cent = w(t), w(t+1) = \cent, \dots, w(t+i-k) = \cent, \dots, w(t+i) = u)$ from $\cent$ to $u$ in the interval $[t, t+i]$. 
-	Using a simple backward induction on this path, we can show that for any $j \in \{i-k, \dots, i\}$,
-	the node $w(t+j)$ is active, is at least in level 1, and verifies $ready_{w(t+j)}(t+j)$ and $conc_{w(t+j)}(t+j)$.
-	The base case relies on the lines \ref{line:cond-firing} and \ref{line:cond-levelup}. The induction case relies on lines \ref{line:conc-gossip} and \ref{line:ready-gossip}.
+	We consider a path $(\cent = w(t-i), w(t-i+1) = \cent, \dots, w(t-k) = \cent, \dots, w(t) = u)$ from $\cent$ to $u$ in the interval $[t-i, t]$. 
+	Using a proof similar to the proof of lemma \ref{lem:conc-safety-bis}, we can show that for any $j \leq k$,
+	the node $w(t-j)$ is active, is at least in level 1, and verifies $ready_{w(t-j)}(t-j)$ and $concordant_{w(t-j)}(t-j)$.
 
-	Using a simple forward induction on this path, we can show that any $w(t+j)$ on this path verifies $force_{w(t+j)}(t+j) \geq 1$ and $c_{w(t+j)}(t+j) \leq j$.
+	By induction on this path, we can show that any $w(t-j)$ on this path verifies $force_{w(t+j)}(t+j) \geq 1$ and $c_{w(t+j)}(t+j) \leq j$.
 	The base case relies on the lines \ref{line:force2} and \ref{line:force3}. The induction case relies on lines \ref{line:force} and \ref{line:min-z-end}.
-\end{proof}
-
-\begin{lem} \label{lem:safety-force}
-	If $c_u(t+i) = i$, then some node must have reached level $force_u(t+i)$ in round $t$.
-\end{lem}
-\begin{proof}
-	Without loss of generality, we assume $force_u(t+i) = 1$.
-	We show this lemma by induction over $i$.
-	For the base case, we have to show that the line \ref{line:force2} was executed by $u$ in round $t$.
-	This must be true, otherwise the fact that $c_u(t) = 0$ could not be explained.
-
-	For the induction case, we assume that $c_u(t+i+1) = i+1$ and $force_u(t+i+1) = 1$.
-	Then, a node $v$ must have sent a message which looks like $\langle i, *, 1, * \rangle$ (see lines \ref{line:force} and \ref{line:min-z-end}).
-	The proof can now be concluded thanks to the induction hypothesis.
 \end{proof}
 
 \begin{lem} \label{lem:later-level1}
@@ -384,7 +382,7 @@ We now prove that this execution verifies the safety and liveness properties of 
 	By contradiction, we consider the first node $u$ which reaches level 1 in round $t+i$ with $i \not\equiv 0 [k]$.
 	The case $i < k$ is impossible according to lemma \ref{lem:no-close-level2}.
 
-	In the case $i > k$, since $conc_u(t+i)$ is true, there exist an active path from $\cent$ in round $t$ to $u$ in round $t+i$.
+	In the case $i > k$, since $concordant_u(t+i)$ is true, there exist an active path from $\cent$ in round $t$ to $u$ in round $t+i$.
 	On this path $(\cent = w(t), \dots, w(t+i) = u)$, we can show by a simple induction that, for any $0 \leq j \leq i$, we have $c_{w(t+j)}(t+j) \leq c_\cent(t)+j$.
 	Since we assumed that $i \not\equiv 0[k]$, we have $c_u(t+i) \neq c_\cent(t)+i$.
 	Then, using lemma \ref{lem:safety-force} gives us that a node $v$ must have reached level 1 later than $\cent$, with $c_v(t+i) \equiv c_u(t+i) [k]$.
@@ -395,8 +393,9 @@ We now prove that this execution verifies the safety and liveness properties of 
 	The algorithm is safe.
 \end{thm}
 \begin{proof}
+	Let $t$ be the round in which $\cent$ reaches level 1.
 	We assume that $u$ and $v$ reach level 2 in round $t+i$ and $t+j$ respectively.
-	According to lemma \ref{lem:ready-safety}, $\cent$ must have reached level 1 in a previous round $t$.
+	According to lemma \ref{lem:ready-safety}, $i$ and $j$ must be non-negative.
 	Moreover $c_u(t+i) \leq i$ and $c_v(t+j) \leq j$.
 	According to lemma \ref{lem:safety-force}, there must exist nodes $w$ and $w'$ which reached level 1 in rounds $t+i-c_u(t+i)$ and $t+j-c_u(t+j)$ respectively.
 	According to lemma \ref{lem:later-level1}, we have $i-c_u(t+i) \equiv 0 [k]$ and $j-c_u(t+j) \equiv 0 [k]$. 
@@ -421,7 +420,7 @@ We now prove that this execution verifies the safety and liveness properties of 
 	Then, this sequence of set is decreasing from $t$. Moreover, it cannot become empty, otherwise $max~V_r - min~V_r$ would decrease (we assumed that this value is stable from t).
 	Then we consider the non-empty set $M = \bigcap\limits_{r \geq t} Z_r^{max}$.
 	Such a set is a subset of the system, which from $t$, never receive any message from the outside, and all hold the same value.
-	From the round $t+k$, the line \ref{line:conc-gossip} implies that any $u \in M$ must hold a true $conc$ variable.
+	From the round $t+k$, the line \ref{line:conc-gossip} implies that any $u \in M$ must hold a true $concordant$ variable.
 	Then, every node in $M$ must reach level 1 before round $t+2k$. Hence $M \cap Z_{t+2k} = \emptyset$.
 	We get a contradiction with the definition of $M$.
 \end{proof}
@@ -435,8 +434,34 @@ We now prove that this execution verifies the safety and liveness properties of 
 	Every node is now active.
 	By a simple forward induction on this path, we can prove that $c_u(t+k) \leq c_\cent(t)+k$.
 	With lemma \ref{lem:later-level1}, we can show that from round $t+k$, every values in the system are congruent modulo $k$.
-	Then, from $t+2k$, the variables $ready$ and $conc$ must be true in all nodes.
+	Then, from $t+2k$, the variables $ready$ and $concordant$ must be true in all nodes.
 	Every node must have reached level 2 in round $t+3k$.
+\end{proof}
+
+\subsection{Limitations and possible extensions of $SynchMod$ algorithm}
+
+\begin{cor}
+	The $mod-k$-synchronization problem is not solvable in a system where the communication graph is centered with an unknown delay $D$.
+\end{cor}
+\begin{proof}
+	By contradiction, we assume that an algorithm $A$ solves this problem.
+	We construct an execution of $A$ in a system composed of a unique node $u$, starting in round 1.
+	By termination property, the node $u$ in this execution must terminate in some round $t$.
+	We construct an execution of $A$ in a system composed of a two nodes $u$ and $v$. The node $u$ starts in round 1 whereas $v$ starts in round 2.
+	We construct a communication graph where $u$ and $v$ are both insulated during the first $t+2$ rounds, and become connected at round $t+3$.
+	This graph is centered with delay $t+3$.
+	Both $u$ and $v$ will terminate in round $t$ and $t+1$ respectively, because they cannot distinguish this execution from the execution previously described.
+	This contradicts the $mod-k$-synchronization hypothesis.
+\end{proof}
+
+\begin{cor}
+	The $mod-k$-synchronization problem is solvable in a system where the communication graph is centered with a known delay $D$.
+\end{cor}
+\begin{proof}
+	We just showed that $mod-k$-synchronization is solvable if the communication graph is centered with delay $k$.
+	If $D < k$, then a fortiori, the graph is also centered with delay $k$.
+	If $D > k$, we know that the $mod-\lceil \frac{D}{k} \rceil \times k$-synchronization is solvable using $SynchMod$.
+	A fortiori, the $mod-k$-synchronization is solvable.
 \end{proof}
 
 % section_cons (do not modify this comment)
