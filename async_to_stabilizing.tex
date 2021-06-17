@@ -13,7 +13,7 @@
 \newtheorem{cor}[thm]{Corollary}
 \newtheorem{defi}[thm]{Definition}
 
-\title{Reduction of asynchronous starts model to self-stabilizing model}
+\title{Asynchronous starts and self-stabilization, one tail for two models}
 \author{
 	Bernadette Charron-Bost \\
 	LIX, Palaiseau, France
@@ -32,30 +32,28 @@
 This document defines a reduction from a asynchronous-starts model to the self-stabilizing models:
 given an algorithm written in the asynchronous-starts framework, we construct a self-stabilizing algorithm which solves the same problem.
 These models (formally defined in first two sections) are widely used in distributed computing.
-This document only focuses on the subclass of \textit{deterministic} problems (this notion is formally defined at the end of the third section):
-given some input vector $(c_i)_{i \in \Pi}$ (where $\Pi$ is set set of nodes), given a dynamic communication graph, the system must eventually stabilize to some output vector.
-The set of possible input values is noted $C$, whereas $\mathcal{V}$ is the set of possible output values.
+The set of possible input values is noted $C$, whereas $Y$ is the set of possible output values.
 
 \section{Asynchronous starts model}
 
 We consider an algorithm $A$ in the asynchronous starts model.
-This algorithm is characterized by the following data:
+This algorithm is defined by the following data:
 
 \begin{itemize}
 	\item A set of states $X$.
-	\item An inactive state $x_{passive} \notin X$.
-	\item An initial state $x_{init} \in X$.
-	\item A computable transition function $\delta^c : X \times X^\oplus \rightarrow X$ where the $\oplus$ operator constructs the set of possible multi-sets and $c \in C$.
+	\item A subset of initial state $X_{init} \in X$.
+	\item A transition function $\delta^c : X \times X^\oplus \rightarrow X$ where the $\oplus$ operator constructs the set of possible multi-sets and $c \in C$.
 \end{itemize}
 
-\noindent An execution in this model may be defined by:
+\noindent An execution in this model is defined by:
 \begin{itemize}
 	\item An activation schedule $(s_i)_{i \in \Pi} \in (\mathds{N} \cup \{\infty\})^\Pi$.
 	\item An input vector $(c_i)_{i \in \Pi} \in C^\Pi$.
-	\item A communication graph $\mathds{G} = (\Pi, E_t)$ where $\forall t \in \mathds{N}, E_t \subseteq \Pi \times \Pi$.
+	\item A family of initial states $(q_i)_{i \in \Pi} \in X_{init} \subseteq X$.
+	\item A graph $\mathds{G} = (\Pi, E_t)$ where $\forall t \in \mathds{N}, E_t \subseteq \Pi \times \Pi$.
 \end{itemize}
 
-\noindent The states of the nodes may be inductively derived from this data by stating:
+\noindent The states of the nodes is inductively derived from this data by stating $\forall i \in \Pi, x_i^0 = x_{passive}$ and:
 
 $$x_i^{t+1} = \left \{ \begin{array}{l l} x_{passive} & \mbox{if}~t < s_i \\
 	x_{init} & \mbox{if}~t = s_i \\
@@ -64,65 +62,49 @@ $$x_i^{t+1} = \left \{ \begin{array}{l l} x_{passive} & \mbox{if}~t < s_i \\
 \section{Self-stabilizing model}
 
 We now consider an algorithm $A$ in the self-stabilizing model.
-This algorithm is characterized by the following data:
+This algorithm is defined by the following data:
 
 \begin{itemize}
 	\item A set of states $X$.
-	\item A computable transition function $\delta^c : X \times X^\oplus \rightarrow X$.
+	\item A transition function $\delta^c : X \times X^\oplus \rightarrow X$.
 \end{itemize}
 
-\noindent An execution in this model may be defined by:
+\noindent An execution in this model is defined by:
 \begin{itemize}
 	\item A family of initial states $(x_i^0)_{i \in \Pi}$ where $x_i^0$ is an arbitrary state in $X$.
 	\item An input vector $(c_i)_{i \in \Pi} \in C^\Pi$.
-	\item A communication graph $\mathds{G} = (\Pi, E_t)$ where $\forall t \in \mathds{N}, E_t \subseteq \Pi \times \Pi$.
+	\item A graph $\mathds{G} = (\Pi, E_t)$ where $\forall t \in \mathds{N}, E_t \subseteq \Pi \times \Pi$.
 \end{itemize}
 
-The state of the nodes may be inductively derived from this data by stating:
+The state of the nodes is inductively derived from this data by stating:
 
 $$x_i^{t+1} = \delta^{c_i}(x_i^t, \{x_j^t, (j,i) \in E_{t+1}\}).$$
 
-Although the initial state of a node in this model must be arbitrary, its input value is viewed as a static value,
+Although the initial state of a node in this model is arbitrary, its input value is viewed as a static value,
 that the node can access in every round. That's why the transition function is indexed by $c$.
-In other words, the state of a node might be affected by \textit{transient faults} (arbitrary modification of the state),
-whereas the input value is fixed.
 
 \section{Stabilizing problems}
 
-We consider $\mathcal{C} \subseteq \mathcal{G} \times C^\Pi$, where $\mathcal{G}$ is the set of possible dynamic graph.
-$\mathcal{C}$ represents a class of tuples, and we want to solve some problem on a network which belongs to this class.
-We consider a computable function $Out : X \rightarrow \mathcal{V}$ which returns the output of a node
-(for example, in leader election problem, $\mathcal{V} = \{0,1\}$, and the leader must ultimately return 1, while non-leaders must return 0).
+We consider $\mathcal{C} \subseteq \mathcal{G} \times C^\Pi$, where $\mathcal{G}$ is the set of possible dynamic graphs.
+We consider a function $Out : X \rightarrow Y$ which returns the output of a node
+(for example, in leader election problem, $Y = \{0,1\}$, and the leader must ultimately return 1, while non-leaders must return 0).
 We define the specification of the problem as a mapping from any tuple $\mathds{G}, (c_i)_{i \in \Pi} \in \mathcal{C}$
-to a suffix-closed subset $S_{\mathds{G}, (c_i)_{i \in \Pi}} \subseteq (\mathcal{V}^\Pi)^\omega$.
+to a suffix-closed subset $S_{\mathds{G}, (c_i)_{i \in \Pi}} \subseteq (Y^\Pi)^\omega$.
 $S_{\mathds{G}, (c_i)_{i \in \Pi}}$ is a set of sequences of output vectors.
-We say that an algorithm $A$ (in both presented models) stabilizes to $S$ if, for any tuple $\mathds{G}, (c_i)_{i \in \Pi} \in \mathcal{C}$,
+We say that an algorithm $A$ (in both presented models) \textit{stabilizes} to $S$ if, for any tuple $\mathds{G}, (c_i)_{i \in \Pi} \in \mathcal{C}$,
 for any execution of $A$ in this graph and with this input, there exists some bound $T \in \mathds{N}$ such that we have:
 
 $$\langle Out(x^T_i), i \in \Pi \rangle, \langle Out(x^{T+1}_i), i \in \Pi \rangle, \dots \in S_{\mathds{G}, (c_i)_{i \in \Pi}}$$
 
-where $\langle Out(x^T_i), i \in \Pi \rangle \in \mathcal{V}^\Pi$ is the vector of outputs of the nodes in round $T$.
+where $\langle Out(x^T_i), i \in \Pi \rangle \in Y^\Pi$ is the vector of outputs of the nodes in round $T$.
 We will refer to $T$ as the \textit{quiescence time}.
 For the leader election problem, the specification would look like:
-
-$$S_\mathds{G} = \left \{ \begin{array}{l}
-	(\langle 1, 0, 0 \dots \rangle, \langle 1, 0, 0 \dots \rangle, \langle 1, 0, 0 \dots \rangle, \dots) \\
-	(\langle 0, 1, 0 \dots \rangle, \langle 0, 1, 0 \dots \rangle, \langle 0, 1, 0 \dots \rangle, \dots) \\
-	\dots \\
-	(\langle 0, 0, \dots 1 \rangle, \langle 0, 0, \dots 1 \rangle, \langle 0, 0, \dots 1 \rangle, \dots)
-\end{array} \right \}$$
 
 Here, each line corresponds to one of the possible output (i.e. one line for each possible leader).
 This problem do not require input values.
 Every execution which stabilizes to some leader will have a suffix in this set.
 
-This document only considers deterministic specifications.
-This means that for any $\mathds{G}, (c_i)_{i \in \Pi} \in \mathcal{C}$, the set $S_{\mathds{G}, (c_i)_{i \in \Pi}}$ is a singleton containing a constant sequence.
-Then $S$ can be viewed as a mapping from $\mathcal{C}$ to $\mathcal{V}^\Pi$.
-This hypothesis is necessary to implement a self-stabilizing implementation which actually stabilizes.
-The leader-election problem and consensus problem are typical example of non-deterministic problems.
-
-\section{Implementation in self-stabilizing model}
+\section{Translation in self-stabilizing model}
 
 We assume we have an asynchronous-start algorithm $A$ which stabilizes to some specification $S$.
 The aim of this document is to construct an self-stabilizing algorithm $Stab(A)$ which stabilizes to $S$.
@@ -181,7 +163,7 @@ That's why we parameter $Stab(A)$ by a function $g : \mathds{N} \rightarrow \mat
 	\Indp
 		$c_i \in C$ \tcc*[f]{input variable} \;
 		$INST_i \in X^*$ \tcc*[f]{state variable} \;
-		$y_i \in \mathcal{V}$ \tcc*[f]{output variable} \;
+		$y_i \in Y$ \tcc*[f]{output variable} \;
 	\BlankLine
 	\Indm
 	\textbf{At each round:} \;
@@ -197,8 +179,8 @@ That's why we parameter $Stab(A)$ by a function $g : \mathds{N} \rightarrow \mat
 
 \section{Proof}
 
-We consider an execution of $Stab(A)$, characterized by $\mathds{G}$, the input vector $(c_i)_{i \in \Pi}$ and some initial sequences $(INST_i)_{i \in \Pi}$.
-We consider the expected output vector $v \in \mathcal{V}^\Pi$ (i.e. such that $S_{\mathds{G}, (c_i)_{i \in \Pi}} = \{(v, v, v, \dots)\}$).
+We consider an execution of $Stab(A)$, defined by $\mathds{G}$, the input vector $(c_i)_{i \in \Pi}$ and some initial sequences $(INST_i)_{i \in \Pi}$.
+We consider the expected output vector $v \in Y^\Pi$ (i.e. such that $S_{\mathds{G}, (c_i)_{i \in \Pi}} = \{(v, v, v, \dots)\}$).
 We want to prove that the output of $Stab(A)$ converges to $v$.
 We assume that $A$ self-stabilizes \textit{with bounded delay}, that is, for every execution,
 $T-max\{s_i, i \in \Pi\}$ is bounded by some natural number $T_{max}$.
