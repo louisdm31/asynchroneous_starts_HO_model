@@ -22,7 +22,7 @@ definition gen_initState where
 "gen_initState = (| x = 0, conc = False, ready = False, forc = 0, level = 0 |)"
 
 fun forceMsgs where
-  "forceMsgs (Content m) = forc m"
+  "forceMsgs (Content m) = Suc (forc m)"
 | "forceMsgs Void = 0"
 | "forceMsgs Bot  = 0"
 
