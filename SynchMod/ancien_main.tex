@@ -249,6 +249,8 @@ This means that $\cent$ was congruent with 0 in round $t$.
 In that case, a level-up is allowed (see figure \ref{fig:fig1}).
 In opposition, if some node $j \in In_u(t:t+k)$ is not congruent with 0 in round $t$,
 then the line \ref{line:conc-gossip} guarantees that $concordant_u$ will ultimately be false at the beginning of round $t+k$ (see figure \ref{fig:fig2}).
+In addition to $concordant$, the $ready$ variable makes sure that $\cent$ is already at level 1.
+If not, the level-up to level 2 is forbidden.
 
 \begin{figure}[h]
     \centering
@@ -281,20 +283,20 @@ then the line \ref{line:conc-gossip} guarantees that $concordant_u$ will ultimat
 	\textbf{At each round $r$:} \;
 	\Indp
 		send $\langle c_u, concordant_u, force_u, ready_u \rangle$ to all  \;
-		receive incoming messages from all $v \looparrowright u$ \;
-		$concordant_u \leftarrow \forall v \looparrowright u, concordant_v \wedge c_v \equiv c_u [k]$ and no null received \; \label{line:conc-gossip}
-		$ready_u \leftarrow \forall v \looparrowright u, ready_v$ \; \label{line:ready-gossip} 
-		$force_u \leftarrow max \{force_v, v \looparrowright u \}$ \;\label{line:force}
-		$c_u \leftarrow 1+ min \{c_v, v \looparrowright u \wedge force_v = force_u\}$ \;\label{line:min-z-end} 
-		\If{$c_u \equiv 0 [k] \wedge concordant_u$}{ \label{line:cond-levelup} 
-			\If{$level_u = 0$}{ \label{line:level1up}
+		receive incoming messages from all $v \in In_u(r)$ \;
+		$concordant_u \leftarrow \forall v \in In_u(r), concordant_v \wedge c_v \equiv c_u [k]$ and no null received \; \label{line:conc-gossip}
+		$ready_u \leftarrow \forall v \in In_u(r), ready_v$ \; \label{line:ready-gossip} 
+		$force_u \leftarrow max \{force_v, v \in In_u(r) \}$ \;\label{line:force}
+		$c_u \leftarrow 1+ min \{c_v, v \in In_u(r) \wedge force_v = force_u\}$ \;\label{line:min-z-end} 
+		\If{$c_u \equiv 0 [k]$}{ \label{line:cond-levelup} 
+			\If{$level_u = 0 \wedge concordant_u$}{ \label{line:level1up}
 				$level_u \leftarrow 1$ \;
 				$force_u \leftarrow max(1, force_u)$ \; \label{line:force2}
 				$c_u \leftarrow 0$ \; \label{line:force3}
 			}
-			\ElseIf{$ready_u$}{ \label{line:cond-firing}
+			\ElseIf{$level_u = 1 \wedge ready_u \wedge concordant_u$}{ \label{line:cond-firing}
 				$force_u \leftarrow 2$ \;
-				$level_u \leftarrow 2$ \;
+				$level_u \leftarrow 2$ \tcc*[f]{reaching level 2 => fire}\;
 				$c_u \leftarrow 0$ \; 
 			}
 			$concordant_u \leftarrow true$ \; \label{line:conc-true}
@@ -307,33 +309,35 @@ then the line \ref{line:conc-gossip} guarantees that $concordant_u$ will ultimat
 We consider an execution of the $SyncMod$ algorithm.
 We note $c_u(t), concordant_u(t), \dots$ the value of the $c, concordant, \dots$ variables of node $u$ at the end of round $t$, if $u$ is active in round $t$.
 We also note $c^{prelim}_u(t), concordant^{prelim}_u(t), \dots$ the value of the $c, concordant, \dots$ variables
-of node $u$ in line \ref{line:conc-levelup} during round $t$, if $u$ is active in round $t$.
+of node $u$ in line \ref{line:cond-levelup} during round $t$, if $u$ is active in round $t$.
 We now prove that this execution verifies the safety and liveness properties of the $mod-k$-synchronization problem.
 
 \begin{lem} \label{lem:conc-safety}
-	Let $i$ be an integer verifying $i < k$, $t$ a round. Let $u$ and $v$ be two nodes such that there exists a path from $u$ to $v$ in the interval $[t+i,t+k]$.
-	If $c^{prelim}_v(t+k) \equiv 0 [k] \wedge concordant^{prelim}_v(t+k)$, then $c_u(t+i) \equiv i [k]$.
+	Let $i$ be an integer verifying $0 < i \leq k$, let $t$ be a round. Let $u$ and $v$ be two nodes such that there exists a path from $u$ to $v$ in the interval $[t+i,t+k]$.
+	If $c^{prelim}_v(t+k) \equiv 0 [k] \wedge concordant^{prelim}_v(t+k)$, then $c_u^{prelim}(t+i) \equiv i [k]$.
 \end{lem}
 \begin{proof}
 	We denote $(u = w(t+i), \dots, w(t+k) = v)$ the path between $u$ and $v$.
-	We can now show using a backward induction on this path that every node $w(t+j)$ on this path is active and verifies $c_{w(t+j)}(t+j) \equiv j [k]$ and $concordant_{w(t+j)}(t+j)$.
+	We can now show using a backward induction on this path that every node $w(t+j)$ on this path is active
+	and verifies $c_{w(t+j)}^{prelim}(t+j) \equiv j [k]$ and $concordant_{w(t+j)}^{prelim}(t+j)$.
 
-	We prove the base case for $w(t+k-1)$. We use the hypothesis of the lemma and the line \ref{line:conc-gossip}.
-	For the induction case, we assume that $i \leq j < k$, and $c_{w(t+j+1)}(t+j+1) \equiv j+1 [k]$ and $concordant_{w(t+j+1)}(t+j+1)$.
+	The base case is the hypothesis of the lemma.
+	For the induction case, we assume that $i \leq j < k$, and $c_{w(t+j+1)}^{prelim}(t+j+1) \equiv j+1 [k]$ and $concordant_{w(t+j+1)}^{prelim}(t+j+1)$.
 	We know that $w(t+j)$ sent to $w(t+j+1)$ in round $t+j+1$ either a null message, or a message of the form $\langle x, concordant_{w(t+j)}(t+j), *, * \rangle$.
 	From line \ref{line:conc-gossip}, we get that $w(t+j)$ is active in round $t+j$ and $concordant_{w(t+j)}(t+j)$ is true. Moreover, the received messages are concordant.
-	Then, from line \ref{line:min-z-end} and the induction hypothesis, we get $c_{w(t+j+1)}(t+j+1) \equiv x+1 \equiv j+1 [k]$.
-	Finally $c_{w(t+j)}(t+j) \equiv j [k]$.
+	Then, from line \ref{line:min-z-end} and the induction hypothesis, we get $c_{w(t+j+1)}^{prelim}(t+j+1) \equiv x+1 \equiv j+1 [k]$.
+	Finally $c_{w(t+j)}^{prelim}(t+j) \equiv c_{w(t+j)}(t+j) \equiv j [k]$.
 \end{proof}
 
-\noindent Using the exact same reasoning, we can prove the following lemma.
+\noindent Using similar reasoning, we can prove the following lemma.
 \begin{lem} \label{lem:conc-safety-bis}
-	If $concordant_u \wedge ready_u \wedge c_u \equiv 0 [k]$ is true in line \ref{line:cond-levelup} in round $t+k$, then $level_\cent(t) \geq 1$.
+	If $concordant_u^{prelim}(t+k) \wedge ready_u^{prelim}(t+k) \wedge c_u^{prelim}(t+k) \equiv 0 [k]$, then $level_\cent(t) \geq 1$.
 \end{lem}
 \begin{proof}
 	We consider a path $(\cent = w(t), \dots, w(t+k) = u)$. Such a path must exist because we assumed that $\mathcal{P}_{k-centered}$.
-	We can show using a backward induction on this path that any node on this path is active and verifies $concordant_{w(t+i)} \wedge ready_{w(t+i)}$.
-	We eventually get $ready_\cent(t)$. The line \ref{line:init-ready} proves the lemma.
+	We can show using a backward induction on this path that any node $w(t+i)$ with $0 \leq i < k$ on this path is active and verifies
+	$concordant_{w(t+i)}(t+i) \wedge ready_{w(t+i)}(t+i) \wedge c_{w(t+i)}(t+i) \equiv i [k]$.
+	We eventually get $ready_\cent(t) \wedge c_\cent(t) \equiv 0 [k]$. The line \ref{line:init-ready} terminates the proof.
 \end{proof}
 
 \begin{lem} \label{lem:no-close-level2}
@@ -344,98 +348,88 @@ We now prove that this execution verifies the safety and liveness properties of 
 	We apply the lemma \ref{lem:conc-safety} to $u$ and $\cent$.
 	We use the path between $\cent$ and $u$ in the interval $[t+i,t+k+i]$ and the path between $\cent$ and $\cent$ in the interval $[t+i,t+k]$ respectively.
 	These paths are guaranteed to exist because of $\mathcal{P}_{k-centered}$ and the assumption of existence of self-loops respectively.
-	We get respectively $c_\cent(t+i) \equiv 0 [k]$ and $c_\cent(t+i) \equiv i [k]$.
+	We get respectively $c_\cent^{prelim}(t+i) \equiv 0 [k]$ and $c_\cent^{prelim}(t+i) \equiv i [k]$.
 	We get a contradiction from $i \equiv 0 [k]$.
 \end{proof}
 
 \begin{lem} \label{lem:safety-force}
-	If $c_u(t) = i$, then some node must have reached level $force_u(t)$ in round $t-i$.
+	If $c_u^{prelim}(t) = i$, then some node must have reached level $force_u^{prelim}(t)$ in round $t-i$.
 \end{lem}
 \begin{proof}
 	We show this lemma by induction over $i$.
-	For the base case, from $c_u(t) = 0$, we get that $u$ leveled up in round $t$ (otherwise $c_u(t)$ would be greater than 0, see line \ref{line:min-z-end}).
-	For the induction case, we assume that $c_u(t) = i+1$.
-	Then, some node $v$ sent to $u$ a message which looks like $\langle i, *, force_u(t), * \rangle$ (see lines \ref{line:force} and \ref{line:min-z-end}).
+	The base case is impossible.
+	For the induction case, we assume that $c_u^{prelim}(t) = i+1$.
+	Then, some node $v$ sent to $u$ a message which looks like $\langle i, *, force_u^{prelim}(t), * \rangle$ (see lines \ref{line:force} and \ref{line:min-z-end}).
+	If $i = 0$, then $v$ is the node which satisfies the lemma.
+	Otherwise $i = c_v^{prelim}(t-1)$.
 	We conclude with the induction hypothesis.
 \end{proof}
 
+Given the lines \ref{line:force} and \ref{line:min-z-end}, this lemma tells us that $c_u$ and $force_u$ actually points to the most recent highest level level-up.
+
 \begin{lem} \label{lem:ready-safety}
 	If node $u$ reaches level 2 in round $t$, then $\cent$ must have reached level 1 in a previous round $t-i$.
-	Moreover $c^{prelim}_u \leq i$ where $c_u^{prelim}$ is the value of $c_u$ after line \ref{line:min-z-end}.
+	Moreover $c^{prelim}_u(t) \leq i$.
 \end{lem}
 \begin{proof}
 	The first part of the lemma results from lemma \ref{lem:conc-safety-bis}. We now prove the second part.
-	From
-	The lemma \ref{lem:no-close-level2} tells us that $i \geq k$.
-	We consider a path $(\cent = w(t-i), w(t-i+1) = \cent, \dots, w(t-k) = \cent, \dots, w(t) = u)$ from $\cent$ to $u$ in the interval $[t-i, t]$. 
-	Using a proof similar to the proof of lemma \ref{lem:conc-safety-bis}, we can show that for any $j \leq k$,
-	the node $w(t-j)$ is active, is at least in level 1, and verifies $ready_{w(t-j)}(t-j)$ and $concordant_{w(t-j)}(t-j)$.
+	If $force_u^{prelim}(t) = 2$, then, using lemma \ref{lem:safety-force}, some node $v$ reached level 2 in the round $t-c_u^{prelim}(t)$.
+	From the first part of the lemma, we get $c_u^{prelim}(t) \leq i$. 
 
-	By induction on this path, we can show that any $w(t-j)$ on this path verifies $force_{w(t+j)}(t+j) \geq 1$ and $c_{w(t+j)}(t+j) \leq j$.
-	The base case relies on the lines \ref{line:force2} and \ref{line:force3}. The induction case relies on lines \ref{line:force} and \ref{line:min-z-end}.
+	If $force_u^{prelim}(t) = 1$, then, from lemma \ref{lem:safety-force}, some node $v$ reached level 1 in the round $t-c_u^{prelim}(t)$.
+	The lemma \ref{lem:no-close-level2} tells us that $i \geq k$.
+	Using $\mathcal{P}_{k-centered}$, we obtain $\cent \in In_u(t-i:t)$.
+	The level-up of $v$ to level 1 must be more recent than the level-up of $\cent$ to level 1.
+	Then $c_u^{prelim}(t) \leq i$.
 \end{proof}
 
 \begin{lem} \label{lem:later-level1}
-	If $\cent$ reached level 1 in round $t$, whereas $u$ reached level 1 in round $t+i$, then $i \equiv 0 [k]$. 
+	If $\cent$ reached level 1 in round $t$, whereas $u$ levels up in round $t+i$, then $i \equiv 0 [k]$. 
 \end{lem}
 \begin{proof}
-	By contradiction, we consider the first node $u$ which reaches level 1 in round $t+i$ with $i \not\equiv 0 [k]$.
-	The case $i < k$ is impossible according to lemma \ref{lem:no-close-level2}.
+	By contradiction, we consider the earliest node $u$ which levels up in round $t+i > t$ with $i \not\equiv 0 [k]$.
 
-	In the case $i > k$, since $concordant_u(t+i)$ is true, there exist an active path from $\cent$ in round $t$ to $u$ in round $t+i$.
-	On this path $(\cent = w(t), \dots, w(t+i) = u)$, we can show by a simple induction that, for any $0 \leq j \leq i$, we have $c_{w(t+j)}(t+j) \leq c_\cent(t)+j$.
-	Since we assumed that $i \not\equiv 0[k]$, we have $c_u(t+i) \neq c_\cent(t)+i$.
-	Then, using lemma \ref{lem:safety-force} gives us that a node $v$ must have reached level 1 later than $\cent$, with $c_v(t+i) \equiv c_u(t+i) [k]$.
-	This contradicts the fact that $u$ was the first non-congruent level 1 node.
+	In the case $force_u^{prelim}(t+i) = 2$, the lemma \ref{lem:safety-force} implies the existence of a node $v$ which reached level 2 in some round $t'$. 
+	From lemma \ref{lem:ready-safety}, we get $t' \geq t$.
+
+	In the case $force_u^{prelim}(t+i) \leq 1$, the lemma \ref{lem:safety-force} implies the existence of a node $v$ which reached level 0 or 1 in some round $t' = t+i-c_u^{prelim}(t+i)$. 
+	The case $i < k$ is impossible according to lemma \ref{lem:no-close-level2}.
+	Then, using $\mathcal{P}_{k-centered}$, we obtain $\cent \in In_u(t:t+i)$.
+	Since $u$ "knows" in round $t+i$ that $\cent$ and $v$ both leveled up in round $t$ and $t'$ respectively, and adopted $c_u^{prelim}(t+i) = t+i-t'$ rather than $i$,
+	we also get $t' \geq t$.
+	In both cases, from line \ref{line:cond-levelup}, we get $t' \equiv t+i [k]$.
+	This contradicts the fact that $u$ was the earliest non-congruent node.
 \end{proof}
 
 \begin{thm} \label{lem:safety} 
 	The algorithm is safe.
 \end{thm}
 \begin{proof}
-	Let $t$ be the round in which $\cent$ reaches level 1.
-	We assume that $u$ and $v$ reach level 2 in round $t+i$ and $t+j$ respectively.
-	According to lemma \ref{lem:ready-safety}, $i$ and $j$ must be non-negative.
-	Moreover $c_u(t+i) \leq i$ and $c_v(t+j) \leq j$.
-	According to lemma \ref{lem:safety-force}, there must exist nodes $w$ and $w'$ which reached level 1 in rounds $t+i-c_u(t+i)$ and $t+j-c_u(t+j)$ respectively.
-	According to lemma \ref{lem:later-level1}, we have $i-c_u(t+i) \equiv 0 [k]$ and $j-c_u(t+j) \equiv 0 [k]$. 
-	Since we have $c_u(t+i) \equiv 0 [k]$ and $c_v(t+j) \equiv 0 [k]$, we get $i \equiv j [k]$. That proves safety.
-\end{proof}
-
-\begin{lem}
-	Every node eventually reaches level 1.
-\end{lem}
-\begin{proof}
-	Let $Z_r$ be the set of level 0 nodes in round $r$.
-	Let $V_r$ be the set of values of $Z_r$.
-	We consider the sequence $h_r = |Z_r| + max~V_r - min~V_r$.
-	We have to show that $Z_r$ eventually becomes empty, in other words $(h_r)$ should eventually be undefined.
-	By contradiction, we assume that $(h_r)$ is always defined.
-	Let $s^{max}$ the first round in which every node is active.
-	If $r \geq s^{max}$, we can show that if $V_r \subseteq \{t, \dots, t+i\}$, then $V_{r+1} \subseteq \{t+1, \dots , t+i+1\}$ (see line \ref{line:min-z-end}).
-	That proves that $(h_r)$ cannot grow from $s^{max}$.
-	Then, there exists a round $t$ from which the set $Z_r$ is stabilized and $max~V_r - min~V_r$ is constant.
-	We consider the set $Z_r^{max}$, which contains every nodes $u$ such that $c_u(r) = max~V_r$.
-	For any $r \geq t$, we can show that $Z_{r+1}^{max} = \{u \in Z_r^{max}, HO(u, r+1) \subseteq Z_r^{max}\}$. That is a consequence of line \ref{line:min-z-end}.
-	Then, this sequence of set is decreasing from $t$. Moreover, it cannot become empty, otherwise $max~V_r - min~V_r$ would decrease (we assumed that this value is stable from t).
-	Then we consider the non-empty set $M = \bigcap\limits_{r \geq t} Z_r^{max}$.
-	Such a set is a subset of the system, which from $t$, never receive any message from the outside, and all hold the same value.
-	From the round $t+k$, the line \ref{line:conc-gossip} implies that any $u \in M$ must hold a true $concordant$ variable.
-	Then, every node in $M$ must reach level 1 before round $t+2k$. Hence $M \cap Z_{t+2k} = \emptyset$.
-	We get a contradiction with the definition of $M$.
+	The safety is a consequence of lemmas \ref{lem:ready-safety} and \ref{lem:later-level1}.
 \end{proof}
 
 \begin{lem}
 	The algorithm is live
 \end{lem}
 \begin{proof}
-	We consider the round $t$ in which every node have reached level 1.
-	For any node $u$, we consider the path $(\cent = w(t), \dots, w(t+k) = u)$ from $\cent$ to $u$ in the interval $[t, t+k]$.
-	Every node is now active.
-	By a simple forward induction on this path, we can prove that $c_u(t+k) \leq c_\cent(t)+k$.
-	With lemma \ref{lem:later-level1}, we can show that from round $t+k$, every values in the system are congruent modulo $k$.
-	Then, from $t+2k$, the variables $ready$ and $concordant$ must be true in all nodes.
-	Every node must have reached level 2 in round $t+3k$.
+	We consider the set $L = \{(f,t), \exists u \in \Pi, level_u(t) = f \wedge level_u(t-1) \neq f\}$.
+	This set represents the finite set of level-up events.
+	Using lemma \ref{lem:safety-force}, any node $u$ verifies $(t-c_u(t), force_u(t)) \in L$ in every round $t$.
+	We note this tuple as $z_u(t)$.
+	We can order $Z$ with the lexical ordering.
+	The algorithm is designed such that for any node $u$, the sequence $z_u$ is increasing, and eventually stabilizes to $z_u^{max}$.
+	Let $z^{min}$ be $min \{z_u^{max}, u \in \Pi\}$.
+	We consider the round $t$ in which every node is active, and from which its $z_u$ sequence is stabilized.
+	We consider the subset $\Pi_{min} = \{u \in \Pi, z_u^{max} = z^{min}\}$.
+	We can prove that $\forall t' > t, \forall u \in \Pi_{min}, In_u(t') \subseteq \Pi_{min}$.
+	Otherwise, $u$ would adopt a $z_u(t') > z_u^{max}$.
+	Intuitively, $\Pi_{min}$ is a set of nodes which can only receive message from $\Pi_{min}$.
+	At some point between rounds $t$ and $t+k$, the nodes in $\Pi_{min}$ will simultaneously execute line \ref{line:conc-true}.
+	From this point, the expression in line \ref{line:conc-gossip} can only be true.
+	Every node $u \in \Pi_{min}$ verifies $concordant_u(t') = true$.
+	Then the nodes in $\Pi_{min}$ are already in level 2, otherwise they would eventually level up (that would increase their $z_u$).
+	A fortiori, every other node is already in level 2.
+	That proves liveness.
 \end{proof}
 
 \subsection{Limitations and possible extensions of $SynchMod$ algorithm}
