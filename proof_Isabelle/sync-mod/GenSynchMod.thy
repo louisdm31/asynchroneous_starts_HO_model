@@ -19,12 +19,11 @@ locale k_mod = fixes k :: nat
 begin
 
 definition gen_initState where
-"gen_initState = (| x = 0, conc = False, ready = False, forc = 0, level = 0 |)"
+"gen_initState = (| x = 0, conc = False, ready = False, forc = 1, level = 0 |)"
 
 fun forceMsgs where
-  "forceMsgs (Content m) = Suc (forc m)"
-| "forceMsgs Void = 0"
-| "forceMsgs Bot  = 0"
+  "forceMsgs (Content m) = forc m"
+| "forceMsgs _ = 0"
 
 definition maxForce where
 "maxForce rcvd == Max (forceMsgs ` (range rcvd))"
@@ -54,7 +53,7 @@ definition gen_nextState :: "Proc => locState => (Proc => locState message) => l
         else
             conc s' = isConc msgs & ready s' = isReady msgs)
     else
-        x s' = 0 & level s' = (if ready_level1 msgs s then 1 else 2) & forc s' = max (level s') (maxForce msgs) & ready s' = (level s' > 0) & conc s'"
+        x s' = 0 & level s' = (if ready_level1 msgs s then 1 else 2) & forc s' = max (Suc (level s')) (maxForce msgs) & ready s' = (level s' > 0) & conc s'"
 
 definition gen_sendMsg where
 "gen_sendMsg p q st == st"

@@ -268,7 +268,7 @@ assumes star:"ALL p n. k_mod.path HO xi p n k"
 and loop:"ALL p r. p : HO r p"
 and run: "HORun (k_mod.gen_HOMachine k) rho HO" (is "HORun ?A _ _")
 and "k > 2"
-shows "i < k --> rho i pp = Active ss --> level ss = 0 & x ss <= i & forc ss = 0"
+shows "i < k --> rho i pp = Active ss --> level ss = 0 & x ss <= i & forc ss = 1"
 proof (induction i arbitrary: pp ss)
   case 0
   thus ?case using starting[of 0 rho pp k HO ss] assms unfolding k_mod.gen_initState_def by auto
@@ -277,25 +277,24 @@ next
   show ?case
   proof (rule impI)+
     assume "Suc ii < k" and ss:"rho (Suc ii) pp = Active ss"
-    show "level ss = 0 & x ss <= Suc ii & forc ss = 0"
+    show "level ss = 0 & x ss <= Suc ii & forc ss = 1"
     proof (cases "rho ii pp")
       case Asleep
-      thus "level ss = 0 & x ss <= Suc ii & forc ss = 0" using ss run starting[of "Suc ii" rho pp k HO]
+      thus "level ss = 0 & x ss <= Suc ii & forc ss = 1" using ss run starting[of "Suc ii" rho pp k HO]
         unfolding k_mod.gen_initState_def by auto
     next
       case (Active sss)
       hence transp:"k_mod.gen_nextState k pp sss (HOrcvdMsgs ?A pp (HO (Suc ii) pp) (rho ii)) ss"
         (is "k_mod.gen_nextState _ _ _ ?msgp _") using assms transition ss by auto
-      have a:"ALL p s. ?msgp p = Content s --> x s <= ii & level s = 0 & forc s = 0"
-      proof (rule allI impI)+
-        fix p s
-        assume "?msgp p = Content s"
-        from Suc.IH show "x s <= ii & level s = 0 & forc s = 0" using `?msgp p = Content s` sending_rec by (meson `Suc ii < k` lessI less_trans run)
-      qed
-      hence "ALL p. k_mod.forceMsgs (?msgp p) <= 1" by (metis k_mod.forceMsgs.elims)
-      hence "ALL q. q : k_mod.forceMsgs ` range ?msgp --> q = 0" by auto
-      moreover from this have "k_mod.forceMsgs (?msgp pp) = 0" by auto
-      ultimately have forc0:"k_mod.maxForce ?msgp = 0" unfolding k_mod.maxForce_def by auto
+      from Active have "?msgp pp = Content sss" using loop sending run by presburger
+      have "k_mod.forceMsgs (?msgp pp) : k_mod.forceMsgs ` (range ?msgp)" by blast
+      moreover have "k_mod.forceMsgs (?msgp pp) = 1" using Suc.IH[of pp sss] Active `?msgp pp = Content sss` by (simp add: Suc_lessD `Suc ii < k` k_mod.forceMsgs.simps(1))
+      ultimately have "k_mod.maxForce ?msgp >= 1" unfolding k_mod.maxForce_def by simp
+      moreover have a:"ALL p s. ?msgp p = Content s --> x s <= ii & level s = 0 & forc s = 1" using Suc.IH sending_rec by (meson `Suc ii < k` lessI less_trans run)
+      hence "ALL p. k_mod.forceMsgs (?msgp p) <= 1" 
+        unfolding k_mod.maxForce_def by (metis One_nat_def diff_Suc_1 diff_is_0_eq k_mod.forceMsgs.elims le_SucI le_zero_eq)
+      ultimately have forc0:"k_mod.maxForce ?msgp = 1" unfolding k_mod.maxForce_def by (simp add: le_antisym) 
+
       moreover have "?msgp pp = Content sss" using Active sending run using loop by auto
       ultimately have pp_inf:"?msgp pp = Content sss & forc sss = k_mod.maxForce ?msgp & x sss <= ii" using a by auto
       let ?prop = "%sss pp ii. ?msgp pp = Content sss & forc sss = k_mod.maxForce ?msgp & x sss = ii"
@@ -306,11 +305,44 @@ next
         unfolding k_mod.ready_level2_def k_mod.ready_level1_def by auto
       ultimately have "x ss <= Suc ii" using transp unfolding k_mod.gen_nextState_def by auto
       moreover from Suc.IH have "level ss = 0" using transp `Suc ii < k` Active unfolding k_mod.gen_nextState_def by (metis non_levelup a pp_inf)
-      moreover from forc0 have "forc ss = 0" using non_levelup transp unfolding k_mod.gen_nextState_def by auto
+      moreover from forc0 have "forc ss = 1" using non_levelup transp unfolding k_mod.gen_nextState_def by auto
       ultimately show ?thesis by auto
     qed
   qed
 qed
+
+lemma A2_bis:
+assumes loop:"ALL p r. p : HO r p"
+and run: "HORun (k_mod.gen_HOMachine k) rho HO" (is "HORun ?A _ _")
+and "k > 2"
+shows "rho r p = Active s --> forc s >= 1"
+proof (induction r arbitrary: p s)
+  case 0
+  thus ?case using starting[of 0 rho p k HO s] assms unfolding k_mod.gen_initState_def by auto
+next
+  case (Suc rr)
+  show ?case
+  proof
+    assume s:"rho (Suc rr) p = Active s"
+    show "forc s >= 1"
+    proof (cases "rho rr p")
+      case Asleep
+      thus "forc s >= 1" using starting[of "Suc rr" rho p k HO s] s assms unfolding k_mod.gen_initState_def by auto
+    next
+      case (Active ss)
+      let ?msgp = "HOrcvdMsgs ?A p (HO (Suc rr) p) (rho rr)"
+      have "?msgp p = Content ss" using Active loop sending run by presburger
+      have "k_mod.forceMsgs (?msgp p) : k_mod.forceMsgs ` (range ?msgp)" by blast
+      moreover have "k_mod.forceMsgs (?msgp p) >= 1" using Suc.IH[of p ss] Active `?msgp p = Content ss` by (simp add: k_mod.forceMsgs.simps(1))
+      ultimately have "k_mod.maxForce ?msgp >= 1" unfolding k_mod.maxForce_def by (meson Max_ge_iff UNIV_not_empty finite finite_imageI image_is_empty)
+      moreover have transp:"k_mod.gen_nextState k p ss ?msgp s" using Active assms transition s by auto
+      hence "forc s >= k_mod.maxForce ?msgp" unfolding k_mod.gen_nextState_def by auto
+      ultimately show "forc s >= 1" by auto
+    qed
+  qed
+qed
+
+
 
 lemma A3:
 assumes star:"ALL p n. k_mod.path HO xi p n k"
@@ -425,11 +457,24 @@ and minc:"k_mod.minMsgs (HOrcvdMsgs (k_mod.gen_HOMachine k) p (HO (Suc r) p) (rh
 shows "EX q sq sqq. rho (r-Suc c) q = Active sqq & forc sqq = f & (if f = 0 then rho (r-c) q = Asleep else rho (r-c) q = Active sq & forc sq = f-1)"
 proof (induction c arbitrary:p r)
   case 0
+  hence "True" using assms by auto
+  (*
+  show "EX q sq sqq. rho (r-Suc 0) q = Active sqq & forc sqq = f & (if f = 0 then rho (r-0) q = Asleep else rho (r-0) q = Active sq & forc sq = f-1)" using minc by auto
   have "?msgp p = Content sp" using sp run sending loop by presburger
-  hence "EX q sq. ?msgp q = Content sq" using LeastI_ex maxf unfolding k_mod.maxForce_def by auto
+  have "forc sp >= 1" using A2_bis run sp loop `2 < k` by blast
+  hence "k_mod.forceMsgs (?msgp p) > 0" using `?msgp p = Content sp` by (simp add:k_mod.forceMsgs.simps(1))
+  moreover have "k_mod.forceMsgs (?msgp p) : k_mod.forceMsgs ` range ?msgp" by auto
+  ultimately have "k_mod.maxForce ?msgp >= 1" using Max_ge[of "k_mod.forceMsgs ` range ?msgp" "k_mod.forceMsgs (?msgp p)"]
+    unfolding k_mod.maxForce_def by (metis One_nat_def finite finite_imageI le0 le_antisym not_le not_less_eq_eq)
+  hence "f >= 1" using maxf by auto
+  obtain q where "k_mod.forceMsgs (?msgp q) = f" using Max_in[of "k_mod.forceMsgs ` range ?msgp"] maxf unfolding k_mod.maxForce_def by auto
+  from this obtain sq where "?msgp q = Content sq" using `f >= 1` by (metis One_nat_def k_mod.forceMsgs.elims not_less_eq_eq order_refl)
+  hence "EX s sq. ?msgp q = Content sq & forc sq = k_mod.maxForce ?msgp & x sq = x sq"
+    using maxf `k_mod.forceMsgs (?msgp q) = f` by (smt (z3) k_mod.forceMsgs.simps(1))
+  from this obtain qq sqq where "?msgp qq = Content sqq & forc sqq = f & x sqq = c"
+    using LeastI_ex[of "%cc. EX sqq qq. ?msgp qq = Content sqq & forc sqq = k_mod.maxForce ?msgp & x sqq = cc"] minc unfolding k_mod.minMsgs_def by (metis maxf)
   obtain q sq where "?msgp q = Content sq" and "x sq = 0" using minc unfolding k_mod.minMsgs_def by auto
 
-(*
 lemma A4_simpl:
 assumes star:"ALL p n. k_mod.path HO xi p n k"
 and loop:"ALL p r. p : HO r p"
