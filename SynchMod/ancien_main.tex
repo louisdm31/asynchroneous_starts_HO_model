@@ -196,18 +196,18 @@ In such a situation, the node  is integrally part of the system and can send mes
 
 Let us recall the notion of \textit{product} of two graphs $G_1 = (V, E_1)$ and $G_2 = (V, G_2)$, denoted $G_1 \circ G_2$. This notion is defined in \cite{CBM19}.
 $G_1 \circ G_2$ has $V$ as its set of node, and $(u,v)$ is an edge if there exists $w \in V$ such that $(u,w) \in G_1$ and $(w,v) \in G_2$.
-For any dynamic graph $\mathds{G}$ and any integer $t' > t \geq 1$, we let $\mathds{G}(t:t') = \mathds{G}(t+1) \circ \mathds{G}(t+2) \circ \dots \circ \mathds{G}(t')$.
-When $t' \leq t$, $\mathds{G}(t:t')$ is the graph with only a self-loop at each node.
-Intuitively, the graph $\mathds{G}(t:t')$ contains an edge $(u,v)$ if some information about the state of node $u$ in round $t$ may reach node $v$ in round $t'$.
+For any dynamic graph $\mathds{G}$ and any integer $t' \geq t \geq 1$, we let $\mathds{G}(t:t') = \mathds{G}(t) \circ \mathds{G}(t+1) \circ \dots \circ \mathds{G}(t')$.
+When $t' < t$, $\mathds{G}(t:t')$ is the graph with only a self-loop at each node.
+Intuitively, the graph $\mathds{G}(t+1:t')$ contains an edge $(u,v)$ if some information about the state of node $u$ in round $t$ may reach node $v$ in round $t'$.
 The set of incoming neighbors of $u$ in $\mathds{G}(t:t')$ is noted as $In_u(t:t')$.
 A \textit{path from $u$ to $v$ in the interval $[t,t']$} is a finite sequence $(u = w(t), w(t+1), \dots, w(t') = v)$
 such that for any $l < t'-t$, the edge $(w(t+l),w(t+l+1))$ belongs to $E_{t+l+1}$.
-There exists a path from $u$ to $v$ in the interval $[t,t']$ if and only if $v \in In_u(t:t')$.
+There exists a path from $u$ to $v$ in the interval $[t,t']$ if and only if $v \in In_u(t+1:t')$.
 
 A \emph{network model} is any non-empty set of dynamic graphs with a permanent self-loop at each node.
 We will focus on the specific network model of \emph{centered with delay $k$} dynamic graphs~$\mathds{G}$ defined as follows: 
 
-$$\mathcal{P}_{k-centered} \triangleq \exists \cent \in V, \forall t \in \mathds{N}, \forall u \in V, \cent \in In_u(t:t+k).$$
+$$\mathcal{P}_{k-centered} \triangleq \exists \cent \in V, \forall t \in \mathds{N}, \forall u \in V, \cent \in In_u(t+1:t+k).$$
 
 Here, $k$ is the parameter of the $mod-k$-synchronization problem.
 There may be several fixed centers for $\mathds{G}$.
@@ -247,7 +247,7 @@ This $false$ value will spread in its outgoing neighbors (also line \ref{line:co
 If, in round $t+k$, its $concordant_u$ variable is still true, it will know that no non-congruence was detected between round $t$ and round $t+k$.
 This means that $\cent$ was congruent with 0 in round $t$.
 In that case, a level-up is allowed (see figure \ref{fig:fig1}).
-In opposition, if some node $j \in In_u(t:t+k)$ is not congruent with 0 in round $t$,
+In opposition, if some node $j \in In_u(t+1:t+k)$ is not congruent with 0 in round $t$,
 then the line \ref{line:conc-gossip} guarantees that $concordant_u$ will ultimately be false at the beginning of round $t+k$ (see figure \ref{fig:fig2}).
 In addition to $concordant$, the $ready$ variable makes sure that $\cent$ is already at level 1.
 If not, the level-up to level 2 is forbidden.
@@ -357,7 +357,7 @@ We now prove that this execution verifies the safety and liveness properties of 
 \end{lem}
 \begin{proof}
 	We show this lemma by induction over $i$.
-	The base case is impossible.
+	The base case is impossible (see line \ref{line:min-z-end}).
 	For the induction case, we assume that $c_u^{prelim}(t) = i+1$.
 	Then, some node $v$ sent to $u$ a message which looks like $\langle i, *, force_u^{prelim}(t), * \rangle$ (see lines \ref{line:force} and \ref{line:min-z-end}).
 	If $i = 0$, then $v$ is the node which satisfies the lemma.
@@ -378,23 +378,23 @@ Given the lines \ref{line:force} and \ref{line:min-z-end}, this lemma tells us t
 
 	If $force_u^{prelim}(t) = 1$, then, from lemma \ref{lem:safety-force}, some node $v$ reached level 1 in the round $t-c_u^{prelim}(t)$.
 	The lemma \ref{lem:no-close-level2} tells us that $i \geq k$.
-	Using $\mathcal{P}_{k-centered}$, we obtain $\cent \in In_u(t-i:t)$.
+	Using $\mathcal{P}_{k-centered}$, we obtain $\cent \in In_u(t-i+1:t)$.
 	The level-up of $v$ to level 1 must be more recent than the level-up of $\cent$ to level 1.
 	Then $c_u^{prelim}(t) \leq i$.
 \end{proof}
 
 \begin{lem} \label{lem:later-level1}
-	If $\cent$ reached level 1 in round $t$, whereas $u$ levels up in round $t+i$, then $i \equiv 0 [k]$. 
+	If $\cent$ reached level 1 in round $t$, whereas $u$ levels up later in round $t+i$, then $i \equiv 0 [k]$. 
 \end{lem}
 \begin{proof}
-	By contradiction, we consider the earliest node $u$ which levels up in round $t+i > t$ with $i \not\equiv 0 [k]$.
+	By contradiction, we consider the earliest node $u$ which levels up in round $t+i$ with $i \not\equiv 0 [k]$.
 
 	In the case $force_u^{prelim}(t+i) = 2$, the lemma \ref{lem:safety-force} implies the existence of a node $v$ which reached level 2 in some round $t'$. 
 	From lemma \ref{lem:ready-safety}, we get $t' \geq t$.
 
 	In the case $force_u^{prelim}(t+i) \leq 1$, the lemma \ref{lem:safety-force} implies the existence of a node $v$ which reached level 0 or 1 in some round $t' = t+i-c_u^{prelim}(t+i)$. 
 	The case $i < k$ is impossible according to lemma \ref{lem:no-close-level2}.
-	Then, using $\mathcal{P}_{k-centered}$, we obtain $\cent \in In_u(t:t+i)$.
+	Then, using $\mathcal{P}_{k-centered}$, we obtain $\cent \in In_u(t+1:t+i)$.
 	Since $u$ "knows" in round $t+i$ that $\cent$ and $v$ both leveled up in round $t$ and $t'$ respectively, and adopted $c_u^{prelim}(t+i) = t+i-t'$ rather than $i$,
 	we also get $t' \geq t$.
 	In both cases, from line \ref{line:cond-levelup}, we get $t' \equiv t+i [k]$.
