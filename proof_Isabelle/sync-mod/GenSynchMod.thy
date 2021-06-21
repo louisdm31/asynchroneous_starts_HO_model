@@ -53,7 +53,12 @@ definition gen_nextState :: "Proc => locState => (Proc => locState message) => l
         else
             conc s' = isConc msgs & ready s' = isReady msgs)
     else
-        x s' = 0 & level s' = (if ready_level1 msgs s then 1 else 2) & forc s' = max (Suc (level s')) (maxForce msgs) & ready s' = (level s' > 0) & conc s'"
+        level s' = (if ready_level1 msgs s then 1 else 2) &
+        (if maxForce msgs > Suc (level s') then
+            x s' = Suc (minMsgs msgs) & forc s' = maxForce msgs
+        else
+            x s' = 0 & forc s' = Suc (level s'))
+        & ready s' = (level s' > 0) & conc s'"
 
 definition gen_sendMsg where
 "gen_sendMsg p q st == st"
