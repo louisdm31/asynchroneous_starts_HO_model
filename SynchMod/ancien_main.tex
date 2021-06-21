@@ -313,31 +313,37 @@ of node $u$ in line \ref{line:cond-levelup} during round $t$, if $u$ is active i
 We now prove that this execution verifies the safety and liveness properties of the $mod-k$-synchronization problem.
 
 \begin{lem} \label{lem:conc-safety}
-	Let $i$ be an integer verifying $0 < i \leq k$, let $t$ be a round. Let $u$ and $v$ be two nodes such that there exists a path from $u$ to $v$ in the interval $[t+i,t+k]$.
+	Let $i$ be an integer, $0 < i \leq k$, and let  $u$ and $v$ be two nodes such that  $u\in In_v( t+i +1 : t+k)$.
 	If $c^-_v(t+k) \equiv 0 [k] \wedge sync^-_v(t+k)$, then $c_u^-(t+i) \equiv i [k]$.
 \end{lem}
 \begin{proof}
-	Let $u = w(t+i), \dots, w(t+k) = v$ be the path between $u$ and $v$.
-	By a backward induction, we show that every node $w(t+j)$ on this path is active
-	and verifies $c_{w(t+j)}^-(t+j) \equiv j [k]$ and $sync_{w(t+j)}^-(t+j)$.
-
-	The base case is the hypothesis of the lemma.
-	For the induction case, we assume that $i \leq j < k$, and $c_{w(t+j+1)}^-(t+j+1) \equiv j+1 [k]$ and $sync_{w(t+j+1)}^-(t+j+1)$.
-	We know that $w(t+j)$ sent to $w(t+j+1)$ in round $t+j+1$ either a null message, or a message of the form $\langle x, sync_{w(t+j)}(t+j), *, * \rangle$.
-	From line \ref{line:conc-gossip}, we get that $w(t+j)$ is active in round $t+j$ and $sync_{w(t+j)}(t+j)$ is true. Moreover, the received messages are congruent.
-	Then, from line \ref{line:min-z-end} and the induction hypothesis, we get $c_{w(t+j+1)}^-(t+j+1) \equiv x+1 \equiv j+1 [k]$.
-	Finally $c_{w(t+j)}^-(t+j) \equiv c_{w(t+j)}(t+j) \equiv j [k]$.
+	Let $u = w(t+i), \cdots, w(t+k) = v$ denote the timed-path between $u$ and $v$.
+	By a backward induction,  we show  that every node $w(t+j)$  is active at round $ t + j $
+	with $c_{w(t+j)}^-(t+j) \equiv j [k]$ and $sync_{w(t+j)}^-(t+j)$.
+	The base case is by hypothesis.
+	Assume now that $i \leq j < k$, and $c_{w(t+j+1)}^-(t+j+1) \equiv j+1 [k]$ and $sync_{w(t+j+1)}^-(t+j+1)$.
+	At round $t+j+1$,  the node $w(t+j+1)$ receives a message of the form $\langle x, sync_{w(t+j)}(t+j), *, * \rangle$ % PAS DE x
+	from the active node $w(t+j)$ .
+	From line \ref{line:conc-gossip}, we get that  $sync_{w(t+j)}(t+j)$ is true. 
+	Moreover, the received messages are congruent. % A CHANGER
+	Line \ref{line:min-z-end} and the induction hypothesis give $c_{w(t+j+1)}^-(t+j+1) \equiv x+1 \equiv j+1 [k]$.
+	Finally  % A JUSTIFIER.
+	$$c_{w(t+j)}^-(t+j) \equiv c_{w(t+j)}(t+j) \equiv j [k] $$
+	as required.
 \end{proof}
 
 \noindent Using similar reasoning, we can prove the following lemma.
 \begin{lem} \label{lem:conc-safety-bis}
-	If $sync_u^-(t+k) \wedge ready_u^-(t+k) \wedge c_u^-(t+k) \equiv 0 [k]$, then $level_\cent(t) \geq 1$.
+If there exists some node $u$ such that at round~$t+k$, it holds that 
+	$$sync_u^-(t+k) \wedge ready_u^-(t+k) \wedge c_u^-(t+k) \equiv 0 [k] $$ 
+	then any $k$-center $\gamma$ satisfies $level_\cent(t) \geq 1$.
 \end{lem}
 \begin{proof}
-	We consider a path $(\cent = w(t), \dots, w(t+k) = u)$. Such a path exist because we assumed that $\mathcal{P}_{k-centered}$.
-	We can show using a backward induction along this path that any node $w(t+i)$ with $0 \leq i < k$ on this path is active and verifies
-	$sync_{w(t+i)}(t+i) \wedge ready_{w(t+i)}(t+i) \wedge c_{w(t+i)}(t+i) \equiv i [k]$.
-	We eventually get $ready_\cent(t) \wedge c_\cent(t) \equiv 0 [k]$. The line \ref{line:init-ready} terminates the proof.
+Since $\gamma$ is a $k$-center,  there exists a timed-path $\cent = w(t), \dots, w(t+k) = u$. 
+%Using a backward induction along this path, we show  that any node $w(t+i)$ with $0 \leq i < k$  is active at round~$t +i $ 
+%	and verifies
+%	$sync_{w(t+i)}(t+i) \wedge ready_{w(t+i)}(t+i) \wedge c_{w(t+i)}(t+i) \equiv i [k]$.
+%	We eventually get $ready_\cent(t) \wedge c_\cent(t) \equiv 0 [k]$. The line \ref{line:init-ready} terminates the proof.
 \end{proof}
 
 \begin{lem} \label{lem:no-close-level2}
@@ -384,10 +390,10 @@ Given the lines \ref{line:force} and \ref{line:min-z-end}, this lemma tells us t
 \end{proof}
 
 \begin{lem} \label{lem:later-level1}
-	If $\cent$ reached level 1 in round $t$, whereas $u$ levels up later in round $t+i$, then $i \equiv 0 [k]$. 
+	If $\cent$ reached level 1 in round $t$, whereas $u$ levels up in round $t+i$, then $i \equiv 0 [k]$. 
 \end{lem}
 \begin{proof}
-	By contradiction, we consider the earliest node $u$ which levels up in round $t+i$ with $i \not\equiv 0 [k]$.
+	By contradiction, we consider the earliest node $u$ which levels up in round $t+i > t$ with $i \not\equiv 0 [k]$.
 
 	In the case $force_u^-(t+i) = 2$, the lemma \ref{lem:safety-force} implies the existence of a node $v$ which reached level 2 in some round $t'$. 
 	From lemma \ref{lem:ready-safety}, we get $t' \geq t$.
@@ -624,3 +630,4 @@ In the wilder context of dynamic graphs, a natural question is whether the probl
 \printbibliography
 
 \end{document}
+
