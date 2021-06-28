@@ -6,16 +6,15 @@ lemma sending:
 assumes s:"rho r p = Active s"
   and run: "HORun (k_mod.gen_HOMachine k) rho HO" (is "HORun ?A _ _")
 shows "ALL q. HOrcvdMsgs (k_mod.gen_HOMachine k) q (HO (Suc r) q) (rho r) p
-    = (if p : HO (Suc r) q then Content s else Void)"
-using HOrcvdMsgs_def[of ?A] s by (simp add: k_mod.gen_HOMachine_def k_mod.gen_sendMsg_def)
+    = (if p : HO (Suc r) q then Content s else Void)" using s
+unfolding HOrcvdMsgs_def k_mod.gen_HOMachine_def k_mod.gen_sendMsg_def by simp
 
 lemma sending_rec : assumes run:"HORun (k_mod.gen_HOMachine k) rho HO" (is "HORun ?A rho HO")
   assumes "(HOrcvdMsgs (k_mod.gen_HOMachine k) p (HO (Suc r) p) (rho r)) q = Content v" (is "?msgs q = _")
   shows "rho r q = Active v"
 proof (cases "rho r q")
   case Asleep
-  hence "?msgs q = (if q : HO (Suc r) p then Bot else Void)"
-  using HOrcvdMsgs_def[of ?A p "HO (Suc r) p" "rho r"] by auto
+  hence "?msgs q = (if q : HO (Suc r) p then Bot else Void)" unfolding HOrcvdMsgs_def by auto
   thus "rho r q = Active v" using `?msgs q = Content v` by auto
 next
   case (Active sq)
@@ -41,34 +40,6 @@ proof -
   thus ?thesis by (simp add:k_mod.gen_HOMachine_def act)
 qed
 
-lemma path_extend:
-assumes "ALL p t. k_mod.path HO xi p t D"
-and "D>0"
-shows "ALL i t. k_mod.path HO xi p t (D+i)"
-proof (rule allI)+
-  fix i t
-  show "k_mod.path HO xi p t (D+i)"
-  proof (induction i arbitrary:p)
-    case 0
-    show ?case using assms by auto
-  next
-    case (Suc i)
-    from assms obtain seq where "seq D = p" and
-      "ALL j < D. seq j : HO (t+Suc i+Suc j) (seq (Suc j))" unfolding k_mod.path_def by fastforce
-    hence 1:"seq (D-1) : HO (t+D+Suc i) (seq D)" using `D>0`
-      by (metis (full_types) Suc_diff_1 add.assoc add.commute add_Suc_right lessI)
-    from Suc.IH obtain seqD where D0:"seqD 0 = xi" and Di:"seqD (D+i) = seq (D-1)" and
-      seqD:"ALL j < D+i. seqD j : HO (t+Suc j) (seqD (Suc j))" unfolding k_mod.path_def by fastforce
-    let "?seq_tot j" = "if j = D + Suc i then p else seqD j"
-    have "?seq_tot 0 = xi" and "?seq_tot (D+Suc i) = p" using D0 by auto
-    moreover from this have "ALL j < D+Suc i. ?seq_tot j : HO (t+Suc j) (?seq_tot (Suc j))" 
-      using 1 `seq D = p` D0 Di
-      by (smt add.assoc add_Suc_right add_diff_cancel_left' less_antisym less_irrefl_nat plus_1_eq_Suc seqD)
-    ultimately show "k_mod.path HO xi p t (D+Suc i)"
-      unfolding k_mod.path_def using exI[of _ ?seq_tot] by auto 
-  qed
-qed
-
 lemma transition : assumes s_def:"rho r p = Active s"
 and ss_def:"rho (Suc r) p = Active ss"
 and run:"HORun (k_mod.gen_HOMachine k) rho HO" (is "HORun ?A _ _")
@@ -76,8 +47,8 @@ and "k > 2"
 shows "k_mod.gen_nextState k p s (HOrcvdMsgs ?A p (HO (Suc r) p) (rho r)) ss" (is "k_mod.gen_nextState  _ _ _ ?msgs _")
 proof -
     have "CHOnextConfig ?A (rho r) (HO (Suc r)) (%w. undefined) (rho (Suc r))" using run by (simp add:HORun_def CHORun_def)
-    then obtain sss where "rho (Suc r) p = Active sss & CnextState ?A p s ?msgs undefined sss" 
-        using CHOnextConfig_def[of ?A "rho r" "HO (Suc r)" "%w. undefined" "rho (Suc r)"] s_def by fastforce
+    then obtain sss where "rho (Suc r) p = Active sss & CnextState ?A p s ?msgs undefined sss" using s_def 
+        unfolding CHOnextConfig_def by presburger
     hence "CnextState ?A p s ?msgs undefined ss" using ss_def by auto
     thus nxt:"k_mod.gen_nextState k p s ?msgs ss" unfolding k_mod.gen_HOMachine_def by auto
 qed
@@ -836,12 +807,9 @@ and loop:"ALL p r. p : HO r p"
 and run: "HORun (k_mod.gen_HOMachine k) rho HO" (is "HORun ?A _ _")
 and "k > 2"
 shows "k_mod.safety k rho"
-proof (cases "EX t s ss. rho t xi = Active s & rho (Suc t) xi = Active ss & level s = 0 & level ss = 1")
-  case True
+proof -
   define tt where "tt = (SOME t. EX s ss. rho t xi = Active s & rho (Suc t) xi = Active ss & level s = 0 & level ss = 1)"
     (is "tt = (SOME t. EX s ss. ?P t s ss)")
-  obtain t sxt ssxt where "?P t sxt ssxt" using True by auto
-  from this obtain sx ssx where "?P tt sx ssx" using someI_ex[of "%t. EX s ss. ?P t s ss"] unfolding tt_def by auto
   have "ALL p r sp ssp. rho r p = Active sp --> level sp < 2 --> rho (Suc r) p = Active ssp --> level ssp = 2 --> r mod k = tt mod k"
   proof (rule+)
     fix p r sp ssp
@@ -861,48 +829,33 @@ proof (cases "EX t s ss. rho t xi = Active s & rho (Suc t) xi = Active ss & leve
     hence trans:"k_mod.gen_nextState k xi ss msgs sss" using transition
       `r >= k` assms sss Suc_diff_le unfolding msgs_def by fastforce
     hence "level sss > 0" using `ready sss` `x sss mod k = 0` unfolding k_mod.gen_nextState_def by auto
-    hence "Suc r-k >= tt" using level_growing[of HO k rho "Suc r-k" xi sss "tt-(Suc r-k)" sx]
-      sss `?P tt sx ssx` assms by (metis add_diff_inverse_nat le_less not_le)
-    hence "(r-tt) mod k = 0" using A4[of HO xi k rho tt "r-tt" p sp ssp sx ssx] sp ssp
-      `?P tt sx ssx` assms `level ssp = 2` lev2 unfolding k_mod.ready_level2_def by auto
-    thus "r mod k = tt mod k" using `Suc r-k >= tt` mod_add_left_eq[of "r-tt" k tt] 
-      by (metis Suc_1 Suc_diff_le `k <= r` add.commute add_cancel_right_left add_diff_inverse_nat assms(4)
-      diff_less dual_order.strict_trans dual_order.strict_trans1 less_trans_Suc not_le zero_less_Suc)
-  qed
-  thus ?thesis unfolding k_mod.safety_def by auto
-next
-  case False
-  have "ALL p r sp ssp. rho r p = Active sp --> level sp < 2 --> rho (Suc r) p = Active ssp --> level ssp = 2 --> r mod k = 0"
-  proof (rule+)
-    fix p r sp ssp
-    assume sp:"rho r p = Active sp" and "level sp < 2" and ssp:"rho (Suc r) p = Active ssp" and "level ssp = 2" 
-    define msgs where "msgs = HOrcvdMsgs (k_mod.gen_HOMachine k) xi (HO (Suc r-k) xi) (rho (r-k))"
-    define msgp where "msgp = HOrcvdMsgs (k_mod.gen_HOMachine k) p (HO (Suc r) p) (rho r)"
-    hence transp:"k_mod.gen_nextState k p sp msgp ssp" using transition assms sp ssp by auto
-    hence lev2:"k_mod.ready_level2 k msgp sp" using `level sp < 2` `level ssp = 2`
-      unfolding k_mod.ready_level2_def k_mod.gen_nextState_def by auto
-    hence "x ssp mod k = 0" using ssp transp unfolding k_mod.ready_level2_def k_mod.gen_nextState_def
-      by (metis One_nat_def Suc_diff_1 Suc_lessD `level sp < 2` assms(4) less_trans mod_Suc mod_less)
-    moreover have "r >= k" using A2[of HO xi k rho r p sp] lev2 leI assms sp unfolding k_mod.ready_level2_def by auto
-    ultimately obtain sss where sss:"rho (Suc r-k) xi = Active sss" and "ready sss" and "x sss mod k = 0"
-      using A1[of HO xi p "Suc r-k" 0 k rho ssp] star lev2 loop run ssp `2 < k` unfolding msgp_def k_mod.ready_level2_def by auto
-    hence "rho (r-k) xi ~= Asleep" using starting[of "Suc r-k" rho xi] assms `r >= k` unfolding k_mod.gen_initState_def by fastforce
-    from this obtain ss where "rho (r-k) xi = Active ss" by (cases "rho (r-k) xi") auto
-    hence trans:"k_mod.gen_nextState k xi ss msgs sss" using transition
-      `r >= k` assms sss Suc_diff_le unfolding msgs_def by fastforce
-    hence "level sss > 0" using `ready sss` `x sss mod k = 0` unfolding k_mod.gen_nextState_def by auto
-    define jj where "jj = (LEAST j. EX s. rho j xi = Active s & level s > 0)" (is "_ = (LEAST j. EX s. ?Q j s)")
-    have "?Q (Suc r-k) sss" using sss `level sss > 0` by auto
-    from this obtain s where s:"rho jj xi = Active s" and "level s > 0" using LeastI_ex[of "%j. EX s. ?Q j s"] unfolding jj_def by auto
-    hence "rho (jj-1) xi ~= Asleep" using starting[of jj rho xi k HO s] assms unfolding k_mod.gen_initState_def by auto
-    from this obtain sx where sx:"rho (jj-1) xi = Active sx" by (cases "rho (jj-1) xi") auto
-    have "jj > 0" using starting[of jj rho xi k HO s] `level s > 0` assms s unfolding k_mod.gen_initState_def by fastforce
-    define msgs where "msgs = HOrcvdMsgs (k_mod.gen_HOMachine k) xi (HO jj xi) (rho (jj-1))"
-    hence transj:"k_mod.gen_nextState k xi sx msgs s" using transition s sx assms `jj > 0` by fastforce
-    have "level sx = 0" using Least_le[of "%j. EX s. ?Q j s" "jj-1"] `jj > 0` sx
-      unfolding jj_def by (meson diff_less neq0_conv not_le zero_less_one)
-    hence "level s = 1" using transj `0 < level s` unfolding k_mod.ready_level2_def k_mod.gen_nextState_def by auto
-    thus "r mod k = 0" using False `level sx = 0` s `jj > 0` sx by fastforce
+    thus "r mod k = tt mod k"
+    proof (cases "EX t s ss. rho t xi = Active s & rho (Suc t) xi = Active ss & level s = 0 & level ss = 1")
+      case True
+      obtain t sxt ssxt where "?P t sxt ssxt" using True by auto
+      from this obtain sx ssx where "?P tt sx ssx" using someI_ex[of "%t. EX s ss. ?P t s ss"] unfolding tt_def by auto
+      hence "Suc r-k >= tt" using level_growing[of HO k rho "Suc r-k" xi sss "tt-(Suc r-k)" sx] `level sss > 0`
+        sss `?P tt sx ssx` assms by (metis add_diff_inverse_nat le_less not_le)
+      hence "(r-tt) mod k = 0" using A4[of HO xi k rho tt "r-tt" p sp ssp sx ssx] sp ssp
+        `?P tt sx ssx` assms `level ssp = 2` lev2 unfolding k_mod.ready_level2_def by auto
+      thus "r mod k = tt mod k" using `Suc r-k >= tt` mod_add_left_eq[of "r-tt" k tt] 
+        by (metis Suc_1 Suc_diff_le `k <= r` add.commute add_cancel_right_left add_diff_inverse_nat assms(4)
+        diff_less dual_order.strict_trans dual_order.strict_trans1 less_trans_Suc not_le zero_less_Suc)
+    next
+      case False
+      define jj where "jj = (LEAST j. EX s. rho j xi = Active s & level s > 0)" (is "_ = (LEAST j. EX s. ?Q j s)")
+      have "?Q (Suc r-k) sss" using sss `level sss > 0` by auto
+      from this obtain s where s:"rho jj xi = Active s" and "level s > 0" using LeastI_ex[of "%j. EX s. ?Q j s"] unfolding jj_def by auto
+      hence "rho (jj-1) xi ~= Asleep" using starting[of jj rho xi k HO s] assms unfolding k_mod.gen_initState_def by auto
+      from this obtain sx where sx:"rho (jj-1) xi = Active sx" by (cases "rho (jj-1) xi") auto
+      have "jj > 0" using starting[of jj rho xi k HO s] `level s > 0` assms s unfolding k_mod.gen_initState_def by fastforce
+      hence transj:"k_mod.gen_nextState k xi sx (HOrcvdMsgs (k_mod.gen_HOMachine k) xi (HO jj xi) (rho (jj-1))) s"
+        using transition s sx assms `jj > 0` by fastforce
+      have "level sx = 0" using Least_le[of "%j. EX s. ?Q j s" "jj-1"] `jj > 0` sx
+        unfolding jj_def by (meson diff_less neq0_conv not_le zero_less_one)
+      hence "level s = 1" using transj `0 < level s` unfolding k_mod.ready_level2_def k_mod.gen_nextState_def by auto
+      thus "r mod k = tt mod k" using False `level sx = 0` s `jj > 0` sx by fastforce
+    qed
   qed
   thus ?thesis unfolding k_mod.safety_def by auto
 qed
