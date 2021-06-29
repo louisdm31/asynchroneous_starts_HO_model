@@ -18,7 +18,7 @@ text \<open>
 
   More formally, we represent runs of algorithms as `\<omega>`-sequences of
   configurations (vectors of process states). Hence, a run is modeled as
-  a function of type `nat => 'proc => 'pst` where type variables 
+  a function of type `nat \<Rightarrow> 'proc \<Rightarrow> 'pst` where type variables 
   `'proc` and `'pst` represent types of processes and process
   states, respectively.
 \<close>
@@ -32,14 +32,14 @@ fun the_state where
 
 text \<open>Predicate that holds if process @{text p} always sleeps in run @{text rho}.\<close>
 definition always_asleep where
-  "always_asleep rho p == ALL n. rho n p = Asleep"
+  "always_asleep rho p \<equiv> \<forall>n. rho n p = Asleep"
 
 text \<open>Round in which a process that is not always asleep wakes up.\<close>
 definition first_awake where
-  "first_awake rho p == LEAST n. rho n p ~= Asleep"
+  "first_awake rho p \<equiv> LEAST n. rho n p \<noteq> Asleep"
 
-definition get_init_state :: "(nat => 'proc => 'pst proc_state) => 'proc => 'pst proc_state" where
-  "get_init_state rho p == 
+definition get_init_state :: "(nat \<Rightarrow> 'proc \<Rightarrow> 'pst proc_state) \<Rightarrow> 'proc \<Rightarrow> 'pst proc_state" where
+  "get_init_state rho p \<equiv> 
     if always_asleep rho p then Asleep 
     else rho (first_awake rho p) p"
 (* rho (Max ({n + 1 | n. rho n p = Asleep } \<union> {0})) p" *)
@@ -47,7 +47,7 @@ definition get_init_state :: "(nat => 'proc => 'pst proc_state) => 'proc => 'pst
 text \<open>
   The Consensus property is expressed with respect
   to a collection `val` of initially proposed values (one per process) 
-  and an observer function `dec::'pst => val option` that retrieves the decision
+  and an observer function `dec::'pst \<Rightarrow> val option` that retrieves the decision
   (if any) from a process state. The Consensus problem is stated as the conjunction
   of the following properties:
   \begin{description}
@@ -64,13 +64,13 @@ text \<open>
   above formulation is appropriate in this framework.
 \<close>
 definition
-  consensus :: "('proc => 'val) => ('pst => 'val option) => (nat => 'proc => 'pst proc_state) => bool"
+  consensus :: "('proc \<Rightarrow> 'val) \<Rightarrow> ('pst \<Rightarrow> 'val option) \<Rightarrow> (nat \<Rightarrow> 'proc \<Rightarrow> 'pst proc_state) \<Rightarrow> bool"
 where
-  "consensus vals dec rho ==
-     (ALL n p v s. rho n p = Active s --> dec s = Some v --> v : range vals)
-   & (ALL m n p q v w sp sq. rho m p = Active sp --> dec sp = Some v 
-         --> rho n q = Active sq --> dec sq = Some w --> v = w)
-   & (ALL p. ~always_asleep rho p --> (EX n s. rho n p = Active s & dec s ~= None))"
+  "consensus vals dec rho \<equiv>
+     (\<forall>n p v s. rho n p = Active s \<longrightarrow> dec s = Some v \<longrightarrow> v \<in> range vals)
+   \<and> (\<forall>m n p q v w sp sq. rho m p = Active sp \<longrightarrow> dec sp = Some v 
+         \<longrightarrow> rho n q = Active sq \<longrightarrow> dec sq = Some w \<longrightarrow> v = w)
+   \<and> (\<forall>p. \<not>always_asleep rho p \<longrightarrow> (\<exists>n s. rho n p = Active s \<and> dec s \<noteq> None))"
 
 text \<open>
   A variant of the Consensus problem replaces the Integrity requirement by
@@ -81,11 +81,11 @@ text \<open>
 \<close>
 
 definition weak_consensus where
-  "weak_consensus vals dec rho ==
-     (ALL v. (ALL p. vals p = v) --> (ALL n p w s. rho n p = Active s --> dec s = Some w --> w = v))
-   & (ALL m n p q v w sp sq. rho m p = Active sp --> dec sp = Some v 
-         --> rho n q = Active sq --> dec sq = Some w --> v = w)
-   & (ALL p. ~always_asleep rho p --> (EX n s. rho n p = Active s & dec s ~= None))"
+  "weak_consensus vals dec rho \<equiv>
+     (\<forall>v. (\<forall>p. vals p = v) \<longrightarrow> (\<forall>n p w s. rho n p = Active s \<longrightarrow> dec s = Some w \<longrightarrow> w = v))
+   \<and> (\<forall>m n p q v w sp sq. rho m p = Active sp \<longrightarrow> dec sp = Some v 
+         \<longrightarrow> rho n q = Active sq \<longrightarrow> dec sq = Some w \<longrightarrow> v = w)
+   \<and> (\<forall>p. \<not>always_asleep rho p \<longrightarrow> (\<exists>n s. rho n p = Active s \<and> dec s \<noteq> None))"
 
 text \<open>
   Clearly, `consensus` implies `weak_consensus`.
@@ -105,15 +105,15 @@ text \<open>
 \<close>
 
 lemma binary_weak_consensus_then_consensus:
-  assumes bc: "weak_consensus (vals::'proc => bool) dec rho"
+  assumes bc: "weak_consensus (vals::'proc \<Rightarrow> bool) dec rho"
   shows "consensus vals dec rho"
 proof -
   text \<open>Show the Integrity property, the other conjuncts are the same.\<close>
   {
     fix n p v s
     assume act: "rho n p = Active s" and dec: "dec s = Some v"
-    have "v : range vals"
-    proof (cases "EX b. ALL p. vals p = b")
+    have "v \<in> range vals"
+    proof (cases "\<exists>b. \<forall>p. vals p = b")
       case True with bc act dec show ?thesis
         unfolding weak_consensus_def by (smt range_eqI)
     next
@@ -191,7 +191,7 @@ text \<open>
   \item a predicate `CnextState` where `CnextState r p st msgs crd st'`
     characterizes the successor states `st'` of process `p` at round
     `r`, given current state `st`, the vector
-    `msgs :: 'proc => 'msg option` of messages that `p` received at
+    `msgs :: 'proc \<Rightarrow> 'msg option` of messages that `p` received at
     round `r` (`msgs q = None` indicates that no message has been
     received from process `q`),
     and process `crd` as the coordinator for the following round.
@@ -205,9 +205,9 @@ text \<open>
 
 
 record ('proc, 'pst, 'msg) CHOAlgorithm =
-  CinitState ::  "'proc => 'pst => 'proc => bool"
-  sendMsg ::   "'proc => 'proc => 'pst => 'msg"
-  CnextState :: "'proc => 'pst => ('proc => 'msg message) => 'proc => 'pst => bool"
+  CinitState ::  "'proc \<Rightarrow> 'pst \<Rightarrow> 'proc \<Rightarrow> bool"
+  sendMsg ::   "'proc \<Rightarrow> 'proc \<Rightarrow> 'pst \<Rightarrow> 'msg"
+  CnextState :: "'proc \<Rightarrow> 'pst \<Rightarrow> ('proc \<Rightarrow> 'msg message) \<Rightarrow> 'proc \<Rightarrow> 'pst \<Rightarrow> bool"
 
 text \<open>
   For non-coordinated HO algorithms, the coordinator argument of functions
@@ -216,16 +216,16 @@ text \<open>
 \<close>
 
 definition isNCAlgorithm where
-  "isNCAlgorithm alg ==
-     (ALL p st crd crd'. CinitState alg p st crd = CinitState alg p st crd')
-   & (ALL p st msgs crd crd' st'. CnextState alg p st msgs crd st'
+  "isNCAlgorithm alg \<equiv>
+     (\<forall>p st crd crd'. CinitState alg p st crd = CinitState alg p st crd')
+   \<and> (\<forall>p st msgs crd crd' st'. CnextState alg p st msgs crd st'
                                = CnextState alg p st msgs crd' st')"
 
 definition initState where
-  "initState alg p st == CinitState alg p st undefined"
+  "initState alg p st \<equiv> CinitState alg p st undefined"
 
 definition nextState where
-  "nextState alg p st msgs st' == CnextState alg p st msgs undefined st'"
+  "nextState alg p st msgs st' \<equiv> CnextState alg p st msgs undefined st'"
 
 text \<open>
   A \emph{heard-of assignment} associates a set of processes with each
@@ -237,10 +237,10 @@ text \<open>
 \<close>
 
 type_synonym
-  'proc HO = "'proc => 'proc set"
+  'proc HO = "'proc \<Rightarrow> 'proc set"
 
 type_synonym
-  'proc coord = "'proc => 'proc"
+  'proc coord = "'proc \<Rightarrow> 'proc"
 
 text \<open>
   An execution of an HO algorithm is defined with respect to HO and SHO
@@ -286,67 +286,67 @@ text \<open>
   executions `rho` of an HO algorithm.
 \<close>
 
-fun HOrcvMsgs_q :: "'proc => ('proc, 'pst, 'msg) CHOAlgorithm  => 'proc =>
-                         'pst proc_state => 'msg message" where
+fun HOrcvMsgs_q :: "'proc \<Rightarrow> ('proc, 'pst, 'msg) CHOAlgorithm  \<Rightarrow> 'proc \<Rightarrow>
+                         'pst proc_state \<Rightarrow> 'msg message" where
   "HOrcvMsgs_q q A p (Active s) = Content (sendMsg A q p s)"
 | "HOrcvMsgs_q q A p Asleep = Bot"
 
-definition HOrcvdMsgs :: "('proc, 'pst, 'msg) CHOAlgorithm => 'proc =>
-                          'proc set => ('proc => 'pst proc_state)
-                          => 'proc => 'msg message" where
-  "HOrcvdMsgs A p HO cfg ==
-   %q. if q : HO then HOrcvMsgs_q q A p (cfg q) else Void"
+definition HOrcvdMsgs :: "('proc, 'pst, 'msg) CHOAlgorithm \<Rightarrow> 'proc \<Rightarrow>
+                          'proc set \<Rightarrow> ('proc \<Rightarrow> 'pst proc_state)
+                          \<Rightarrow> 'proc \<Rightarrow> 'msg message" where
+  "HOrcvdMsgs A p HO cfg \<equiv>
+   \<lambda>q. if q \<in> HO then HOrcvMsgs_q q A p (cfg q) else Void"
 
 definition CHOnextConfig where
-  "CHOnextConfig A cfg HO coord cfg' ==
-   ALL p s.       cfg  p = Active s -->
-         (EX s'. cfg' p = Active s' & CnextState A p s (HOrcvdMsgs A p (HO p) cfg) (coord p) s')"
+  "CHOnextConfig A cfg HO coord cfg' \<equiv>
+   \<forall>p s.       cfg  p = Active s \<longrightarrow>
+         (\<exists>s'. cfg' p = Active s' \<and> CnextState A p s (HOrcvdMsgs A p (HO p) cfg) (coord p) s')"
 
 definition CHOinitConfig where
-  "CHOinitConfig A rho coord ==
-   ALL p. (always_asleep rho p) |
+  "CHOinitConfig A rho coord \<equiv>
+   \<forall>p. (always_asleep rho p) \<or>
        (let k = first_awake rho p
         in  CinitState A p (the_state (rho k p)) (coord k p))"
-(*  ALL p (n::nat) s. (n > 0 --> rho (n-1) p = Asleep) --> rho n p = Active s --> CinitState A p s (coord n p)" *)
+(*  \<forall>p (n::nat) s. (n > 0 \<longrightarrow> rho (n-1) p = Asleep) \<longrightarrow> rho n p = Active s \<longrightarrow> CinitState A p s (coord n p)" *)
 
 
 definition CHORun where
-  "CHORun A rho HOs coords == 
+  "CHORun A rho HOs coords \<equiv> 
      CHOinitConfig A rho coords
-  & (ALL p n. p : HOs n p)
-  & (ALL r. CHOnextConfig A (rho r) (HOs (Suc r)) (coords (Suc r)) (rho (Suc r)))"
+  \<and> (\<forall>p n. p \<in> HOs n p)
+  \<and> (\<forall>r. CHOnextConfig A (rho r) (HOs (Suc r)) (coords (Suc r)) (rho (Suc r)))"
 
 lemma nonAsleepAgain : 
-  assumes "rho n p ~= Asleep" and "CHORun A rho HO coord"
-  shows "EX s. rho (n+(m::nat)) p = Active s"
+  assumes "rho n p \<noteq> Asleep" and "CHORun A rho HO coord"
+  shows "\<exists>s. rho (n+(m::nat)) p = Active s"
 proof (induction m)
   case 0
   show ?case using assms by (cases "rho n p") auto
 next
   case (Suc x)
-  hence "EX s. rho (n + x) p = Active s" by (cases "rho (n+x) p") auto
-  thus "EX s. rho (n + Suc x) p = Active s" 
+  hence "\<exists>s. rho (n + x) p = Active s" by (cases "rho (n+x) p") auto
+  thus "\<exists>s. rho (n + Suc x) p = Active s" 
     using assms CHORun_def CHORun_def CHOnextConfig_def by (metis add_Suc_right)
 qed
 
 lemma first_awake:
   assumes run: "CHORun A rho HO coord" 
-    and prev: "0 < n --> rho (n-1) p = Asleep" 
+    and prev: "0 < n \<longrightarrow> rho (n-1) p = Asleep" 
     and act: "rho n p = Active s"
   shows "first_awake rho p = n"
   unfolding first_awake_def
 proof  (rule Least_equality)
-  from act show "rho n p ~= Asleep" by simp
+  from act show "rho n p \<noteq> Asleep" by simp
 next
   fix m
-  assume m: "rho m p ~= Asleep"
+  assume m: "rho m p \<noteq> Asleep"
   show "n \<le> m"
   proof (rule ccontr)
-    assume "~(n \<le> m)"
+    assume "\<not>(n \<le> m)"
     hence "m < n" by simp
     then obtain k where k: "n-1 = m+k"
       by (metis Suc_eq_plus1_left add_diff_cancel_left' less_imp_Suc_add) 
-    with m run have "EX s'. rho (n-1) p = Active s'" by (auto dest: nonAsleepAgain)
+    with m run have "\<exists>s'. rho (n-1) p = Active s'" by (auto dest: nonAsleepAgain)
     with `m < n` prev show "False" by simp
   qed
 qed
@@ -357,40 +357,40 @@ text \<open>
   them to the above utility functions for these algorithms.
 \<close>
 definition HOinitConfig where
-  "HOinitConfig A cfg == CHOinitConfig A cfg (%_ _. undefined)"
+  "HOinitConfig A cfg \<equiv> CHOinitConfig A cfg (\<lambda>_ _. undefined)"
 
 lemma HOinitConfig_eq:
   "HOinitConfig A rho =
-   (ALL p. always_asleep rho p |
+   (\<forall>p. always_asleep rho p \<or>
         initState A p (the_state (rho (first_awake rho p) p)))"
   by (auto simp: HOinitConfig_def CHOinitConfig_def initState_def Let_def)
    
 (*
 lemma HOinitConfig_eq:
-  "HOinitConfig A rho = (ALL p (n::nat) s. (n > 0 --> rho (n-1) p = Asleep) -->
-                                        rho n p = Active s --> initState A p s)"
+  "HOinitConfig A rho = (\<forall>p (n::nat) s. (n > 0 \<longrightarrow> rho (n-1) p = Asleep) \<longrightarrow>
+                                        rho n p = Active s \<longrightarrow> initState A p s)"
   by (auto simp: HOinitConfig_def CHOinitConfig_def initState_def)
 *)
 
 definition HOnextConfig where
-  "HOnextConfig A cfg HO cfg' ==
-   CHOnextConfig A cfg HO (%_. undefined) cfg'"
+  "HOnextConfig A cfg HO cfg' \<equiv>
+   CHOnextConfig A cfg HO (\<lambda>_. undefined) cfg'"
 
-definition HORun :: "('proc, 'pst, 'msg) CHOAlgorithm =>
-                      (nat => 'proc => 'pst proc_state) => (nat => 'proc => 'proc set) => bool" where
-  "HORun A rho HOs ==
-   CHORun A rho HOs (%_ _. undefined)"
+definition HORun :: "('proc, 'pst, 'msg) CHOAlgorithm \<Rightarrow>
+                      (nat \<Rightarrow> 'proc \<Rightarrow> 'pst proc_state) \<Rightarrow> (nat \<Rightarrow> 'proc \<Rightarrow> 'proc set) \<Rightarrow> bool" where
+  "HORun A rho HOs \<equiv>
+   CHORun A rho HOs (\<lambda>_ _. undefined)"
 
 lemma HORun_eq:
   "HORun A rho HOs =
    (HOinitConfig A rho 
-    & (ALL p n. p : HOs n p)
-    & (ALL r. HOnextConfig A (rho r) (HOs (Suc r)) (rho (Suc r))))"
+    \<and> (\<forall>p n. p \<in> HOs n p)
+    \<and> (\<forall>r. HOnextConfig A (rho r) (HOs (Suc r)) (rho (Suc r))))"
   by (auto simp: HORun_def CHORun_def HOinitConfig_def HOnextConfig_def)
 
 lemma first_awake_HO:
   assumes run: "HORun A rho HO" 
-    and prev: "0 < n --> rho (n-1) p = Asleep" 
+    and prev: "0 < n \<longrightarrow> rho (n-1) p = Asleep" 
     and act: "rho n p = Active s"
   shows "first_awake rho p = n"
   using assms unfolding HORun_def by (rule first_awake)
@@ -403,22 +403,22 @@ text `
 
 lemma CHORun_0:
   assumes "CHORun A rho HOs coords" 
-      and "\<And>cfg. CHOinitConfig A cfg (coords 0) ==> P cfg"
+      and "\<And>cfg. CHOinitConfig A cfg (coords 0) \<equiv>> P cfg"
   shows "P (rho 0)"
 using assms unfolding CHORun_eq by blast
 
 lemma CHORun_Suc:
   assumes "CHORun A rho HOs coords"
   and "\<And>r. CHOnextConfig A r (rho r) (HOs r) (coords (Suc r)) (rho (Suc r))
-            ==> P r"
+            \<equiv>> P r"
   shows "P n"
 using assms unfolding CHORun_eq by blast
 
 lemma CHORun_induct:
   assumes run: "CHORun A rho HOs coords"
-  and init: "CHOinitConfig A (rho 0) (coords 0) ==> P 0"
+  and init: "CHOinitConfig A (rho 0) (coords 0) \<equiv>> P 0"
   and step: "\<And>r. \<lbrakk> P r; CHOnextConfig A r (rho r) (HOs r) (coords (Suc r)) 
-                                      (rho (Suc r)) \<rbrakk> ==> P (Suc r)"
+                                      (rho (Suc r)) \<rbrakk> \<equiv>> P (Suc r)"
   shows "P n"
 using run unfolding CHORun_eq by (induct n, auto elim: init step)
 *)
@@ -435,18 +435,18 @@ text \<open>
   the corresponding extensions of the record defining an HO algorithm.
 \<close>
 
-definition Schedule :: "(nat => 'proc => 'pst proc_state) => nat => 'proc set" where
-  "Schedule rho n == {p. rho n p ~= Asleep}"
+definition Schedule :: "(nat \<Rightarrow> 'proc \<Rightarrow> 'pst proc_state) \<Rightarrow> nat \<Rightarrow> 'proc set" where
+  "Schedule rho n \<equiv> {p. rho n p \<noteq> Asleep}"
 
 record ('proc, 'pst, 'msg) HOMachine = "('proc, 'pst, 'msg) CHOAlgorithm" +
-  HOcommPerRd :: "'proc HO => bool"
-  HOcommGlobal :: "(nat => 'proc HO) => bool"
-  HOcommSchedule :: "(nat => 'proc set) => bool"
+  HOcommPerRd :: "'proc HO \<Rightarrow> bool"
+  HOcommGlobal :: "(nat \<Rightarrow> 'proc HO) \<Rightarrow> bool"
+  HOcommSchedule :: "(nat \<Rightarrow> 'proc set) \<Rightarrow> bool"
 
 (* should probably also add a "Schedule" predicate here *)
 record ('proc, 'pst, 'msg) CHOMachine = "('proc, 'pst, 'msg) CHOAlgorithm" +
-  CHOcommPerRd :: "nat => 'proc HO => 'proc coord => bool"
-  CHOcommGlobal::"(nat => 'proc HO) => (nat => 'proc coord) => bool"
+  CHOcommPerRd :: "nat \<Rightarrow> 'proc HO \<Rightarrow> 'proc coord \<Rightarrow> bool"
+  CHOcommGlobal::"(nat \<Rightarrow> 'proc HO) \<Rightarrow> (nat \<Rightarrow> 'proc coord) \<Rightarrow> bool"
 
 
 end 

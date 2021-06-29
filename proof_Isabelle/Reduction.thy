@@ -106,8 +106,8 @@ definition fg_send_msg where
   "fg_send_msg A p q config config' \<equiv>
      q \<notin> (sent config p)
    \<and> config' = config \<lparr> 
-        sent := (sent config)(p := (sent config p) \<union> {q}),
-        network := network config \<union>
+        sent \<in>= (sent config)(p \<in>= (sent config p) \<union> {q}),
+        network \<in>= network config \<union>
                    {(p, round config p, q,
                      sendMsg A (round config p) p q (state config p))} \<rparr>"
 
@@ -127,9 +127,9 @@ definition fg_rcv_msg where
    \<exists>m m'. (q, (round config p), p, m) \<in> network config
      \<and> q \<in> HO
      \<and> config' = config \<lparr>
-          rcvd := (rcvd config)(p := (rcvd config p)(q := 
+          rcvd \<in>= (rcvd config)(p \<in>= (rcvd config p)(q \<in>= 
                     if q \<in> SHO then Some m else Some m')),
-          network := network config - {(q, (round config p), p, m)} \<rparr>"
+          network \<in>= network config - {(q, (round config p), p, m)} \<rparr>"
 
 text \<open>
   Finally, we consider local state transition of process \<open>p\<close>. 
@@ -149,10 +149,10 @@ definition fg_local where
    \<and> dom (rcvd config p) = HO
    \<and> (\<exists>s. CnextState A (round config p) p (state config p) (rcvd config p) crd s
         \<and> config' = config \<lparr>
-             round := (round config)(p := Suc (round config p)),
-             state := (state config)(p := s),
-             sent := (sent config)(p := {}),
-             rcvd := (rcvd config)(p := \<lambda>q. None) \<rparr>)"
+             round \<in>= (round config)(p \<in>= Suc (round config p)),
+             state \<in>= (state config)(p \<in>= s),
+             sent \<in>= (sent config)(p \<in>= {}),
+             rcvd \<in>= (rcvd config)(p \<in>= \<lambda>q. None) \<rparr>)"
 
 text \<open>
   The next-state relation for process \<open>p\<close> is just the disjunction of
@@ -585,7 +585,7 @@ next
       case False
       from rcvmsg obtain m' m'' where
         "(q', round ?cfg p', p', m') \<in> network ?cfg"
-        "rcvd ?cfg' = (rcvd ?cfg)(p' := (rcvd ?cfg p')(q' := 
+        "rcvd ?cfg' = (rcvd ?cfg)(p' \<in>= (rcvd ?cfg p')(q' \<in>= 
                           if q' \<in> ?SHO then Some m' else Some m''))"
         by (auto simp: fg_rcv_msg_def split del: if_split_asm)
       with False rcvd p rd have "(p, ?rd n, q, m) \<in> network ?cfg" by auto

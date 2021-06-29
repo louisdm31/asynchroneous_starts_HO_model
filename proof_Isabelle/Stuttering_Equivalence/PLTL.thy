@@ -285,12 +285,12 @@ text \<open>
 \<close>
 
 definition state_sim :: "['a, ('a \<Rightarrow> bool) set, 'a] \<Rightarrow> bool" 
-  ("_ ~_~ _" [70,100,70] 50) where
-  "s ~A~ t = (\<forall>p\<in>A. p s \<longleftrightarrow> p t)"
+  ("_ \<not>_\<not> _" [70,100,70] 50) where
+  "s \<not>A\<not> t = (\<forall>p\<in>A. p s \<longleftrightarrow> p t)"
 
 definition seq_sim :: "[nat \<Rightarrow> 'a, ('a \<Rightarrow> bool) set, nat \<Rightarrow> 'a] \<Rightarrow> bool"
   ("_ \<simeq>_\<simeq> _" [70,100,70] 50)  where
-  "\<sigma> \<simeq>A\<simeq> \<tau> = (\<forall>n. (\<sigma> n) ~A~ (\<tau> n))"
+  "\<sigma> \<simeq>A\<simeq> \<tau> = (\<forall>n. (\<sigma> n) \<not>A\<not> (\<tau> n))"
 
 text \<open>
   These relations are (indexed) equivalence relations. Moreover
@@ -298,18 +298,18 @@ text \<open>
   and similar for \<open>\<sigma> \<simeq>A\<simeq> \<tau>\<close> and \<open>\<sigma> \<simeq>B\<simeq> \<tau>\<close>.
 \<close>
 
-lemma state_sim_refl [simp]: "s ~A~ s"
+lemma state_sim_refl [simp]: "s \<not>A\<not> s"
   by (simp add: state_sim_def)
 
-lemma state_sim_sym: "s ~A~ t \<Longrightarrow> t ~A~ s"
+lemma state_sim_sym: "s \<not>A\<not> t \<Longrightarrow> t \<not>A\<not> s"
   by (auto simp: state_sim_def)
 
-lemma state_sim_trans[trans]: "s ~A~ t \<Longrightarrow> t ~A~ u \<Longrightarrow> s ~A~ u"
+lemma state_sim_trans[trans]: "s \<not>A\<not> t \<Longrightarrow> t \<not>A\<not> u \<Longrightarrow> s \<not>A\<not> u"
   unfolding state_sim_def by blast
 
 lemma state_sim_mono:
-  assumes "s ~A~ t" and "B \<subseteq> A"
-  shows "s ~B~ t"
+  assumes "s \<not>A\<not> t" and "B \<subseteq> A"
+  shows "s \<not>B\<not> t"
   using assms unfolding state_sim_def by auto
 
 lemma seq_sim_refl [simp]: "\<sigma> \<simeq>A\<simeq> \<sigma>"
@@ -375,16 +375,16 @@ text \<open>
 \<close>
 
 definition canonize where
-  "canonize A s \<equiv> SOME t. t ~A~ s"
+  "canonize A s \<equiv> SOME t. t \<not>A\<not> s"
 
-lemma canonize_state_sim: "canonize A s ~A~ s"
+lemma canonize_state_sim: "canonize A s \<not>A\<not> s"
   unfolding canonize_def by (rule someI, rule state_sim_refl)
 
 lemma canonize_canonical:
-  assumes st: "s ~A~ t"
+  assumes st: "s \<not>A\<not> t"
   shows "canonize A s = canonize A t"
 proof -
-  from st have "\<forall>u. (u ~A~s) = (u ~A~ t)"
+  from st have "\<forall>u. (u \<not>A\<not>s) = (u \<not>A\<not> t)"
     by (auto elim: state_sim_sym state_sim_trans)
   thus ?thesis unfolding canonize_def by simp
 qed
@@ -399,7 +399,7 @@ text \<open>
 \<close>
 
 definition canonical_sequence where
-  "canonical_sequence A \<sigma> \<equiv> \<forall>m (n::nat). \<sigma> m ~A~ \<sigma> n \<longrightarrow> \<sigma> m = \<sigma> n"
+  "canonical_sequence A \<sigma> \<equiv> \<forall>m (n::nat). \<sigma> m \<not>A\<not> \<sigma> n \<longrightarrow> \<sigma> m = \<sigma> n"
 
 text \<open>
   Every suffix of a canonical sequence is canonical, as is any
@@ -446,7 +446,7 @@ text \<open>
 
 definition characteristic_formula where
   "characteristic_formula A s \<equiv>
-   ((AND { atom p | p . p \<in> A \<and> p s }) and\<^sub>p (AND { not\<^sub>p (atom p) | p . p \<in> A \<and> \<not>(p s) }))"
+   ((AND { atom p \<or> p . p \<in> A \<and> p s }) and\<^sub>p (AND { not\<^sub>p (atom p) \<or> p . p \<in> A \<and> \<not>(p s) }))"
 
 lemma characteristic_holds: 
   "finite A \<Longrightarrow> \<sigma> \<Turnstile>\<^sub>p characteristic_formula A (\<sigma> 0)"
@@ -454,9 +454,9 @@ lemma characteristic_holds:
 
 lemma characteristic_state_sim:
   assumes fin: "finite A"
-  shows "(\<sigma> 0 ~A~ \<tau> 0) = (\<tau> \<Turnstile>\<^sub>p characteristic_formula A (\<sigma> (0::nat)))"
+  shows "(\<sigma> 0 \<not>A\<not> \<tau> 0) = (\<tau> \<Turnstile>\<^sub>p characteristic_formula A (\<sigma> (0::nat)))"
 proof
-  assume sim: "\<sigma> 0 ~A~ \<tau> 0"
+  assume sim: "\<sigma> 0 \<not>A\<not> \<tau> 0"
   {
     fix p
     assume "p \<in> A"
@@ -466,7 +466,7 @@ proof
     by (auto simp: characteristic_formula_def) (blast+)
 next
   assume "\<tau> \<Turnstile>\<^sub>p characteristic_formula A (\<sigma> 0)"
-  with fin show "\<sigma> 0 ~A~ \<tau> 0"
+  with fin show "\<sigma> 0 \<not>A\<not> \<tau> 0"
     by (auto simp: characteristic_formula_def state_sim_def)
 qed
 
@@ -536,15 +536,15 @@ next
     \<open>psi'\<close> that we will prove to be equivalent to \<open>next \<phi>\<close> over
     the stutter-free and canonical sequence \<open>\<sigma>\<close>.\<close>
   define stval where "stval = (\<lambda>s. { p \<in> A . p s })"
-  define chi where "chi = (\<lambda>val. ((AND {atom p | p . p \<in> val}) and\<^sub>p
-                        (AND {not\<^sub>p (atom p) | p . p \<in> A - val})))"
-  define psi' where "psi' = (Or_ltlp (\<psi> and\<^sub>p (OR {G\<^sub>p (chi val) | val . val \<subseteq> A }))
-                  (OR {(chi val) and\<^sub>p (until (chi val) ( \<psi> and\<^sub>p (chi val'))) | val val'.
+  define chi where "chi = (\<lambda>val. ((AND {atom p \<or> p . p \<in> val}) and\<^sub>p
+                        (AND {not\<^sub>p (atom p) \<or> p . p \<in> A - val})))"
+  define psi' where "psi' = (Or_ltlp (\<psi> and\<^sub>p (OR {G\<^sub>p (chi val) \<or> val . val \<subseteq> A }))
+                  (OR {(chi val) and\<^sub>p (until (chi val) ( \<psi> and\<^sub>p (chi val'))) \<or> val val'.
                         val \<subseteq> A \<and> val' \<subseteq> A \<and> val' \<noteq> val }))"
         (is "_ = (Or_ltlp ( _ and\<^sub>p (OR ?ALW)) (OR ?UNT))")
 
-  have "\<And>s. {not\<^sub>p (atom p) | p . p \<in> A - stval s}
-           = {not\<^sub>p (atom p) | p . p \<in> A \<and> \<not>(p s)}"
+  have "\<And>s. {not\<^sub>p (atom p) \<or> p . p \<in> A - stval s}
+           = {not\<^sub>p (atom p) \<or> p . p \<in> A \<and> \<not>(p s)}"
     by (auto simp: stval_def)
   hence chi1: "\<And>s. chi (stval s) = characteristic_formula A s"
     by (auto simp: chi_def stval_def characteristic_formula_def)
@@ -703,7 +703,7 @@ next
           with i have "\<sigma>[1..] \<Turnstile>\<^sub>p chi val" by simp
           with 1 have "\<sigma>[1..] \<Turnstile>\<^sub>p characteristic_formula A (\<sigma> 0)" 
             by (simp add: chi1)
-          hence "(\<sigma> 0) ~A~ ((\<sigma>[1..]) 0)"
+          hence "(\<sigma> 0) \<not>A\<not> ((\<sigma>[1..]) 0)"
             using characteristic_state_sim[OF fin] by blast
           with can have "\<sigma> 0 = \<sigma> 1"
             by (simp add: canonical_sequence_def)

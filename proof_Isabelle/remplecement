@@ -1,0 +1,55 @@
+#!/bin/sh
+
+to_latex () {
+	echo "substitution dans $1"
+	sed -i 's/\&/\\<and>/g;
+	s/EX /\\<exists>/g;
+	s/==/\\<equiv>/g;
+	s/-->/\\<longrightarrow>/g;
+	s/ALL /\\<forall>/g;
+	s/~=/\\<noteq>/g;
+	s/=>/\\<Rightarrow>/g;
+	s/(|/\\<lparr>/g;
+	s/|)/\\<rparr>/g;
+	s/>=/\\<ge>/g;
+	s/!!/\\<And>/g;
+	s/~:/\\<notin>/g;
+	s/<=/\\<le>/g' $1
+	sed -i -r 's/%([a-zA-Z_ ]*)\./\\<lambda>\1./g;' $1
+	python3 remplacement.py $f
+}
+
+if [ -z $1 ]
+then
+	for f in **/*.thy
+	do
+		to_latex $f
+	done
+	for f in *.thy
+	do
+		to_latex $f
+	done
+
+else
+	for f in **/*.thy
+	do
+		echo "substitution dans $f"
+		sed -i 's/\\<and>/\&/g;
+		s/\\<exists>/EX /g;
+		s/\\<equiv>/==/g;
+		s/\\<in>/:/g;
+		s/\\<longrightarrow>/-->/g;
+		s/\\<forall>/ALL /g;
+		s/\\<noteq>/~=/g;
+		s/\\<not>/~/g;
+		s/\\<Rightarrow>/=>/g;
+		s/\\<lambda>/%/g;
+		s/\\<or>/|/g;
+		s/\\<lparr>/(|/g;
+		s/\\<rparr>/|)/g;
+		s/\\<ge>/>=/g;
+		s/\\<And>/!!/g;
+		s/\\<notin>/~:/g;
+		s/\\<le>/<=/g' $1
+	done
+fi

@@ -26,7 +26,7 @@ fun getDec where
 
 definition VInv :: "(nat \<Rightarrow> Proc \<Rightarrow> ('val::linorder) pstate proc_state) \<Rightarrow> nat \<Rightarrow> bool" where
   "VInv rho n \<equiv>
-   let xinit =  {x s | s. \<exists>p. getInitValue rho p = Active s}
+   let xinit =  {x s \<or> s. \<exists>p. getInitValue rho p = Active s}
    in \<forall>p s. rho n p = Active s \<longrightarrow> x s \<in> xinit"
 
 
@@ -63,12 +63,12 @@ proof -
         using infens rev_finite_subset by blast
 
       have "finite {pp :: Proc. True}" by auto
-      hence "finite (msgs ` {p | p. True})" by force
-      hence "finite {msgs p | p. True}" using setcompr_eq_image[where ?f = msgs] by (smt Collect_cong)
+      hence "finite (msgs ` {p \<or> p. True})" by force
+      hence "finite {msgs p \<or> p. True}" using setcompr_eq_image[where ?f = msgs] by (smt Collect_cong)
       hence "finite {v. \<exists>p. msgs p = v}" by (smt Collect_cong finite_image_set)
-      moreover have "{Content v | v.  \<exists>p. msgs p = Content v} \<subseteq> {v. \<exists>p. msgs p = v}"
+      moreover have "{Content v \<or> v.  \<exists>p. msgs p = Content v} \<subseteq> {v. \<exists>p. msgs p = v}"
         by blast
-      ultimately have fincontens:"finite {Content v | v.  \<exists>p. msgs p = Content v}"
+      ultimately have fincontens:"finite {Content v \<or> v.  \<exists>p. msgs p = Content v}"
         by (meson rev_finite_subset)
       moreover have "\<forall>vv1 vv2. Content vv1 = Content vv2 \<longrightarrow> vv1 = vv2" by auto
       ultimately have "finite {v. \<exists>p. msgs p = Content v}" using tiroir2  by force
@@ -182,7 +182,7 @@ proof -
       qed
     qed
   qed
-  let ?xinit = "{x s | s. \<exists>p. getInitValue rho p = Active s}"
+  let ?xinit = "{x s \<or> s. \<exists>p. getInitValue rho p = Active s}"
   have "\<forall>p s. rho n p = Active s \<longrightarrow> x s \<in> ?xinit"
   proof
     fix p
@@ -200,21 +200,21 @@ proof -
           assume "m = 0"
           hence nonasl:"\<forall>n. rho n q \<noteq> Aslept" using nonAsleepAgain qact run HORun_def
             by (metis add.right_neutral proc_state.distinct(1))
-          hence "{n + 1 | n. rho n q = Aslept } \<union> {0} = {0}" by simp
-          hence "0 = Max ({n + 1 | n. rho n q = Aslept } \<union> {0})" using qact by (metis Max_singleton)
+          hence "{n + 1 \<or> n. rho n q = Aslept } \<union> {0} = {0}" by simp
+          hence "0 = Max ({n + 1 \<or> n. rho n q = Aslept } \<union> {0})" using qact by (metis Max_singleton)
           hence "rho 0 q = getInitValue rho q" by (simp add: nonasl getInitValue_def)
           thus ?thesis using qact by (simp add: \<open>m = 0\<close>)
         next
           assume "rho (m-1) q = Aslept"
-          hence masl:"m \<in> {n + 1 | n. rho n q = Aslept }" by (smt CollectI One_nat_def Suc_leI
+          hence masl:"m \<in> {n + 1 \<or> n. rho n q = Aslept }" by (smt CollectI One_nat_def Suc_leI
                 le_add_diff_inverse2 not_gr_zero not_less_zero proc_state.simps(3) qact zero_less_diff)
           have "\<forall>n. n \<ge> m \<longrightarrow> rho n q \<noteq> Aslept" using nonAsleepAgain qact
             by (metis HORun_def le_add_diff_inverse2 proc_state.simps(3) run)
           hence "{n. rho n q = Aslept } \<subseteq> {n. n < m}" by (meson Collect_mono not_le_imp_less)
-          hence bornensl:"{n + 1 | n. rho n q = Aslept } \<subseteq> {n. n \<le> m}" (is "?ensl \<subseteq> _")
+          hence bornensl:"{n + 1 \<or> n. rho n q = Aslept } \<subseteq> {n. n \<le> m}" (is "?ensl \<subseteq> _")
             using discrete by auto
           moreover from this have "finite ?ensl" using rev_finite_subset by auto
-          ultimately have "Max {n + 1 | n. rho n q = Aslept } = m"
+          ultimately have "Max {n + 1 \<or> n. rho n q = Aslept } = m"
             using Max_def masl Max_in Max_ge \<open>finite ?ensl\<close> by fastforce
           hence "Max (?ensl \<union> {0}) = m"
           by (smt Max_ge Max_in Un_empty Un_insert_right \<open>finite ?ensl\<close> antisym
@@ -349,10 +349,10 @@ proof -
   have nxt: "OTR_nextState p ss (HOrcvdMsgs ?A p (HOs (Suc n) p) (rho n)) st" (is "OTR_nextState _ _ ?msgs _")
     using HORun_def CHORun_def HOnextConfig_def OTR_HOMachine_def HOMachine_to_Algorithm_def run act acts
     by (smt CHOAlgorithm.select_convs(3) CHOnextConfig_def proc_state.inject)
-  let ?HOVothers = "\<Union> { HOV ?msgs w | w . w \<noteq> v}"
+  let ?HOVothers = "\<Union> { HOV ?msgs w \<or> w . w \<noteq> v}"
   \<comment> \<open>processes from which @{text p} received values different from @{text v}\<close>
   
-  have "HOV ?msgs v \<union> ?HOVothers = \<Union> {HOV ?msgs w | w .True}" by auto
+  have "HOV ?msgs v \<union> ?HOVothers = \<Union> {HOV ?msgs w \<or> w .True}" by auto
   also have "\<dots> = {q. \<exists>v. q \<in> HOV ?msgs v}" by auto
   also have "\<dots> = {q. \<exists>v. ?msgs q = Content v}" by (simp add:HOV_def)
   also have"\<dots> = {q. \<exists>v. ?msgs q \<noteq> Void \<and> ?msgs q \<noteq> Bot}" by (metis message.distinct(3) message.exhaust message.simps(3))
@@ -651,7 +651,7 @@ proof -
     rp \<ge> r \<and> card (HOs rp p) > (2*N) div 3"
       using commG by (simp add:OTR_commGlobal_def OTR_HOMachine_def)
   then obtain rs_prev S where "rs_prev \<ge> Suc n" and "card S > (2*N) div 3" and "\<forall>p \<in> S. S = HOs rs_prev p" by force
-  moreover from `rs_prev >= Suc n` obtain rs where "Suc rs = rs_prev" using Suc_le_D by blast
+  moreover from `rs_prev \<ge> Suc n` obtain rs where "Suc rs = rs_prev" using Suc_le_D by blast
   ultimately have "rs \<ge> n" and pic:"card S > (2*N) div 3" and pi:"\<forall>p \<in> S. S = HOs (Suc rs) p" by auto
 
   have allact:"\<forall>p \<in> S. \<exists>ss. rho rs p = Active ss"

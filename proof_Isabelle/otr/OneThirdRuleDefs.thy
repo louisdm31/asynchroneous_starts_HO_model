@@ -75,7 +75,7 @@ definition MFR :: "(Proc \<Rightarrow> 'val message) \<Rightarrow> 'val \<Righta
 
 lemma MFR_exists: "\<exists>v. MFR msgs v"
 proof -
-  let ?cards = "{ card (HOV msgs v) | v . True }"
+  let ?cards = "{ card (HOV msgs v) \<or> v . True }"
   let ?mfr = "Max ?cards"
   have "\<forall>v. card (HOV msgs v) \<le> N" by (auto intro: card_mono)
   hence "?cards \<subseteq> { 0 .. N }" by auto
