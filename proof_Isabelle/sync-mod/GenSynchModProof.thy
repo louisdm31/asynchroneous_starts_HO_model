@@ -702,6 +702,83 @@ next
   thus "level s <= level ss" using Suc.IH sss by auto
 qed
 
+locale execution =
+fixes HO k rho xi
+constrains k :: nat and
+  HO :: "nat => Proc => Proc set" and
+  rho :: "nat => Proc => locState proc_state" and
+  xi :: Proc
+assumes star:"ALL p n. k_mod.path HO xi p n k"
+  and loop:"ALL p r. p : HO r p"
+  and run: "HORun (k_mod.gen_HOMachine k) rho HO" 
+  and k2:"k > 2"
+begin
+definition z where
+"z p t = (let msgs = HOrcvdMsgs (k_mod.gen_HOMachine k) p (HO (Suc t) p) (rho t) in (k_mod.maxForce msgs-1, t-k_mod.minMsgs msgs))"
+
+definition levup where
+"levup f c p == EX sp ssp. rho c p = Active ssp & level ssp = f & (if f = 0 then c > 0 --> rho (c-1) p = Asleep else rho (c-1) p = Active sp & level sp = f-1)"
+definition L where
+"L = {(f,c) :: nat * nat | f c p. levup f c p}"
+
+lemma in_L:
+assumes "rho t p = Active sp"
+and "msgs = HOrcvdMsgs (k_mod.gen_HOMachine k) p (HO (Suc t) p) (rho t)"
+shows "(k_mod.maxForce msgs-1, t-k_mod.minMsgs msgs) : L"
+proof -
+  have "msgs p = Content sp" using assms loop run sending by auto
+  hence "k_mod.forceMsgs (msgs p) > 0" using k_mod.forceMsgs.simps(1)[of sp] assms run loop k2 A2_bis[of HO k rho t p sp] by auto
+  hence "k_mod.maxForce msgs > 0" using Max_ge unfolding k_mod.maxForce_def
+    by (smt (z3) finite_UNIV finite_imageI gr_zeroI image_eqI leD rangeI)
+  thus ?thesis
+    using A5[of HO xi k rho t p sp "k_mod.maxForce msgs" "Suc (k_mod.minMsgs msgs)"] assms run k2 loop star unfolding L_def levup_def by fastforce
+qed
+
+lemma finite_L:
+assumes star:"ALL p n. k_mod.path HO xi p n k"
+and loop:"ALL p r. p : HO r p"
+and run: "HORun (k_mod.gen_HOMachine k) rho HO" (is "HORun ?A _ _")
+and "k > 2"
+shows "finite L"
+proof (rule ccontr)
+  assume "~ finite L"
+  define Lf where "Lf = (%f. {(f,c) | c. (f,c) : L})"
+  have "ALL f c. (f,c) : L --> f <= 2"
+  proof (rule+)
+    fix f c
+    assume "(f,c) : L"
+    from this obtain p ssp where "rho c p = Active ssp" and "level ssp = f" unfolding L_def levup_def by auto
+    thus "f <= 2" using A2_bis[of HO k rho c p ssp] assms by auto
+  qed
+  moreover have "ALL f c. (f,c) : L --> (f,c) : Lf f" unfolding Lf_def by auto
+  ultimately have "ALL f c. (f,c) : L --> (f,c) : Lf 0 | (f,c) : Lf 1 | (f,c) : Lf 2"
+    by (metis (full_types) Suc_1 le_less less_one linorder_neqE_nat not_less_eq)
+  hence "L <= (Lf 0) Un (Lf 1) Un (Lf 2)" unfolding Lf_def
+    by (smt (verit, ccfv_threshold) L_def Un_iff mem_Collect_eq subsetI)
+  hence "(~ finite (Lf 0)) | (~ finite (Lf 1)) | (~ finite (Lf 2))"
+    using `~ finite L` finite_subset by auto
+  from this obtain f where "~ finite (Lf f)" by auto
+  define pLf where "pLf = (%c. SOME p. levup f c p)"
+  have inj_ing:"ALL t1 t2. t1 : snd ` Lf f -->  t2 : snd ` Lf f --> pLf t1 = pLf t2 --> ~ t1 < t2"
+  proof (rule+)
+    fix t1 t2
+    assume "t1 : snd ` Lf f" and "t2 : snd ` Lf f" and "pLf t1 = pLf t2" and "t1 < t2"
+    hence "(f,t1) : L" and "(f,t2) : L" unfolding Lf_def by auto
+    hence "levup f t1 (pLf t1)" and "levup f t2 (pLf t2)"
+      using someI_ex[of "%p. levup f t1 p"] someI_ex[of "%p. levup f t2 p"] unfolding pLf_def L_def by auto
+    from this obtain sp ssp where "rho t1 (pLf t1) = Active sp" and "level sp = f"
+      "rho (t2-1) (pLf t2) = (if f = 0 then Asleep else Active ssp)" and "level ssp = f-1" using `t1 < t2` unfolding levup_def by auto
+    moreover from this have "f > 0" using assms nonAsleepAgain[of rho t1 "pLf t1" _ _ _ "t2-t1-1"] `t1 < t2` `pLf t1 = pLf t2` unfolding HORun_def by auto
+    ultimately show "False" using level_growing[of HO k rho t1 "pLf t1" sp "t2-t1-1" ssp] assms `t1 < t2` `pLf t1 = pLf t2` by auto
+  qed
+  hence "inj_on pLf (snd ` Lf f)" by (metis (mono_tags, hide_lams) inj_on_def linorder_neqE_nat)
+  moreover have "inj_on snd (Lf f)" unfolding Lf_def by (simp add: inj_on_def)
+  ultimately have "~ finite (pLf ` snd ` Lf f)" using `~ finite (Lf f)` finite_imageD by metis
+  thus "False" by auto
+qed
+end
+
+(*
 lemma A4:
 assumes star:"ALL p n. k_mod.path HO xi p n k"
 and loop:"ALL p r. p : HO r p"
@@ -859,3 +936,4 @@ proof -
   qed
   thus ?thesis unfolding k_mod.safety_def by auto
 qed
+*)
