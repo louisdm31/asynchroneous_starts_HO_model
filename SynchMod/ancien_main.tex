@@ -42,6 +42,7 @@
 \newcommand{\In}{\mathrm{In}}
 \newcommand{\SM}{{\em SynchMod}$_{\,k}\ $}
 
+\renewcommand*\contentsname{}
 \setlength{\parskip}{0.3em}
 
 \title{Synchronization Modulo $k$ in Dynamic Networks}
@@ -109,10 +110,10 @@ In many situations,  this connectivity property is not guaranteed:
 However, with a closer look at many distributed algorithms designed in the round-based model,  we see that
 	these algorithms actually  do not require perfect synchronous starts, and still work under the weaker condition that all the nodes
 	start executing the algorithms in rounds with numbers that are equal modulo~$k$, for some positive integer~$k$.
-The corresponding synchronization problem, that we call $\mathbf{\mathrm{mod}\,k}$  \emph{synchronization}, is formally specified as follows:
+The corresponding synchronization problem, that we call $\mathbf{\mathrm{mod}\,k}$-\emph{synchronization}, is formally specified as follows:
 	\begin{description}
 	\item[Termination:]   If all nodes are eventually active, then  every node eventually fires.
-	\item[ $\mathbf{mod-k}$-simultaneity:]  If two nodes fire at round~$t$ and $t'$, then $t' \equiv t \mod k$.
+	\item[ $\mathbf{\mathrm{mod}\,k}$-simultaneity:]  If two nodes fire at round~$t$ and $t'$, then $t' \equiv t \mod k$.
 	\end{description}
 
 Indeed, let $A$ be an algorithm  organized into regular  \emph{phases} consisting of  a fixed number  $k$ of consecutive rounds:
@@ -127,7 +128,7 @@ For instance, the \emph{ThreePhaseCommit} algorithm for non-blocking atomic comm
 	there exists an infinite number of ``good'' communication patterns
 	(eg., a sequence of $2k-1$ consecutive communication graphs  in which a majority of nodes is heard by all
 	in   each graph).
-The use of a $\mathbf{\mathrm{mod}\,k}$-synchronization algorithm on the top of the algorithm $A$ yields a new algorithm that executes
+The use of a $\mathrm{mod}\,k$-synchronization algorithm on the top of the algorithm $A$ yields a new algorithm that executes
 	exactly like $A$ does, after a finite preliminary period during which every node becomes active and fires.
 The above property on the set of dynamic graphs ${\cal G}$ then guarantees this variant of $A$ to be correct with
 	asynchronous starts and dynamic graphs in ${\cal G}$.
@@ -140,7 +141,7 @@ For that, 	 each node~$u$ maintains a local counter $c_u$
 	whose current value is the number of rounds where it has been active.
 At each round, the  coordinator of $u$ is the  node with the identifier that is equal to the current value of $c_u$ modulo~$n$.
 Since there may be only one coordinator per round, such a selection rule requires synchronous starts.
-Clearly, with the use of a $\mathbf{\mathrm{mod}\,k}$-synchronization algorithm in a preliminary phase and a
+Clearly, with the use of a $\mathrm{mod}\,k$-synchronization algorithm in a preliminary phase and a
 	counter for each node that now counts the number of rounds elapsed since the node fired, the above scheme correctly\footnote{%
 	With respect to a specification that lets a passive node to be  a coordinator.}
 	implements the rotating coordinator strategy in the context of asynchronous starts.
@@ -216,7 +217,7 @@ This path is said to be \textit{active} if every node $w_{t''}$ is active in rou
 There exists a $u \sim v$ path in the interval $[t,t']$ if and only if $v \in In_u(t+1:t')$.
 
 A \emph{network model} is any non-empty set of dynamic graphs with a permanent self-loop at each node.
-We will focus on the specific network model of \emph{centered with delay $k$} dynamic graphs~$\mathds{G}$ verifying the $\mathcal{P}_{k-centered}$ predicate defined as follows: 
+We will focus on the specific network models $\mathcal{G}_{k-centered}$ of \emph{centered with delay $k$} dynamic graphs~$\mathds{G}$ verifying: 
 
 $$\exists \cent \in V, \forall t \in \mathds{N}, \forall u \in V, \cent \in In_u(t+1:t+k).$$
 
@@ -238,8 +239,8 @@ $$\exists \cent \in V, \forall t \in \mathds{N}, \forall u \in V, \cent \in In_u
 
 The nodes verifying this property are called \textit{$k$-centers}.
 There may be several $k$-centers for $\mathds{G}$.
-The predicate $\mathcal{P}_{k-centered}$ is a relaxation of $\mathcal{P}_{1-centered}$, which matches the dynamic graphs containing a fixed spanning star.
-Here, $k$ is the parameter of the $\mathbf{\mathrm{mod}\,k}$-synchronization problem.
+The network class $\mathcal{G}_{k-centered}$ is a super-set of $\mathcal{G}_{1-centered}$, which contains the dynamic graphs containing a fixed spanning star.
+Here, $k$ is the parameter of the $\mathrm{mod}\,k$-synchronization problem.
 We note $\cent$ one of these $k$-centers.
 
 Similarly, we define a \emph{start model} as a non-empty set of start schedules.
@@ -247,7 +248,7 @@ A start schedule $\mathds{S} = (s_u)_{u\in V}$ is \emph{complete} if every $s_u$
 no node is passive forever, yielding the model of complete start schedules.
 Synchronous starts correspond to complete start schedules $\mathds{S} = (s_u)_{u\in V}$ with
 equal start rounds.	
-The property of synchronous starts can be relaxed into \emph{$\mathbf{\mathrm{mod}\,k}$-synchronous starts},
+The property of synchronous starts can be relaxed into \emph{$\mathrm{mod}\,k$-synchronous starts},
 where $k$ is any positive integer: for every pair of nodes~$u$ and $v$, it holds that $s_u \equiv s_v \!\mod k$.
 
 % section_algorithm (do not modify this comment)
@@ -268,6 +269,7 @@ On that purpose, they hold a $c_u$ and a $force_u$ variable.
 At any round, they "know" that $c_u$ rounds ago, some node reached a level equal to $force_u$ from the previous level,
 and they do not "know" any node which reached a level equal to $force_u$ (or higher) in any more recent round.
 With line \ref{line:force} and \ref{line:min-z-end}, they use at each round the values from their incoming neighbors to update theirs.
+The presence of self-loops implies that these lines are always well-defined objects.
 
 Secondly, \textbf{a node may level up only if its counter $c_u$ is congruent to 0 and the counter of $\gamma$ was also congruent to 0 $k$ rounds ago.}
 On that purpose, they use a $synch$ boolean variable.
@@ -284,7 +286,7 @@ In addition to $synch$, the $ready$ variable makes sure that $\cent$ is already 
 If not, the level-up to level 2 is forbidden.
 
 
-\begin{algorithm}[H]
+\begin{algorithm}[hbt!]
 	\DontPrintSemicolon
 	\textbf{Initialization:} \;
 	\Indp
@@ -298,11 +300,14 @@ If not, the level-up to level 2 is forbidden.
 	\textbf{At each round:} \;
 	\Indp
 		send $\langle c_u, synch_u, force_u, ready_u \rangle$ to all  \;
-		receive some multi-set of messages $In$, and $In^a \subseteq In$ the set of non-null messages \;
-		$synch_u \leftarrow \bigwedge v \in In^a, synch_v \wedge c_v \equiv c_u \mod k \wedge In = In^a$ \; \label{line:conc-gossip}
-		$ready_u \leftarrow \bigwedge v \in In^a, ready_v$ \; \label{line:ready-gossip} 
-		$force_u \leftarrow max \{force_v, v \in In^a \}$ \tcc*[f]{$u$ receives at least its own message} \;\label{line:force}
-		$c_u \leftarrow 1+ min \{c_v, v \in In^a \wedge force_v = force_u\}$ \;\label{line:min-z-end} 
+		{\small receive incoming messages: let $In^a$ the set of nodes from which a non-null messages is received.} \;
+		\If{all received messages are non-null}{
+			$synch_u \leftarrow \underset{v \in In^a}{\bigwedge} synch_v \wedge c_v \equiv c_u \mod k$ \; \label{line:conc-gossip}
+		}
+		\Else{$synch_u \leftarrow false$}
+		$ready_u \leftarrow \underset{v \in In^a}{\bigwedge} ready_v $ \; \label{line:ready-gossip} 
+		$force_u \leftarrow \underset{v \in In^a}{\max} force_v$ \;\label{line:force}
+		$c_u \leftarrow 1+ \underset{force_v = force_u}{\underset{v \in In^a}{\min}} c_v$ \;\label{line:min-z-end} 
 		\If{$c_u \equiv 0 \mod k$}{ \label{line:cond-levelup} 
 			\If{$level_u = 0 \wedge synch_u$}{ \label{line:level1up}
 				$level_u \leftarrow 1$ \; \label{line:level1}
@@ -312,7 +317,7 @@ If not, the level-up to level 2 is forbidden.
 				}
 			}
 			\ElseIf{$level_u = 1 \wedge ready_u \wedge synch_u$}{ \label{line:cond-firing}
-				$level_u \leftarrow 2$ \tcc*[f]{reaching level 2 => fire}\; \label{line:level2}
+				$level_u \leftarrow 2$ \tcc*[f]{the node $u$ fires}\; \label{line:level2}
 				$force_u \leftarrow 2$ \; \label{line:force5}
 				$c_u \leftarrow 0$ \; \label{line:force4}
 			}
@@ -320,22 +325,28 @@ If not, the level-up to level 2 is forbidden.
 			$ready_u \leftarrow level_u > 0$ \; \label{line:init-ready}
 		}
 	\Indm
-\caption{The $SynchMod_k$ algorithm} 
+\caption{The \SM algorithm} 
 \end{algorithm}
 
-We consider an execution of the $SynchMod_k$ algorithm.
+\subsection{Notation and preliminary lemmas}
+
+In the rest of this section, we fix an execution $\sigma$ of the \SM algorithm associated to a complete activation
+schedule~$\mathcal{A}$ and a $k$-centered dynamic graph~$\mathds{G} \in \mathcal{G}_{k-centered}$. 
+Let $s^{\max} = \max_{u \in \Pi} s(u) < \infty$ and let~$\cent$ denote one center of~$\mathds{G}$.
+
 We note $c_u(t), synch_u(t), \dots$ the value of the $c, synch, \dots$ variables of node $u$ at the end of round $t$, if $u$ is active in round $t$.
 The variables $c_u(t), synch_u(t), \dots$ refer to the initial state if the node $u$ starts in round $t+1$.
 We also note $c^{pre}_u(t), synch^{pre}_u(t), \dots$ the value of the $c, synch, \dots$ variables
 of node $u$ at the beginning of line \ref{line:cond-levelup} during round $t$, if $u$ is active in round $t$.
-We now prove that this execution verifies the safety and liveness properties of the $\mathbf{\mathrm{mod}\,k}$-synchronization problem.
+We now prove that this execution verifies both properties of the $\mathrm{mod}\,k$-synchronization problem.
 We note $In_u^a(t)$ the subset of $In_u(t)$ which are active in round $t-1$ in this execution.
 Some simple claims are deductible from the transition function.
 We consider some node $u \in V$ and some round $t$ in which $u$ is active (i.e., $t \geq s_u$).
 \begin{lem} \hfill
 	\begin{enumerate}[label=\upshape(\alph*),ref=\thethm (\alph*)]
 		\item\label{lem:cl1} $level_u(t+1) \in \{level_u(t), level_u(t)+1\}$
-		\item\label{lem:cl2} $c_u(t) \equiv c_u^{pre}(t) \mod k \wedge c_u(t) \neq 0 \Rightarrow c_u(t) =  c_u^{pre}(t)$.
+		\item\label{lem:cl2b}$c_u(t) \neq 0 \Rightarrow (force_u(t) = force_u^{pre}(t) \wedge c_u(t) =  c_u^{pre}(t))$.
+		\item\label{lem:cl2} $c_u(t) \equiv c_u^{pre}(t) \mod k$.
 		\item\label{lem:cl3} $synch_u^{pre}(t) \Rightarrow \forall v \in In_u(t), c_v^{pre}(t-1) + 1 \equiv c_u^{pre}(t) \mod k$.
 		\item\label{lem:cl4} $c_u^{pre}(t) \not\equiv 1 \mod k \wedge synch_u^{pre}(t) \Rightarrow \forall v \in In_u(t), synch_v^{pre}(t-1)$.
 		\item\label{lem:cl5} $c_u^{pre}(t) \not\equiv 1 \mod k \wedge synch_u^{pre}(t) \wedge ready_u^{pre}(t) \Rightarrow \forall v \in In_u^a(t), ready_v^{pre}(t-1)$.
@@ -347,8 +358,9 @@ We consider some node $u \in V$ and some round $t$ in which $u$ is active (i.e.,
 	\begin{enumerate}[label=\upshape(\alph*),ref=\thethm (\alph*)]
 		\item The value of $level_u(t+1)$ is equal to $level_u(t)$, unless line \ref{line:level1} or \ref{line:level2} is executed in round $t+1$.
 			In that case, $level_u(t+1) = level_u(t)+1$.
-		\item The conditional statement starting in line \ref{line:cond-levelup} either set $c_u(t)$ to 0 (in line \ref{line:force3} or \ref{line:force4}), or do not modify $c_u(t)$.
-			In each case, the value of $c_u(t)$ is not modified modulo $k$.
+		\item The conditional statement starting in line \ref{line:cond-levelup} either set $c_u(t)$ to 0 (in line \ref{line:force3} or \ref{line:force4}),
+			or do not modify $c_u(t)$ nor $force_u(t)$.
+		\item In each case above, the value of $c_u(t)$ is not modified modulo $k$.
 		\item Firstly, $c_v^{pre}(t-1)$ is well-defined because $In_u(t) = In_u^a(t)$ (see line \ref{line:conc-gossip}). 
 			Moreover, the set $\{c_v(t-1), v \in In_u(t)\}$ contains integers which are mutually congruent modulo $k$ (see line \ref{line:conc-gossip}).
 			Because of line \ref{line:min-z-end}, we have $c_v(t-1) + 1 \equiv c_u^{pre}(t) \mod k$.
@@ -367,13 +379,14 @@ We consider some node $u \in V$ and some round $t$ in which $u$ is active (i.e.,
 	\end{enumerate}
 \end{proof}
 
+Each time some node reaches level 1 or 2, a few properties on its incoming neighbors can be deduced:
 \begin{lem} \label{lem:conc-safety}
 	Let $i$ be an integer, $0 \leq i < k$, and let $u$ and $v$ be two nodes such that  $u\in In_v( t+i +1 : t+k)$.
 	If $v$ is active in round $t+k$ and $c^{pre}_v(t+k) \equiv 0 \mod k \wedge synch^{pre}_v(t+k)$, then:
 	\begin{enumerate}[label=\upshape(\alph*),ref=\thethm (\alph*)]
 		\item\label{lem:active-path} $u$ is active in round $t+i$.
 		\item $c_u^{pre}(t+i) \equiv i \mod k$.
-		\item\label{lem:conc-safety-bis} $ready_v^{pre}(t+k) \Rightarrow level_\cent(t) > 0$.
+		\item $ready_v^{pre}(t+k) \wedge i > 0 \Rightarrow ready_u^{pre}(t+i)$.
 	\end{enumerate}
 \end{lem}
 \begin{proof}
@@ -390,9 +403,20 @@ We consider some node $u \in V$ and some round $t$ in which $u$ is active (i.e.,
 			If $j > 0$, we get $synch_{w_{t+j}}^{pre}(t+j)$ by Lemma \ref{lem:cl4},
 			and $ready_v^{pre}(t+k) \Rightarrow ready_{w_{t+j}}^{pre}(t+j)$ by Lemma \ref{lem:cl5}.
 	\end{enumerate}
-	By choosing $i = 0$ and $u = \cent$, we obtain $c_\cent(t) \equiv 0 \mod k \wedge ready_v^{pre}(t+k) \Rightarrow ready_{w_{t+1}}^{pre}(t+1)$.
+\end{proof}
+
+Each time some node reaches level 2, the $k$-centers are already in level 1.
+\begin{lem} \label{lem:conc-safety-bis}
+	Let $v$ be some node.
+	If $v$ is active in round $t+k$ and $c^{pre}_v(t+k) \equiv 0 \mod k \wedge synch^{pre}_v(t+k) \wedge ready^{pre}_v(t+k)$, then
+	$level_\cent(t) \geq 1$.
+\end{lem}
+\begin{proof}
+	We consider a $\cent \sim v$ path in the interval $[t,t+k]$, noted $w_t, w_{t+1}, \cdots w_{t+k}$.
+	Applying lemma \ref{lem:conc-safety} with $i = 1$ and $u = w_{t+1}$, we obtain that $w_{t+1}$ is active in round $t+1$ and $ready^{pre}_{w_{t+1}}(t+1)$.
 	Then $ready_\cent(t)$ is true using line \ref{line:ready-gossip}.
-	Finally, $ready_v^{pre}(t+k) \Rightarrow level_\cent(t) > 0$ using line \ref{line:cond-levelup} and \ref{line:init-ready}.
+	Applying lemma \ref{lem:conc-safety} with $i = 0$ and $u = \cent$, we obtain that $\cent$ is active in round $t$ and $c^{pre}_\cent(t) \equiv 0 \mod k$.
+	Finally, $level_\cent(t) > 0$ using line \ref{line:cond-levelup} and \ref{line:init-ready}.
 \end{proof}
 
 \begin{lem} \label{lem:no-close-level2}
@@ -400,11 +424,24 @@ We consider some node $u \in V$ and some round $t$ in which $u$ is active (i.e.,
 \end{lem}
 \begin{proof}
 	We assume that some node $u$ levels up in round $t+k+i$ where $i \in \{1, \cdots k-1\}$.
-	Using $\mathcal{P}_{k-centered}$, we have $\cent \in In_u(t+i+1:t+k+i)$.
+	Using $\mathds{G} \in \mathcal{G}_{k-centered}$, we have $\cent \in In_u(t+i+1:t+k+i)$.
 	By Lemma \ref{lem:conc-safety}, we get $c_\cent^{pre}(t+i) \equiv 0 \mod k$.
 	The presence of the self-loops implies the existence of a $\cent \sim \cent$ path in the interval $[t+i,t+k]$.
 	By Lemma \ref{lem:conc-safety}, we get $c_\cent^{pre}(t+i) \equiv i \mod k$.
 	We get a contradiction from $i \equiv 0 \mod k$.
+\end{proof}
+
+\begin{lem} \label{lem:greater-force}
+	Let $u$ be some node. If $u$ is active in round $t+1$, then $level_u(t) \leq force_u(t)$.
+\end{lem}
+\begin{proof}
+	\noindent We fix some node $u$. We prove by induction over $t \geq s_u-1$ that $\forall t \geq s_u-1 \Rightarrow level_u(t) \leq force_u(t)$.
+	\begin{enumerate}
+		\item If $t = s_u-1$, then $u$ is in the initial state in round $t$. Then $level_u(t) = force_u(t) = 0$.
+		\item Assume now that $level_u(t) \leq force_u(t)$.
+			If $u$ levels up in round $t+1$, then $level_u(t+1) \leq force_u(t+1)$ by lines \ref{line:level1}, \ref{line:force2}, \ref{line:level2}.
+			Otherwise, by Lemma \ref{lem:cl6} and by induction hypothesis, $level_u(t+1) = level_u(t) \leq force_u(t) \leq force_u(t+1)$.
+	\end{enumerate}
 \end{proof}
 
 \begin{lem} \label{lem:safety-force}
@@ -413,12 +450,14 @@ We consider some node $u \in V$ and some round $t$ in which $u$ is active (i.e.,
 \end{lem}
 \begin{proof}
 	We show this lemma by induction on $i \in \mathds{N}$.
-	The base case is trivial (see line \ref{line:min-z-end}).
-	Assume now that $c_u^{pre}(t) = j+1$.
-	Then, $u$ received a message of the form $\langle j, *, force_u^{pre}(t), * \rangle$ from some node $v$ (see lines \ref{line:force} and \ref{line:min-z-end}).
-	If $j = 0$ (i.e., $c_u^{pre}(t) = 1$), then $v$ satisfies the lemma (see lines \ref{line:level1} and \ref{line:level2}).
-	Otherwise, from the Lemma \ref{lem:cl2}, $j = c_v^{pre}(t-1)$.
-	The induction hypothesis concludes the proof.
+	\begin{enumerate}
+		\item The base case is trivial, because we assume $0 = c_u^{pre}(t) \geq 1$ (see line \ref{line:min-z-end}).
+		\item Assume now that $c_u^{pre}(t) = i+1$.
+			Then, $u$ received a message of the form $\langle i, *, force_u^{pre}(t), * \rangle$ from some node $v$ (see lines \ref{line:force} and \ref{line:min-z-end}).
+			If $i = 0$ (i.e., $c_u^{pre}(t) = 1$), then $v$ satisfies the lemma (see lines \ref{line:level1} and \ref{line:level2}).
+			Otherwise, from the Lemma \ref{lem:cl2b}, $i = c_v^{pre}(t-1)$ and $force_u^{pre}(t) = force_v^{pre}(t-1)$.
+			Applying induction hypothesis to $v$ in round $t-1$, we obtain some node $w$ which reaches a level equal to $force_u^{pre}(t)$ in round $t-i-1$.
+	\end{enumerate}
 \end{proof}
 
 The previous lemma proves that $c_u$ and $force_u$ actually point to some level-up.
@@ -431,19 +470,12 @@ The next lemma proves that this level-up is the most recent strongest level-up.
 
 \end{lem}
 \begin{proof}
-	First, we prove by induction over $t$ that $\forall u \in V, \forall t \geq s_u-1, level_u(t) \leq force_u(t)$.
-	\begin{enumerate}
-		\item If $t = 0$, then every node $u$ verifying $s_u=1$ is in the initial state in round 0. Then $level_u(t) = force_u(t) = 0$.
-		\item Assume now that $\forall u \in V, t \geq s_u-1 \Rightarrow level_u(t) \leq force_u(t)$.
-			If $u$ levels up in round $t+1$, then $level_u(t+1) \leq force_u(t+1)$ by lines \ref{line:level1}, \ref{line:force2}, \ref{line:level2}.
-			Otherwise, by Lemma \ref{lem:cl6} and by induction hypothesis, $level_u(t+1) = level_u(t) \leq force_u(t) \leq force_u(t+1)$.
-	\end{enumerate}
-
 	\noindent The proof of the lemma is done by induction over $i > 0$.
 	\begin{enumerate}
-		\item If $i = 1$, then $level_u(t) \leq force_v^{pre}(t+1)$ results from previous fact and line \ref{line:force}.
-			Moreover if $level_u(t) = force_u(t) = force_v^{pre}(t+1)$, then $v$ receives 0 from $u$ (see lines \ref{line:force3} and \ref{line:force4}).
-			Then, from line \ref{line:min-z-end}, $c^{pre}_v(t+1) \leq 1$.
+		\item If $i = 1$, then $level_u(t) \leq force_u(t) \leq force_v^{pre}(t+1)$ results from lemma \ref{lem:greater-force} and line \ref{line:force}.
+			Moreover by hypothesis, $u$ levels up in round $t$.
+			Assuming $level_u(t) = force_u(t) = force_v^{pre}(t+1)$, one of the lines \ref{line:force3} and \ref{line:force4} is executed by $u$ in round $t$.
+			Then $v$ receives 0 from $u$. From line \ref{line:min-z-end}, $c^{pre}_v(t+1) \leq 1$.
 		\item Assume now that there exists an active $u \sim v$ path in the interval $[t,t+i+1]$ (noted $w_t, \cdots, w_{t+i+1}$).
 			By applying induction hypothesis to $w_{t+i}$ and Lemma \ref{lem:cl6}, $level_u(t) \leq force_{w_{t+i}}^{pre}(t+i) \leq force_v^{pre}(t+i+1)$.
 			Moreover, if $level_u(t) = force_{w_{t+i}}^{pre}(t+i) = force_v^{pre}(t+i+1)$,
@@ -455,16 +487,16 @@ The next lemma proves that this level-up is the most recent strongest level-up.
 	If $\cent$ reached level 1 in some round $t$, whereas some $u$ reaches level 1 or 2 in some round $t^u \geq t$, then $t^u \equiv t \mod k$. 
 \end{lem}
 \begin{proof}
-	By contradiction, we consider the earliest node $u$ which levels up in some round $t^u$ with $t^u \not\equiv t \mod k$.
+	By contradiction, we consider the earliest node $u$ which levels up in some round $t^u \geq t$ with $t^u \not\equiv t \mod k$.
 	The Lemma \ref{lem:safety-force} implies the existence of a node $v$ which reached a level equal to $force_u^{pre}(t^u)$ in some round $t^v = t^u-c_u^{pre}(t^u)$. 
 
-	In the case $force_u^{pre}(t^u) = 2$, from Lemma \ref{lem:conc-safety-bis}, we get $t^v \geq t$.
+	In the case $force_u^{pre}(t^u) = 2$, from Lemma \ref{lem:conc-safety-bis}, we get $level_\cent(t^v-k) \geq 1$. We obtain $t^v \geq t$, by definition of $t$.
 
 	In the case $force_u^{pre}(t^u) = 1$.
 	The Lemma \ref{lem:no-close-level2} tells us that $t^u-t \geq k$.
 	Using self-loops, a $\cent \sim u$ path in the interval $[t,t^u]$ can be constructed by concatenating the $\cent \sim \cent$ path in the interval $[t,t^u-k]$
 	and a $\cent \sim u$ path in the interval $[t^u-k,t^u]$.
-	From Lemma \ref{lem:active-path}, this path is active.
+	Using Lemma \ref{lem:active-path}, this path is active.
 	From Lemma \ref{lem:strongest}, $c_u^{pre}(t^u) \leq t^u-t$.
 	We also get $t^v \geq t$.
 
@@ -477,15 +509,23 @@ The next lemma proves that this level-up is the most recent strongest level-up.
 	This contradicts the fact that $u$ was the earliest such node.
 \end{proof}
 
-\begin{thm} \label{lem:safety} 
-	The algorithm is safe.
-\end{thm}
+\subsection{Correctness proof}
+
+\begin{lem} \label{lem:safety} 
+	Under the assumption of a $k$-centered dynamic graph, 
+	any execution of the \SM algorithm verifies the $\mathrm{mod}\,k$-simultaneity property.
+\end{lem}
 \begin{proof}
-	The safety is a consequence of lemmas \ref{lem:conc-safety-bis} and \ref{lem:later-level1}.
+	We fix some node $u$, and we assume that $u$ reaches level 2 in round $t^u$.
+	From lemma \ref{lem:conc-safety-bis}, we obtain $level_\cent(t^u-k) \geq 1$.
+	Hence $t^u \geq t$, where $t$ is the round in which $\cent$ reaches level 1.
+	By lemma \ref{lem:later-level1}, $t^u \equiv t \mod k$.
+	That proves the $\mathrm{mod}\,k$-simultaneity property.
 \end{proof}
 
 \begin{lem}
-	The algorithm is live
+	Under the assumption of a complete activation schedule,
+	any execution of the \SM algorithm verifies the termination property.
 \end{lem}
 \begin{proof}
 	We consider the set $Z = \{(f,t), \exists u \in V, level_u(t) = f \wedge level_u(t-1) \neq f\}$.
@@ -499,42 +539,99 @@ The next lemma proves that this level-up is the most recent strongest level-up.
 	We consider the subset $V_{min} = \{u \in V, z_u^{max} = z^{min}\}$.
 	We claim that $\forall t' > t, \forall u \in V_{min}, In_u(t') \subseteq V_{min}$.
 	Otherwise, some $u \in V_{min}$ would increase its $z_u(t')$.
-	Intuitively, $V_{min}$ is a set of nodes which can only receive message from $V_{min}$.
+	Intuitively, $V_{min}$ is a set of nodes having the same $c$ and which can only receive message from $V_{min}$.
 	At some point between rounds $t$ and $t+k$, the nodes in $V_{min}$ will simultaneously execute line \ref{line:conc-true}.
-	From this point, every node $u \in V_{min}$ verifies $synch_u(t') = true$.
-	Then the nodes in $V_{min}$ are already in level 2, otherwise they would eventually level up (that would increase their $z_u$).
-	A fortiori, every other node is already in level 2.
-	That proves liveness.
+	From this point, every node $u \in V_{min}$ verifies $synch_u(t') = true$, because line \ref{line:conc-gossip} always returns true.
+	Similarly, if they stabilized in a level greater than 1, then they verify $ready_u(t') = true$.
+	Then the nodes in $V_{min}$ are already in level 2, otherwise they would level up as soon as their counter becomes congruent with 0 (that would increase their $z_u$).
+	Thus every other node is already in level 2, a fortiori.
+	That proves termination.
 \end{proof}
 
-\subsection{Limitations and possible extensions of $SynchMod$ algorithm}
+The previous two lemmas yield the following correctness theorem:
+
+\begin{thm} \label{lem:safety} 
+	Under the assumption of a $k$-centered dynamic graph, and a complete activation schedule,
+	the \SM algorithm solves the $\mathrm{mod}\,k$-synchronization problem for any integer $k$ greater than~2.
+\end{thm}
+
+\subsection{Resolvability results}
+
+We can show that the $\mathrm{mod}\,k$-synchronization problem is not solvable if the graph is centered with some delay $D$ the nodes cannot access:
 
 \begin{cor}
-	The $\mathbf{\mathrm{mod}\,k}$-synchronization problem is not solvable in a system where the communication graph is centered with an unknown delay $D$.
+	The $\mathrm{mod}\,k$-synchronization problem is not solvable in the network class $\underset{k \in \mathds{N}}{\bigcup} \mathcal{G}_{k-centered}$.
 \end{cor}
 \begin{proof}
-	By contradiction, we assume that an algorithm $A$ solves this problem.
-	We construct an execution of $A$ in a system composed of a unique node $u$, starting in round 1.
+	By contradiction, we assume that an algorithm $A$ solves the problem in this class.
+	We construct an execution of $A$ in a system composed of a unique node $u$, starting in round 1, with a self-loop at each round.
+	The graph of this execution belongs to $\mathcal{G}_{1-centered}$.
 	By termination property, the node $u$ in this execution must terminate in some round $t$.
 	We construct an execution of $A$ in a system composed of a two nodes $u$ and $v$. The node $u$ starts in round 1 whereas $v$ starts in round 2.
-	We construct a communication graph where $u$ and $v$ are both insulated during the first $t+2$ rounds, and become connected at round $t+3$.
-	This graph is centered with delay $t+3$.
+	We construct a communication graph where $u$ and $v$ are both insulated during the first $t+2$ rounds, and become connected at round $t+3$ and beyond.
+	This graph belongs to $\mathcal{G}_{t+3-centered}$.
 	Both $u$ and $v$ will terminate in round $t$ and $t+1$ respectively, because they cannot distinguish this execution from the execution previously described.
-	This contradicts the $\mathbf{\mathrm{mod}\,k}$-simultaneity property.
+	This contradicts the $\mathrm{mod}\,k$-simultaneity property.
 \end{proof}
+
+At the opposition, if the delay $D$ is "known", then the $\mathrm{mod}\,k$-synchronization problem is always solvable, regardless of the value of $k$.
 
 \begin{cor}
-	The $\mathbf{\mathrm{mod}\,k}$-synchronization problem is solvable in a system where the communication graph is centered with a known delay $D$.
+	For any positive integer $k$, the $\mathrm{mod}\,k$-synchronization problem is solvable in each network class $\mathcal{G}_{D-centered}$.
 \end{cor}
 \begin{proof}
-	We just showed that $\mathbf{\mathrm{mod}\,k}$-synchronization is solvable if the communication graph is centered with delay $k$.
-	If $D < k$, then a fortiori, the graph is also centered with delay $k$.
-	If $D > k$, we know that the $mod~\lceil \frac{D}{k} \rceil \times k$-synchronization is solvable using $SynchMod$.
-	A fortiori, the $\mathbf{\mathrm{mod}\,k}$-synchronization is solvable.
+	We now consider the following three cases:
+	\begin{enumerate}
+		\item $k = 1$. The problem is trivial.
+		\item $D = k > 2$. Recall that \SM solves $\mathrm{mod}\,k$-synchronization in $\mathcal{G}_{k-centered}$ if $k > 2$.
+		\item $D = k = 2$. The {\em SynchMod}$_{\,4}\ $ algorithm achieves $\mathrm{mod}\,4$-synchronization in $\mathcal{G}_{4-centered}$,
+			and hence solves the $\mathrm{mod}\,2$-synchronization problem in $\mathcal{G}_{2-centered} \subseteq \mathcal{G}_{4-centered}$.
+		\item $D < k$. Then $\mathcal{G}_{D-centered} \subseteq \mathcal{G}_{k-centered}$.
+			Then \SM algorithm solves the $\mathrm{mod}\,k$-synchronization.
+		\item $D > k$. We have $D \leq \lceil \frac{D}{k} \rceil \times k$.
+			Then the $mod~\lceil \frac{D}{k} \rceil \times k$-synchronization is solvable using {\em SynchMod}$_{\,\lceil \frac{D}{k} \rceil \times k}\ $ (see case above).
+			The $\mathrm{mod}\,k$-synchronization is also solvable, a fortiori.
+	\end{enumerate}
+
 \end{proof}
 
+\subsection{Reducing time complexity and memory usage}
+
+There is a simple optimisation that can decrease the time complexity in the average case, and prevent the memory usage from going to infinity.
+As soon as $force_u(t) = 2$, the node $u$ "knows" that some node $v$ fired in round $t-c_u(t)$ (see lemma \ref{lem:safety-force}).
+Then $u$ may fire in any round $t' \equiv t-c_u(t) \mod k$.
+We call $OptSynchMod_k$ the following algorithm:
+
+\begin{algorithm}[h]
+	\DontPrintSemicolon
+	\textbf{Initialization:} \;
+	\Indp
+		initialize with \SM's initial state \;
+	\BlankLine
+	\Indm
+	\textbf{At each round:} \;
+	\Indp
+		\If{$force_u = 2$}{
+			send $\langle c_u, true, 2, true \rangle$ to all  \;
+			$c_u \leftarrow 1+c_u \mod k$ \;
+			\If{$level_u < 2 \wedge c_u \equiv 0 \mod k$}{
+				$level_u \leftarrow 2$
+			}
+		}
+		\Else{
+			apply \SM's transition functions
+		}
+	\Indm
+\caption{The $OptSynchMod_k$ algorithm} 
+\end{algorithm}
+
+\begin{thm} \label{lem:safety} 
+	Under the assumption of a $k$-centered dynamic graph, and a complete activation schedule,
+	the $OptSynchMod_k$ solves the $\mathrm{mod}\,k$-synchronization problem.
+\end{thm}
+
 % section_cons (do not modify this comment)
-\section{Use-cases of $\mathbf{\mathrm{mod}\,k}$-synchronization}
+\section{Use-cases of $\mathrm{mod}\,k$-synchronization}
 
 \subsection{Algorithms without safety assumption}
 
@@ -544,14 +641,14 @@ Usually, the assumptions required for safety are expressed as invariants on the 
 Whereas the assumptions required for liveness are expressed as infinitely often verified predicates on the dynamic graph: $\forall r \in \mathds{N}, \exists r' > r, P_{liv}(\mathds{G}_{r'})$.
 The case where no invariant is required for safety is easier to deal with. At first we focus on this case.
 
-We assume that $A$ is structured as $k$ rotating phases, which means that $A$ needs $\mathbf{\mathrm{mod}\,k}$-synchronization.
+We assume that $A$ is structured as $k$ rotating phases, which means that $A$ needs $\mathrm{mod}\,k$-synchronization.
 We construct the algorithm $SynchMod_k \lozenge A$ in the following way:
 we consider a node $u$. 
 \begin{enumerate}
 	\item At first, $u$ is passive, and sends null messages, according to the model.
-	\item From round $s_u$, the node $u$ is active. It starts the $SynchMod_k$ algorithm. It sends and receives messages according to the $SynchMod_k$ algorithm and ignore the messages related to $A$.
-	\item In round $\tf_u$, the node $u$ fires. From this round, $u$ executes $SynchMod_k$ in parallel with $A$. Both $A$ and $SynchMod_k$ send and receive messages according to their pseudo-code.
-		In some cases, $u$ may receive from a neighbor $v$ a message related to $SynchMod_k$, and no message related to $A$. Then $u$ can guess that $v$ has not fired yet.
+	\item From round $s_u$, the node $u$ is active. It starts the \SM algorithm. It sends and receives messages according to the \SM algorithm and ignore the messages related to $A$.
+	\item In round $\tf_u$, the node $u$ fires. From this round, $u$ executes \SM in parallel with $A$. Both $A$ and \SM send and receive messages according to their pseudo-code.
+		In some cases, $u$ may receive from a neighbor $v$ a message related to \SM, and no message related to $A$. Then $u$ can guess that $v$ has not fired yet.
 		The $A$ instance of $u$ interpret that as a null message received from $v$.
 \end{enumerate}
 
@@ -653,15 +750,15 @@ The proof of termination, which is radically different, is detailed below.
 	That proves termination.
 \end{proof}
 
-\subsection{$\mathbf{\mathrm{mod}\,n}$-synchronization and coordinated algorithms}
+\subsection{$\mathrm{mod}\,n$-synchronization and coordinated algorithms}
 
 Some algorithms like Paxos rely on the existence of a shared coordinator in each round.
 A simple implementation consists in setting a rotating coordinator: 
 each node holds the list of nodes. In the first round, the chosen coordinator is the first node in the list.
 In the $i^{th}$ round, the chosen coordinator is the $i~mod~n^{th}$ node on the list.
 This works out-of-the box when the starts are assumed to be synchronous.
-However, when the starts are asynchronous, a prior $\mathbf{\mathrm{mod}\,n}$-synchronization is required, where $n$ is the number of nodes in the shared list.
-This is another typical use case of the $SynchMod_k$ algorithm.
+However, when the starts are asynchronous, a prior $\mathrm{mod}\,n$-synchronization is required, where $n$ is the number of nodes in the shared list.
+This is another typical use case of the \SM algorithm.
 
 \subsection{A much simpler approach ?}
 
@@ -679,14 +776,14 @@ More importantly, this method achieves \textit{non-uniform} consensus: only the 
 % section_conclusion (do not modify this comment)
 \section{Conclusion and future work}
 
-As any complex reasoning by cases, the correctness proof  of the $SynchMod_k$   algorithm, 
+As any complex reasoning by cases, the correctness proof  of the \SM   algorithm, 
 	and more specifically the proof of the liveness property, is very error prone. 
 This is a typical example of the relevance of formal verification for distributed algorithms. 
 Indeed, in a later work~\cite{}, we used the interactive theorem prover Isabelle \cite{Merz12} to encode the complete proof 
-	of Theorem~\ref{thm:k>2}, and thus obtained a certificate for  $SynchMod_k$\!\!'s correctness when $k$ is greater than 2.
+	of Theorem~\ref{thm:k>2}, and thus obtained a certificate for  \SM\!\!'s correctness when $k$ is greater than 2.
 	
 Since $mod-2$-synchronization is reducible to $mod-4$-synchronization,
-	 our algorithm solves the $\mathbf{\mathrm{mod}\,k}$-synchronization problem for any positive integer~$k$
+	 our algorithm solves the $\mathrm{mod}\,k$-synchronization problem for any positive integer~$k$
 	 in the class of  dynamic  graphs with a fixed center.
 This class of dynamic graphs plays a crucial role regarding benign failures as it captures 
 	the synchronous model with at most $n-1$ faulty senders, including the one with at most $n-1$ crashes.
