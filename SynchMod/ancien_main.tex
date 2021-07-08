@@ -345,7 +345,7 @@ We consider some node $u \in V$ and some round $t$ in which $u$ is active (i.e.,
 \begin{lem} \hfill
 	\begin{enumerate}[label=\upshape(\alph*),ref=\thethm (\alph*)]
 		\item\label{lem:cl1} $level_u(t+1) \in \{level_u(t), level_u(t)+1\}$
-		\item\label{lem:cl2b}$c_u(t) \neq 0 \Rightarrow (force_u(t) = force_u^{pre}(t) \wedge c_u(t) =  c_u^{pre}(t))$.
+		\item\label{lem:cl2b}$c_u(t) \neq 0 \Rightarrow (force_u(t) = force_u^{pre}(t) \wedge c_u(t) = c_u^{pre}(t))$.
 		\item\label{lem:cl2} $c_u(t) \equiv c_u^{pre}(t) \mod k$.
 		\item\label{lem:cl3} $synch_u^{pre}(t) \Rightarrow \forall v \in In_u(t), c_v^{pre}(t-1) + 1 \equiv c_u^{pre}(t) \mod k$.
 		\item\label{lem:cl4} $c_u^{pre}(t) \not\equiv 1 \mod k \wedge synch_u^{pre}(t) \Rightarrow \forall v \in In_u(t), synch_v^{pre}(t-1)$.
@@ -377,6 +377,29 @@ We consider some node $u \in V$ and some round $t$ in which $u$ is active (i.e.,
 		\item If $force_v^{pre}(t) = force_v^{pre}(t-1)$, then $force_v(t) = force_u^{pre}(t-1)$ by Lemma \ref{lem:cl6}.
 			Then $c_u^{pre}(t) \leq 1+c_v(t-1) \leq 1+c_v^{pre}(t-1)$ by line \ref{line:min-z-end}.
 	\end{enumerate}
+\end{proof}
+
+\begin{lem}
+	No node can level up in round $k-1$ or earlier.
+\end{lem}
+\begin{proof}
+	We prove by induction over $t$ that:
+	$$\forall t < k, \forall u \in V, t \geq s_u-1 \Rightarrow c_u(t) \leq t \wedge force_u(t) = 0 \wedge \neg synch_u(t).$$
+	\begin{enumerate}
+		\item For the base case, any node active from the first round is in initial state in round 0:
+			$$c_u(0) = 0 \wedge force_u(0) = 0 \wedge \neg synch_u(0).$$
+		\item Let $t$ be some integer in $\{0, \cdots k-2\}$. Let $u$ be some node which is active in round $t+2$.
+			Either $u$ is in initial state in round $t+1$: $c_u(t+1) = 0 \wedge force_u(t+1) = 0 \wedge \neg synch_u(t+1)$.
+			Or $u$ is active in round $t+1$.
+			By induction hypothesis, every active incoming neighbor $v$ of $u$ in round $t+1$ has $force_v(t) = 0 \wedge \neg synch_v(t)$.
+			Then $force_u^{pre}(t+1) = 0 \wedge \neg synch_u^{pre}(t+1)$.
+			Then using induction hypothesis and line \ref{line:min-z-end}, we have
+			$t+1 \geq c_u(t)+1 \geq c_u^{pre}(t+1)$.
+			Then $c_u^{pre}(t+1) \not\equiv 0 \mod k$ ($c_u^{pre}(t) > 0$ by line \ref{line:min-z-end}).
+			By line \ref{line:cond-levelup}, the variables are not modified in round $t+1$ after line \ref{line:cond-levelup}.
+			From previous claims, we obtain $c_u(t+1) \leq t+1 \wedge force_u^{pre}(t+1) = 0 \wedge \neq synch_u^{pre}(t+1)$.
+	\end{enumerate}
+	Using $\neg synch_u(t)$ and line \ref{line:conc-true}, we obtain that a level-up is impossible for every $u$, for every $t < k$.
 \end{proof}
 
 Each time some node reaches level 1 or 2, a few properties on its incoming neighbors can be deduced:
@@ -446,7 +469,8 @@ Each time some node reaches level 2, the $k$-centers are already in level 1.
 
 \begin{lem} \label{lem:safety-force}
 	Let $u$ be some node, and $t$ be some round in which $u$ is active.
-	If $c_u^{pre}(t) = i$, then some node must have reached a level equal to $force_u^{pre}(t)$ in round $t-i$.
+	If $c_u^{pre}(t) = i$, then some node $v$ must have reached a level equal to $force_u^{pre}(t)$ in round $t-i$.
+	Moreover, an active $v \sim u$ path exists in the interval $[t-i+1,t]$.
 \end{lem}
 \begin{proof}
 	We show this lemma by induction on $i \in \mathds{N}$.
@@ -457,6 +481,8 @@ Each time some node reaches level 2, the $k$-centers are already in level 1.
 			If $i = 0$ (i.e., $c_u^{pre}(t) = 1$), then $v$ satisfies the lemma (see lines \ref{line:level1} and \ref{line:level2}).
 			Otherwise, from the Lemma \ref{lem:cl2b}, $i = c_v^{pre}(t-1)$ and $force_u^{pre}(t) = force_v^{pre}(t-1)$.
 			Applying induction hypothesis to $v$ in round $t-1$, we obtain some node $w$ which reaches a level equal to $force_u^{pre}(t)$ in round $t-i-1$.
+			We also obtain an active $w \sim v$ path in the interval $[t-i+1,t-1]$.
+			Then $u$ can be appended to this path to obtain an active $w \sim u$ path in the interval $[t-i+1,t]$ (since, by construction, $v \in In_u(t)$).
 	\end{enumerate}
 \end{proof}
 
@@ -530,21 +556,37 @@ The next lemma proves that this level-up is the most recent strongest level-up.
 \begin{proof}
 	We consider the set $Z = \{(f,t), \exists u \in V, level_u(t) = f \wedge level_u(t-1) \neq f\}$.
 	This set is the finite set of level-up events.
-	Using Lemma \ref{lem:safety-force}, any node $u$ verifies $(t-c_u^{pre}(t), force_u^{pre}(t)) \in Z$ in every round $t$.
+	Using Lemma \ref{lem:safety-force}, any node $u$ verifies $(t-c_u^{pre}(t), force_u^{pre}(t)) \in Z$ in every round $t$ in which $u$ is active.
 	We note this tuple as $z_u(t)$.
-	We can order $Z$ with the lexical ordering.
-	By Lemma \ref{lem:strongest}, the sequence $z_u$ is increasing, and eventually stabilizes to some value $z_u^{max}$.
+	We order $Z$ with lexicographic ordering.
+	Now let us prove that the sequence $z_u$ is (non-strictly) increasing:
+
+	We consider some node $u$ and some round $t$ in which $u$ is active.
+	By lemma \ref{lem:safety-force}, we obtain some node $v$ which reaches a level equal to $force_u^{pre}(t)$ in round $t-c_u^{pre}(t)$.
+	We also obtain an active $v \sim u$ path in the interval $[t-c_u^{pre}(t)+1,t]$.
+	Since $u$ has a self-loop, there also exists an active $v \sim u$ path in the interval $[t-c_u^{pre}(t)+1,t+1]$.
+	By lemma \ref{lem:strongest}:
+
+	$$level_v(t-c_u^{pre}(t)) \leq force_u^{pre}(t+1) \wedge (level_v(t-c_u^{pre}(t)) = force_u^{pre}(t+1) \Rightarrow c^{pre}_u(t+1) \leq c_u^{pre}(t)).$$
+	
+	Given that $level_v(t-c_u^{pre}(t)) = force_u^{pre}(t)$, we obtain $z_u(t) \leq z_u(t+1)$.
+
+	Since $z_u$ is a non-strictly increasing sequence in a finite set, it eventually stabilizes to some value $z_u^{max}$.
 	Let $z^{min}$ be $min \{z_u^{max}, u \in V\}$.
 	We consider the round $t$ in which every node is active, and from which every $z_u$ sequence is stabilized.
 	We consider the subset $V_{min} = \{u \in V, z_u^{max} = z^{min}\}$.
 	We claim that $\forall t' > t, \forall u \in V_{min}, In_u(t') \subseteq V_{min}$.
-	Otherwise, some $u \in V_{min}$ would increase its $z_u(t')$.
-	Intuitively, $V_{min}$ is a set of nodes having the same $c$ and which can only receive message from $V_{min}$.
-	At some point between rounds $t$ and $t+k$, the nodes in $V_{min}$ will simultaneously execute line \ref{line:conc-true}.
-	From this point, every node $u \in V_{min}$ verifies $synch_u(t') = true$, because line \ref{line:conc-gossip} always returns true.
-	Similarly, if they stabilized in a level greater than 1, then they verify $ready_u(t') = true$.
-	Then the nodes in $V_{min}$ are already in level 2, otherwise they would level up as soon as their counter becomes congruent with 0 (that would increase their $z_u$).
-	Thus every other node is already in level 2, a fortiori.
+	Otherwise, if some $u \in V_{min}$ received a message from some node $w \notin V_{min}$,
+	it would increase its $z_u(t')$ (see lines \ref{line:force} and \ref{line:min-z-end}).
+	In the set $V_{min}$, every node $u$ has the same $c_u^{pre}$ in each round $t' > t$.
+	We note $c^{pre}_{min}(t')$ this common value.
+	By line \ref{line:min-z-end}, $c^{pre}_{min}(t'+1) = 1+c^{pre}_{min}(t')$.
+	As soon as, in some round $t^0 > t$, the value $c^{pre}_{min}(t^0)$ is congruent with 0, the nodes in $V_{min}$ will simultaneously execute lines \ref{line:conc-true} and \ref{line:init-ready}.
+	From this round, for any $t' > t^0$, every node $u \in V_{min}$ verifies $synch^{pre}_u(t') = true$, because line \ref{line:conc-gossip} always returns true.
+	Similarly, if the nodes $u \in V_{min}$ reached a final level greater than 1, then they verify $ready^{pre}_u(t') = true$.
+
+	Then the nodes in $V_{min}$ are already in level 2, otherwise they would level up as soon as $c^{pre}_{min}(t')$ becomes congruent with 0 (that would increase their stabilized $z_u$).
+	Thus every other node is already in level 2, because every node $w$ verifies $z_w^{max} \geq z^{min}$.
 	That proves termination.
 \end{proof}
 
