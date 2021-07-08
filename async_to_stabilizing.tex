@@ -29,37 +29,34 @@
 \begin{document}
   \maketitle
 
-This document defines a reduction from a asynchronous-starts model to the self-stabilizing models:
-given an algorithm written in the asynchronous-starts framework, we construct a self-stabilizing algorithm which solves the same problem.
+This document defines a reduction from a asynchronous-start model to the self-stabilizing models:
+given an algorithm written in the asynchronous-start framework, we construct a self-stabilizing algorithm which solves the same problem.
 These models (formally defined in first two sections) are widely used in distributed computing.
 The set of possible input values is noted $C$, whereas $Y$ is the set of possible output values.
 
-\section{Asynchronous starts model}
+\section{Two models}
 
-We consider an algorithm $A$ in the asynchronous starts model.
-This algorithm is defined by the following data:
+\subsection{Asynchronous-start model $\mathcal{M}_{AS}$}
 
-\begin{itemize}
-	\item A set of states $X$.
-	\item A subset of initial state $X_{init} \in X$.
-	\item A transition function $\delta^c : X \times X^\oplus \rightarrow X$ where the $\oplus$ operator constructs the set of possible multi-sets and $c \in C$.
-\end{itemize}
+We consider an algorithm $A$ in the asynchronous-start model.
+This algorithm is defined by a set of states $X$,
+a subset of initial states $X_{init} \in X$, and
+a transition function $\delta^c : X \times X^\oplus \rightarrow X$
+where the $\oplus$ operator constructs the set of possible multi-sets and $c \in C$.
 
-\noindent An execution in this model is defined by:
-\begin{itemize}
-	\item An activation schedule $(s_i)_{i \in \Pi} \in (\mathds{N} \cup \{\infty\})^\Pi$.
-	\item An input vector $(c_i)_{i \in \Pi} \in C^\Pi$.
-	\item A family of initial states $(q_i)_{i \in \Pi} \in X_{init} \subseteq X$.
-	\item A graph $\mathds{G} = (\Pi, E_t)$ where $\forall t \in \mathds{N}, E_t \subseteq \Pi \times \Pi$.
-\end{itemize}
+An execution of an algorithm $A$ in this model is defined by
+an activation schedule $(s_i)_{i \in V} \in (\mathds{N}^+ \cup \{\infty\})^V$,
+a family of initial states $(q_i)_{i \in V} \in X_{init} \subseteq X$,
+a graph $\mathds{G} = (V, E)$ where $E \subseteq V \times V$,
+and a coloring of $\mathds{G}$ noted $(c_i)_{i \in V}$.
 
-\noindent The states of the nodes is inductively derived from this data by stating $\forall i \in \Pi, x_i^0 = x_{passive}$ and:
+\noindent The states of the nodes is inductively derived from this data by stating 
 
 $$x_i^{t+1} = \left \{ \begin{array}{l l} x_{passive} & \mbox{if}~t < s_i \\
 	x_{init} & \mbox{if}~t = s_i \\
 \delta^{c_i}(x_i^t, \{x_j^t, (j,i) \in E_{t+1}\}) & \mbox{otherwise} \end{array} \right.$$
 
-\section{Self-stabilizing model}
+\subsection{Self-stabilizing model $\mathcal{M}_{SS}$}
 
 We now consider an algorithm $A$ in the self-stabilizing model.
 This algorithm is defined by the following data:
@@ -71,9 +68,9 @@ This algorithm is defined by the following data:
 
 \noindent An execution in this model is defined by:
 \begin{itemize}
-	\item A family of initial states $(x_i^0)_{i \in \Pi}$ where $x_i^0$ is an arbitrary state in $X$.
-	\item An input vector $(c_i)_{i \in \Pi} \in C^\Pi$.
-	\item A graph $\mathds{G} = (\Pi, E_t)$ where $\forall t \in \mathds{N}, E_t \subseteq \Pi \times \Pi$.
+	\item A family of initial states $(x_i^0)_{i \in V}$ where $x_i^0$ is an arbitrary state in $X$.
+	\item An input vector $(c_i)_{i \in V} \in C^V$.
+	\item A graph $\mathds{G} = (V, E_t)$ where $\forall t \in \mathds{N}, E_t \subseteq V \times V$.
 \end{itemize}
 
 The state of the nodes is inductively derived from this data by stating:
@@ -85,22 +82,22 @@ that the node can access in every round. That's why the transition function is i
 
 \section{Stabilizing problems}
 
-We consider $\mathcal{C} \subseteq \mathcal{G} \times C^\Pi$, where $\mathcal{G}$ is the set of possible dynamic graphs.
+We consider $\mathcal{C} \subseteq \mathcal{G} \times C^V$, where $\mathcal{G}$ is the set of possible dynamic graphs.
 We consider a function $Out : X \rightarrow Y$ which returns the output of a node
 (for example, in leader election problem, $Y = \{0,1\}$, and the leader must ultimately return 1, while non-leaders must return 0).
-We define the specification of the problem as a mapping from any tuple $\mathds{G}, (c_i)_{i \in \Pi} \in \mathcal{C}$
-to a suffix-closed subset $S_{\mathds{G}, (c_i)_{i \in \Pi}} \subseteq (Y^\Pi)^\omega$.
-$S_{\mathds{G}, (c_i)_{i \in \Pi}}$ is a set of sequences of output vectors.
-We say that an algorithm $A$ (in both presented models) \textit{stabilizes} to $S$ if, for any tuple $\mathds{G}, (c_i)_{i \in \Pi} \in \mathcal{C}$,
+We define the specification of the problem as a mapping from any tuple $\mathds{G}, (c_i)_{i \in V} \in \mathcal{C}$
+to a suffix-closed subset $S_{\mathds{G}, (c_i)_{i \in V}} \subseteq (Y^V)^\omega$.
+$S_{\mathds{G}, (c_i)_{i \in V}}$ is a set of sequences of output vectors.
+We say that an algorithm $A$ (in both presented models) \textit{stabilizes} to $S$ if, for any tuple $\mathds{G}, (c_i)_{i \in V} \in \mathcal{C}$,
 for any execution of $A$ in this graph and with this input, there exists some bound $T \in \mathds{N}$ such that we have:
 
-$$\langle Out(x^T_i), i \in \Pi \rangle, \langle Out(x^{T+1}_i), i \in \Pi \rangle, \dots \in S_{\mathds{G}, (c_i)_{i \in \Pi}}$$
+$$\langle Out(x^T_i), i \in V \rangle, \langle Out(x^{T+1}_i), i \in V \rangle, \dots \in S_{\mathds{G}, (c_i)_{i \in V}}$$
 
-where $\langle Out(x^T_i), i \in \Pi \rangle \in Y^\Pi$ is the vector of outputs of the nodes in round $T$.
+where $\langle Out(x^T_i), i \in V \rangle \in Y^V$ is the vector of outputs of the nodes in round $T$.
 We will refer to $T$ as the \textit{quiescence time}.
 For the leader election problem, the specification would look like:
 
-Here, each line corresponds to one of the possible output (i.e. one line for each possible leader).
+Here, each line corresponds to one of the possible output (i.e., one line for each possible leader).
 This problem do not require input values.
 Every execution which stabilizes to some leader will have a suffix in this set.
 
@@ -138,7 +135,7 @@ In the self-stabilizing model, the initial state is arbitrary, whereas the algor
 As a consequence, the output of these early instances is not reliable.
 In opposition, the fifth instance and every subsequent instances are initialized by line \ref{line:create}
 (in figure \ref{fig:fig2}, the node $i$ initialize its fifth instance in round 1, whereas $j$ initialize its in round 3).
-Since the algorithm $A$ is assumed to tolerate asynchronous starts, we know that the latest instances will eventually stabilize to the expected output vector.
+Since the algorithm $A$ is assumed to tolerate asynchronous-start, we know that the latest instances will eventually stabilize to the expected output vector.
 We make the additional assumption that the nodes stabilize \textit{within bounded delay} (more details in next section).
 
 \begin{figure}[h!]
@@ -179,32 +176,32 @@ That's why we parameter $Stab(A)$ by a function $g : \mathds{N} \rightarrow \mat
 
 \section{Proof}
 
-We consider an execution of $Stab(A)$, defined by $\mathds{G}$, the input vector $(c_i)_{i \in \Pi}$ and some initial sequences $(INST_i)_{i \in \Pi}$.
-We consider the expected output vector $v \in Y^\Pi$ (i.e. such that $S_{\mathds{G}, (c_i)_{i \in \Pi}} = \{(v, v, v, \dots)\}$).
+We consider an execution of $Stab(A)$, defined by $\mathds{G}$, the input vector $(c_i)_{i \in V}$ and some initial sequences $(INST_i)_{i \in V}$.
+We consider the expected output vector $v \in Y^V$ (i.e., such that $S_{\mathds{G}, (c_i)_{i \in V}} = \{(v, v, v, \dots)\}$).
 We want to prove that the output of $Stab(A)$ converges to $v$.
 We assume that $A$ self-stabilizes \textit{with bounded delay}, that is, for every execution,
-$T-max\{s_i, i \in \Pi\}$ is bounded by some natural number $T_{max}$.
+$T-max\{s_i, i \in V\}$ is bounded by some natural number $T_{max}$.
 In other words, once every node is active, $A$ must return the correct output at most within $T_{max}$ rounds.
 
 \begin{lem}
-	For any $l \geq max_{i \in \Pi} |INST_i^0|$, we have:
-	$$\forall i \in \Pi, \forall t \geq T_{max}+l+1, Out(INST_i^t[l]) = v_i.$$
+	For any $l \geq max_{i \in V} |INST_i^0|$, we have:
+	$$\forall i \in V, \forall t \geq T_{max}+l+1, Out(INST_i^t[l]) = v_i.$$
 \end{lem}
 \begin{proof}
-	We can prove by induction over $t$ that, for any $j$ verifying $\forall i \in \Pi, l \geq |INST_i^0|$,
+	We can prove by induction over $t$ that, for any $j$ verifying $\forall i \in V, l \geq |INST_i^0|$,
 	the $Stab(A)$ algorithm emulates an execution of $A$ by executing the transition function of $A$ at each round.
 	The activation schedule of the instance $l$ of $i$ is given by $s_i = l-|INST_i^0|+1$.
 	Since $A$ is assumed to self-stabilize with bounded delay, we know that the output of the instances converge to $v$ from some round $T$ where
-	$$T \leq T_{max} + max\{s_i, i \in \Pi\} \leq T_{max} + l + 1.$$
+	$$T \leq T_{max} + max\{s_i, i \in V\} \leq T_{max} + l + 1.$$
 \end{proof}
 
 \begin{thm}
 	If $A$ stabilizes to $S$ with bounded delay, then $Stab(A)$ stabilizes to $S$.
 \end{thm}
 \begin{proof}
-	According to previous lemma, for any $i \in \Pi$, in any round $t \in \mathds{N}$, we have
-	$$l \in [max_{i \in \Pi} |INST_i^0|, t-T_{max}-1] \Rightarrow Out(INST_i^t[l]) = v_i.$$
-	Because $\lim_{t \rightarrow \infty} g(t) = \infty$, we know that $g(|INST_i|)$ ultimately exceeds $max_{i \in \Pi} |INST_i^0|$.
+	According to previous lemma, for any $i \in V$, in any round $t \in \mathds{N}$, we have
+	$$l \in [max_{i \in V} |INST_i^0|, t-T_{max}-1] \Rightarrow Out(INST_i^t[l]) = v_i.$$
+	Because $\lim_{t \rightarrow \infty} g(t) = \infty$, we know that $g(|INST_i|)$ ultimately exceeds $max_{i \in V} |INST_i^0|$.
 	Because $\lim_{t \rightarrow \infty} t-g(t) = \infty$, we know that $g(|INST_i|)$ is ultimately below $t-T_{max}-1$.
 	That proves the stabilization property.
 \end{proof}
