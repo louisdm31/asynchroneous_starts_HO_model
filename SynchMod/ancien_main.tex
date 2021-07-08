@@ -211,10 +211,10 @@ When $t' < t$, $\mathds{G}(t:t')$ is the graph with only a self-loop at each nod
 Intuitively, the graph $\mathds{G}(t+1:t')$ contains an edge $(u,v)$ if some information about the state of node $u$ in round $t$ may reach node $v$ in round $t'$.
 The set of incoming neighbors of $u$ in $\mathds{G}(t:t')$ is noted as $In_u(t:t')$.
 The set $In_u(t:t)$ is simply noted $In_u(t)$.
-A \textit{$u \sim v$ path in the interval $[t,t']$} is a finite sequence $u = w_{t}, w_{t+1}, \cdots, w_{t'} = v$
-such that for any $l < t'-t$, the edge $(w_{t+l},w_{t+l+1})$ belongs to $E_{t+l+1}$.
+A \textit{$u \sim v$ path in the interval $[t,t']$} is a finite sequence $u = w_{t-1}, w_t, \cdots, w_{t'} = v$
+such that for any $l < t'-t+1$, the edge $(w_{t+l-1},w_{t+l})$ belongs to $E_{t+l}$.
 This path is said to be \textit{active} if every node $w_{t''}$ is active in round $t''$ where $t \leq t'' \leq t'$.
-There exists a $u \sim v$ path in the interval $[t,t']$ if and only if $v \in In_u(t+1:t')$.
+There exists a $u \sim v$ path in the interval $[t,t']$ if and only if $v \in In_u(t:t')$.
 
 A \emph{network model} is any non-empty set of dynamic graphs with a permanent self-loop at each node.
 We will focus on the specific network models $\mathcal{G}_{k-centered}$ of \emph{centered with delay $k$} dynamic graphs~$\mathds{G}$ verifying: 
@@ -339,7 +339,7 @@ The variables $c_u(t), synch_u(t), \dots$ refer to the initial state if the node
 We also note $c^{pre}_u(t), synch^{pre}_u(t), \dots$ the value of the $c, synch, \dots$ variables
 of node $u$ at the beginning of line \ref{line:cond-levelup} during round $t$, if $u$ is active in round $t$.
 We now prove that this execution verifies both properties of the $\mathrm{mod}\,k$-synchronization problem.
-We note $In_u^a(t)$ the subset of $In_u(t)$ which are active in round $t-1$ in this execution.
+We note $In_u^a(t)$ the subset of nodes in $In_u(t)$ which are active in round $t-1$ in this execution.
 Some simple claims are deductible from the transition function.
 We consider some node $u \in V$ and some round $t$ in which $u$ is active (i.e., $t \geq s_u$).
 \begin{lem} \hfill
@@ -379,7 +379,7 @@ We consider some node $u \in V$ and some round $t$ in which $u$ is active (i.e.,
 	\end{enumerate}
 \end{proof}
 
-\begin{lem}
+\begin{lem} \label{lem:early-phase}
 	No node can level up in round $k-1$ or earlier.
 \end{lem}
 \begin{proof}
@@ -395,62 +395,68 @@ We consider some node $u \in V$ and some round $t$ in which $u$ is active (i.e.,
 			Then $force_u^{pre}(t+1) = 0 \wedge \neg synch_u^{pre}(t+1)$.
 			Then using induction hypothesis and line \ref{line:min-z-end}, we have
 			$t+1 \geq c_u(t)+1 \geq c_u^{pre}(t+1)$.
-			Then $c_u^{pre}(t+1) \not\equiv 0 \mod k$ ($c_u^{pre}(t) > 0$ by line \ref{line:min-z-end}).
-			By line \ref{line:cond-levelup}, the variables are not modified in round $t+1$ after line \ref{line:cond-levelup}.
-			From previous claims, we obtain $c_u(t+1) \leq t+1 \wedge force_u^{pre}(t+1) = 0 \wedge \neq synch_u^{pre}(t+1)$.
+
+			Then $c_u^{pre}(t+1) \in \{1, \cdots k-1\}$.
+			By line \ref{line:cond-levelup}, the variables of $u$ are not modified in round $t+1$ after line \ref{line:cond-levelup}.
+			From previous claims, we obtain $c_u(t+1) \leq t+1 \wedge force_u(t+1) = 0 \wedge \neg synch_u(t+1)$.
 	\end{enumerate}
 	Using $\neg synch_u(t)$ and line \ref{line:conc-true}, we obtain that a level-up is impossible for every $u$, for every $t < k$.
 \end{proof}
 
 Each time some node reaches level 1 or 2, a few properties on its incoming neighbors can be deduced:
 \begin{lem} \label{lem:conc-safety}
-	Let $i$ be an integer, $0 \leq i < k$, and let $u$ and $v$ be two nodes such that  $u\in In_v( t+i +1 : t+k)$.
-	If $v$ is active in round $t+k$ and $c^{pre}_v(t+k) \equiv 0 \mod k \wedge synch^{pre}_v(t+k)$, then:
+	Let $i$ be an integer, $0 \leq i < k$, and let $u$ and $v$ be two nodes such that  $u\in In_v(t-k+i+1:t)$.
+	If $v$ is active in round $t$ and $c^{pre}_v(t) \equiv 0 \mod k \wedge synch^{pre}_v(t)$, then:
 	\begin{enumerate}[label=\upshape(\alph*),ref=\thethm (\alph*)]
-		\item\label{lem:active-path} $u$ is active in round $t+i$.
-		\item $c_u^{pre}(t+i) \equiv i \mod k$.
-		\item $ready_v^{pre}(t+k) \wedge i > 0 \Rightarrow ready_u^{pre}(t+i)$.
+		\item $t \geq k$.
+		\item\label{lem:active-path} $u$ is active in round $t-k+i$.
+		\item $c_u^{pre}(t-k+i) \equiv i \mod k$.
+		\item $ready_v^{pre}(t) \wedge i > 0 \Rightarrow ready_u^{pre}(t-k+i)$.
 	\end{enumerate}
 \end{lem}
 \begin{proof}
-	Let $u = w_{t+i}, \cdots, w_{t+k} = v$ denote some $u \sim v$ path in the interval $[t+i,t+k]$.
-	By a backward induction, we show that, for any $j \in \{i, \cdots k\}$, the node $w_{t+j}$ is active at round $t + j$ and
+	The hypothesis of this lemma allow $v$ to move from level 0 to level 1 in round $t$
+	(see lines \ref{line:cond-levelup} and \ref{line:level1up}). By lemma \ref{lem:early-phase}, $t \geq k$.
+	Let $u = w_{t-k+i}, \cdots, w_t = v$ denote some $u \sim v$ path in the interval $[t-k+i+1,t]$.
+	By a backward induction, we show that, for any $j \in \{i, \cdots k\}$, the node $w_{t-k+j}$ is active at round $t-k + j$ and
 
-	$$c_{w_{t+j}}^{pre}(t+j) \equiv j \mod k \wedge (j > 0 \Rightarrow (synch_{w_{t+j}}^{pre}(t+j) \wedge (ready_v^{pre}(t+k) \Rightarrow ready_{w_{t+j}}^{pre}(t+j)))).$$
+	$$c_{w_{t-k+j}}^{pre}(t-k+j) \equiv j \mod k \wedge (j > 0 \Rightarrow (synch_{w_{t-k+j}}^{pre}(t-k+j) \wedge (ready_v^{pre}(t) \Rightarrow ready_{w_{t-k+j}}^{pre}(t-k+j)))).$$
 
 	\begin{enumerate}
-		\item The base case is by hypothesis.
-		\item For the induction case, we assume that $c_{w_{t+j+1}}^{pre}(t+j+1) \equiv j+1 \mod k$ and $synch_{w_{t+j+1}}^{pre}(t+j+1)$
-			and $ready_v^{pre}(t+k) \Rightarrow ready_{w_{t+j+1}}^{pre}(t+j+1)$.
-			By Lemma \ref{lem:cl3}, $w_{t+j}$ is active in round $t+j$ and $c_{w_{t+j}}^{pre}(t+j) \equiv j \mod k$.
-			If $j > 0$, we get $synch_{w_{t+j}}^{pre}(t+j)$ by Lemma \ref{lem:cl4},
-			and $ready_v^{pre}(t+k) \Rightarrow ready_{w_{t+j}}^{pre}(t+j)$ by Lemma \ref{lem:cl5}.
+		\item The base case (i.e., $j = k$ and $w_{t-k+j} = v$) is by hypothesis.
+		\item For the induction case, we assume that $c_{w_{t-k+j+1}}^{pre}(t-k+j+1) \equiv j+1 \mod k$ and $synch_{w_{t-k+j+1}}^{pre}(t-k+j+1)$
+			and $ready_v^{pre}(t) \Rightarrow ready_{w_{t-k+j+1}}^{pre}(t-k+j+1)$.
+			By Lemma \ref{lem:cl3}, $w_{t-k+j}$ is active in round $t-k+j$ and $c_{w_{t-k+j}}^{pre}(t-k+j) \equiv j \mod k$.
+			If $j > 0$, we get $synch_{w_{t-k+j}}^{pre}(t-k+j)$ by Lemma \ref{lem:cl4},
+			and $ready_v^{pre}(t) \Rightarrow ready_{w_{t-k+j}}^{pre}(t-k+j)$ by Lemma \ref{lem:cl5}.
 	\end{enumerate}
 \end{proof}
 
 Each time some node reaches level 2, the $k$-centers are already in level 1.
 \begin{lem} \label{lem:conc-safety-bis}
 	Let $v$ be some node.
-	If $v$ is active in round $t+k$ and $c^{pre}_v(t+k) \equiv 0 \mod k \wedge synch^{pre}_v(t+k) \wedge ready^{pre}_v(t+k)$, then
-	$level_\cent(t) \geq 1$.
+	If $v$ is active in round $t$ and $c^{pre}_v(t) \equiv 0 \mod k \wedge synch^{pre}_v(t) \wedge ready^{pre}_v(t)$, then
+	$level_\cent(t-k) \geq 1$.
 \end{lem}
 \begin{proof}
-	We consider a $\cent \sim v$ path in the interval $[t,t+k]$, noted $w_t, w_{t+1}, \cdots w_{t+k}$.
-	Applying lemma \ref{lem:conc-safety} with $i = 1$ and $u = w_{t+1}$, we obtain that $w_{t+1}$ is active in round $t+1$ and $ready^{pre}_{w_{t+1}}(t+1)$.
+	The hypothesis of this lemma allow $v$ to move from level 0 to level 1 (see lines \ref{line:cond-levelup} and \ref{line:level1up}). By lemma \ref{lem:early-phase}, $t \geq k$.
+	We consider a $\cent \sim v$ path in the interval $[t-k+1,t]$, noted $w_{t-k}, w_{t-k+1}, \cdots w_t$.
+	Applying lemma \ref{lem:conc-safety} with $i = 1$ and $u = w_{t-k+1}$, we obtain that $w_{t-k+1}$ is active in round $t-k+1$ and $ready^{pre}_{w_{t-k+1}}(t-k+1)$.
 	Then $ready_\cent(t)$ is true using line \ref{line:ready-gossip}.
-	Applying lemma \ref{lem:conc-safety} with $i = 0$ and $u = \cent$, we obtain that $\cent$ is active in round $t$ and $c^{pre}_\cent(t) \equiv 0 \mod k$.
-	Finally, $level_\cent(t) > 0$ using line \ref{line:cond-levelup} and \ref{line:init-ready}.
+	Applying lemma \ref{lem:conc-safety} with $i = 0$ and $u = \cent$, we obtain that $\cent$ is active in round $t-k$ and $c^{pre}_\cent(t-k) \equiv 0 \mod k$.
+	Finally, $level_\cent(t-k) > 0$ using line \ref{line:cond-levelup} and \ref{line:init-ready}.
 \end{proof}
 
 \begin{lem} \label{lem:no-close-level2}
-	If $\cent$ reaches level 1 in round $t+k$, no node can level up in any round between $t+k+1$ and $t+2k-1$.
+	If $\cent$ reaches level 1 in round $t$, no node can reach level 1 or 2 in any round between $t+1$ and $t+k-1$ included.
 \end{lem}
 \begin{proof}
-	We assume that some node $u$ levels up in round $t+k+i$ where $i \in \{1, \cdots k-1\}$.
-	Using $\mathds{G} \in \mathcal{G}_{k-centered}$, we have $\cent \in In_u(t+i+1:t+k+i)$.
-	By Lemma \ref{lem:conc-safety}, we get $c_\cent^{pre}(t+i) \equiv 0 \mod k$.
-	The presence of the self-loops implies the existence of a $\cent \sim \cent$ path in the interval $[t+i,t+k]$.
-	By Lemma \ref{lem:conc-safety}, we get $c_\cent^{pre}(t+i) \equiv i \mod k$.
+	By lemma \ref{lem:early-phase}, $t \geq k$.
+	We assume that some node $u$ levels up in round $t+i$ where $i \in \{1, \cdots k-1\}$.
+	Using $\mathds{G} \in \mathcal{G}_{k-centered}$, we have $\cent \in In_u(t-k+i+1:t+i)$.
+	By Lemma \ref{lem:conc-safety}, we get $c_\cent^{pre}(t-k+i) \equiv 0 \mod k$.
+	The presence of the self-loops implies the existence of a $\cent \sim \cent$ path in the interval $[t-k+i+1,t]$.
+	By Lemma \ref{lem:conc-safety}, we get $c_\cent^{pre}(t-k+i) \equiv i \mod k$.
 	We get a contradiction from $i \equiv 0 \mod k$.
 \end{proof}
 
@@ -469,20 +475,20 @@ Each time some node reaches level 2, the $k$-centers are already in level 1.
 
 \begin{lem} \label{lem:safety-force}
 	Let $u$ be some node, and $t$ be some round in which $u$ is active.
-	If $c_u^{pre}(t) = i$, then some node $v$ must have reached a level equal to $force_u^{pre}(t)$ in round $t-i$.
-	Moreover, an active $v \sim u$ path exists in the interval $[t-i+1,t]$.
+	There exists some node $w$ which reached a level equal to $force_u^{pre}(t)$ in round $t-c_u^{pre}(t)$.
+	Moreover, an active $w \sim u$ path exists in the interval $[t-c_u^{pre}(t)+1,t]$.
 \end{lem}
 \begin{proof}
-	We show this lemma by induction on $i \in \mathds{N}$.
+	We show this lemma by induction on $c_u^{pre}(t) \in \mathds{N}$.
 	\begin{enumerate}
-		\item The base case is trivial, because we assume $0 = c_u^{pre}(t) \geq 1$ (see line \ref{line:min-z-end}).
-		\item Assume now that $c_u^{pre}(t) = i+1$.
-			Then, $u$ received a message of the form $\langle i, *, force_u^{pre}(t), * \rangle$ from some node $v$ (see lines \ref{line:force} and \ref{line:min-z-end}).
-			If $i = 0$ (i.e., $c_u^{pre}(t) = 1$), then $v$ satisfies the lemma (see lines \ref{line:level1} and \ref{line:level2}).
-			Otherwise, from the Lemma \ref{lem:cl2b}, $i = c_v^{pre}(t-1)$ and $force_u^{pre}(t) = force_v^{pre}(t-1)$.
-			Applying induction hypothesis to $v$ in round $t-1$, we obtain some node $w$ which reaches a level equal to $force_u^{pre}(t)$ in round $t-i-1$.
-			We also obtain an active $w \sim v$ path in the interval $[t-i+1,t-1]$.
-			Then $u$ can be appended to this path to obtain an active $w \sim u$ path in the interval $[t-i+1,t]$ (since, by construction, $v \in In_u(t)$).
+		\item The base case $c_u^{pre}(t) = 0$ is trivial, because $c_u^{pre}(t) \geq 1$ by line \ref{line:min-z-end}.
+		\item Let us fix some $c_u^{pre}(t) \geq 1$.
+			Then, $u$ received a message of the form $\langle c_u^{pre}(t)-1, *, force_u^{pre}(t), * \rangle$ from some node $v$ (see lines \ref{line:force} and \ref{line:min-z-end}).
+			If $c_u^{pre}(t) - 1 = 0$, then $v$ satisfies the lemma (see lines \ref{line:level1} and \ref{line:level2}).
+			Otherwise, from the Lemma \ref{lem:cl2b}, $c_u^{pre}(t)-1 = c_v^{pre}(t-1)$ and $force_u^{pre}(t) = force_v^{pre}(t-1)$.
+			Applying induction hypothesis to $v$ in round $t-1$, we obtain some node $w$ which reaches a level equal to $force_u^{pre}(t)$ in round $t-c_u^{pre}(t)$.
+			We also obtain an active $w \sim v$ path in the interval $[t-c_u^{pre}(t)+1,t-1]$.
+			Then $u$ can be appended to this path to obtain an active $w \sim u$ path in the interval $[t-c_u^{pre}(t)+1,t]$ (since, by construction, $v \in In_u(t)$).
 	\end{enumerate}
 \end{proof}
 
@@ -514,9 +520,10 @@ The next lemma proves that this level-up is the most recent strongest level-up.
 \end{lem}
 \begin{proof}
 	By contradiction, we consider the earliest node $u$ which levels up in some round $t^u \geq t$ with $t^u \not\equiv t \mod k$.
+	By lemma \ref{lem:early-phase}, $t \geq k$.
 	The Lemma \ref{lem:safety-force} implies the existence of a node $v$ which reached a level equal to $force_u^{pre}(t^u)$ in some round $t^v = t^u-c_u^{pre}(t^u)$. 
 
-	In the case $force_u^{pre}(t^u) = 2$, from Lemma \ref{lem:conc-safety-bis}, we get $level_\cent(t^v-k) \geq 1$. We obtain $t^v \geq t$, by definition of $t$.
+	In the case $force_u^{pre}(t^u) = 2$, from Lemma \ref{lem:conc-safety-bis} and line \ref{line:cond-firing}, we get $level_\cent(t^v-k) \geq 1$. We obtain $t^v \geq t$, by definition of $t$.
 
 	In the case $force_u^{pre}(t^u) = 1$.
 	The Lemma \ref{lem:no-close-level2} tells us that $t^u-t \geq k$.
@@ -526,12 +533,13 @@ The next lemma proves that this level-up is the most recent strongest level-up.
 	From Lemma \ref{lem:strongest}, $c_u^{pre}(t^u) \leq t^u-t$.
 	We also get $t^v \geq t$.
 
-	The case $force_u^{pre}(t^u) = 0$ is impossible: we have $force_\cent(t) \geq 1$.
+	The case $force_u^{pre}(t^u) = 0$ is impossible: we have $force_\cent(t) \geq level_\cent(t) \geq 1$ by lemma \ref{lem:greater-force}.
 	Using \ref{lem:cl6}, we get $1 \leq force_\cent(t) \leq force_{w_{t+1}}^{pre}(t+1) \leq \cdots \leq force_u^{pre}(t^u)$,
 	where $w_t, w_{t+1}, \cdots w_{t^u}$ is the $\cent \sim u$ path constructed above.
 
 	In both possible cases, we have $t^v \geq t$.
-	From line \ref{line:cond-levelup}, we get $t^v \equiv t^u-c_u^{pre}(t^u) \equiv t^u \not\equiv t \mod k$.
+	By line \ref{line:cond-levelup}, we have $c_u^{pre}(t) \equiv 0 \mod k$.
+	Recalling $t^v = t^u-c_u^{pre}(t^u)$, we obtain $t^v \equiv t^u \not\equiv t \mod k$.
 	This contradicts the fact that $u$ was the earliest such node.
 \end{proof}
 
@@ -543,7 +551,7 @@ The next lemma proves that this level-up is the most recent strongest level-up.
 \end{lem}
 \begin{proof}
 	We fix some node $u$, and we assume that $u$ reaches level 2 in round $t^u$.
-	From lemma \ref{lem:conc-safety-bis}, we obtain $level_\cent(t^u-k) \geq 1$.
+	From lemma \ref{lem:conc-safety-bis} and line \ref{line:cond-firing}, we obtain $level_\cent(t^u-k) \geq 1$.
 	Hence $t^u \geq t$, where $t$ is the round in which $\cent$ reaches level 1.
 	By lemma \ref{lem:later-level1}, $t^u \equiv t \mod k$.
 	That proves the $\mathrm{mod}\,k$-simultaneity property.
@@ -625,14 +633,14 @@ At the opposition, if the delay $D$ is "known", then the $\mathrm{mod}\,k$-synch
 	We now consider the following three cases:
 	\begin{enumerate}
 		\item $k = 1$. The problem is trivial.
-		\item $D = k > 2$. Recall that \SM solves $\mathrm{mod}\,k$-synchronization in $\mathcal{G}_{k-centered}$ if $k > 2$.
+		\item $D = k > 2$. Recall that \SM solves $\mathrm{mod}\,k$-synchronization problem in $\mathcal{G}_{k-centered}$ if $k > 2$.
 		\item $D = k = 2$. The {\em SynchMod}$_{\,4}\ $ algorithm achieves $\mathrm{mod}\,4$-synchronization in $\mathcal{G}_{4-centered}$,
 			and hence solves the $\mathrm{mod}\,2$-synchronization problem in $\mathcal{G}_{2-centered} \subseteq \mathcal{G}_{4-centered}$.
 		\item $D < k$. Then $\mathcal{G}_{D-centered} \subseteq \mathcal{G}_{k-centered}$.
-			Then \SM algorithm solves the $\mathrm{mod}\,k$-synchronization.
+			Then \SM algorithm solves the $\mathrm{mod}\,k$-synchronization problem.
 		\item $D > k$. We have $D \leq \lceil \frac{D}{k} \rceil \times k$.
-			Then the $mod~\lceil \frac{D}{k} \rceil \times k$-synchronization is solvable using {\em SynchMod}$_{\,\lceil \frac{D}{k} \rceil \times k}\ $ (see case above).
-			The $\mathrm{mod}\,k$-synchronization is also solvable, a fortiori.
+			Then the $mod~\lceil \frac{D}{k} \rceil \times k$-synchronization problem is solvable using {\em SynchMod}$_{\,\lceil \frac{D}{k} \rceil \times k}\ $ (see case above).
+			The $\mathrm{mod}\,k$-synchronization problem is also solvable, a fortiori.
 	\end{enumerate}
 
 \end{proof}
@@ -702,7 +710,7 @@ The safety proof without invariant is not affected by the modification of the dy
 Moreover, if we assume that no node remains passive forever, no edge is dropped in the dynamic graph beyond a certain round.
 Then, the liveness proof with synchronous starts should be still valid if applied from that round.
 
-Some notable examples of algorithms which can be adapted with this approach include the LastVoting \cite{CBS09} algorithm (an round-based adaptation of Paxos \cite{paxos}) which solves consensus,
+Some notable examples of algorithms which can be adapted with this approach include the LastVoting \cite{CBS09} algorithm (an round-based adaptation of Paxos) which solves consensus,
 and the ThreePhaseCommit \cite{BT93} algorithm, which solves the database commit problem.
 
 \subsection{Algorithms with safety assumption}
