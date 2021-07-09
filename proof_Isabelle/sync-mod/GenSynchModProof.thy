@@ -713,25 +713,27 @@ assumes star:"ALL p n. k_mod.path HO xi p n k"
   and run: "HORun (k_mod.gen_HOMachine k) rho HO" 
   and k2:"k > 2"
 begin
-definition z where
-"z p t = (let msgs = HOrcvdMsgs (k_mod.gen_HOMachine k) p (HO (Suc t) p) (rho t) in (k_mod.maxForce msgs-1, t-k_mod.minMsgs msgs))"
 
 definition levup where
 "levup f c p == EX sp ssp. rho c p = Active ssp & level ssp = f & (if f = 0 then c > 0 --> rho (c-1) p = Asleep else rho (c-1) p = Active sp & level sp = f-1)"
 definition L where
 "L = {(f,c) :: nat * nat | f c p. levup f c p}"
+definition ref_lvup where
+"ref_lvup p t = (let msgs = HOrcvdMsgs (k_mod.gen_HOMachine k) p (HO (Suc t) p) (rho t) in (k_mod.maxForce msgs-1, t-k_mod.minMsgs msgs))"
 
 lemma in_L:
 assumes "rho t p = Active sp"
-and "msgs = HOrcvdMsgs (k_mod.gen_HOMachine k) p (HO (Suc t) p) (rho t)"
-shows "(k_mod.maxForce msgs-1, t-k_mod.minMsgs msgs) : L"
+shows "ref_lvup p t : L"
 proof -
-  have "msgs p = Content sp" using assms loop run sending by auto
+  define msgs where "msgs = HOrcvdMsgs (k_mod.gen_HOMachine k) p (HO (Suc t) p) (rho t)"
+  hence "msgs p = Content sp" using assms loop run sending by auto
   hence "k_mod.forceMsgs (msgs p) > 0" using k_mod.forceMsgs.simps(1)[of sp] assms run loop k2 A2_bis[of HO k rho t p sp] by auto
   hence "k_mod.maxForce msgs > 0" using Max_ge unfolding k_mod.maxForce_def
     by (smt (z3) finite_UNIV finite_imageI gr_zeroI image_eqI leD rangeI)
-  thus ?thesis
-    using A5[of HO xi k rho t p sp "k_mod.maxForce msgs" "Suc (k_mod.minMsgs msgs)"] assms run k2 loop star unfolding L_def levup_def by fastforce
+  hence "(k_mod.maxForce msgs-1, t-k_mod.minMsgs msgs) : L"
+    using A5[of HO xi k rho t p sp "k_mod.maxForce msgs" "Suc (k_mod.minMsgs msgs)"]
+    assms run k2 loop star unfolding L_def levup_def msgs_def by fastforce
+  thus ?thesis unfolding ref_lvup_def msgs_def by metis
 qed
 
 lemma finite_L:
@@ -776,6 +778,7 @@ proof (rule ccontr)
   ultimately have "~ finite (pLf ` snd ` Lf f)" using `~ finite (Lf f)` finite_imageD by metis
   thus "False" by auto
 qed
+
 end
 
 (*

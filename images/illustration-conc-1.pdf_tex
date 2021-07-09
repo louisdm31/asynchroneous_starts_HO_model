@@ -1,0 +1,38 @@
+%% PDF + LaTeX conversion of an SVG file, based on the
+%% PDF + LaTeX output extension for Inkscape (Johan Engelen, 2010)
+%% Accompanies image file '/home/louis/Documents/doctorat/images/illustration-conc-1.pdf'
+%%
+%% To include the image in your LaTeX document, write
+%%   \input{<filename>.pdf_tex}
+%%  instead of
+%%   \includegraphics{<filename>.pdf}
+%% To scale the image, write
+%%   \def\svgwidth{<desired width>}
+%%   \input{<filename>.pdf_tex}
+%%  instead of
+%%   \includegraphics[width=<desired width>]{<filename>.pdf}
+%%
+%% Images with a different path to the parent latex file can
+%% be accessed with the `import' package (which may need to be
+%% installed) using
+%%   \usepackage{import}
+%% in the preamble, and then including the image with
+%%   \import{<path to file>}{<filename>.pdf_tex}
+%% Alternatively, one can specify
+%%   \graphicspath{{<path to file>/}}
+%% 
+%% For more information, please see info/svg-inkscape on CTAN:
+%%   http://tug.ctan.org/tex-archive/info/svg-inkscape
+%%
+\begingroup%
+  \ifx\svgwidth\undefined%
+    \setlength{\unitlength}{841.00bp}%
+  \else%
+    \setlength{\unitlength}{\svgwidth}%
+  \fi%
+  \global\let\svgwidth\undefined%
+  \global\let\svgscale\undefined%
+  \begin{picture}(1, 0.70749)%
+    \put(0,0){\includegraphics[width=\unitlength,page=1]{/home/louis/Documents/doctorat/images/illustration-conc-1.pdf}}%
+  \end{picture}%
+\endgroup%
