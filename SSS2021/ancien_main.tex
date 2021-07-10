@@ -42,7 +42,6 @@
 \newcommand{\In}{\mathrm{In}}
 \newcommand{\SM}{{\em SynchMod}$_{\,k}\ $}
 
-\renewcommand*\contentsname{}
 \setlength{\parskip}{0.3em}
 
 \title{Synchronization Modulo $k$ in Dynamic Networks}
@@ -61,7 +60,6 @@
 \begin{document}
 
 \maketitle
-\tableofcontents
 
 \begin{abstract}
 	We define the mod k—synchronization problem as a weakening of the Firing Squad problem,
@@ -221,22 +219,6 @@ We will focus on the specific network models $\mathcal{G}_{k-centered}$ of \emph
 
 $$\exists \cent \in V, \forall t \in \mathds{N}, \forall u \in V, \cent \in In_u(t+1:t+k).$$
 
-\begin{figure}[h]
-    \centering
-    \def\svgwidth{0.7\columnwidth}
-	\input{images/illustration-conc-1.pdf_tex}
-	\caption{case where every node is congruent to 0 in round $t-k$}
-	\label{fig:fig1}
-\end{figure}
-
-\begin{figure}[h]
-    \centering
-    \def\svgwidth{0.7\columnwidth}
-	\input{images/illustration-conc-2.pdf_tex}
-	\caption{case where some nodes are not congruent to 0 in round $t-k$}
-	\label{fig:fig2}
-\end{figure}
-
 The nodes verifying this property are called \textit{$k$-centers}.
 There may be several $k$-centers for $\mathds{G}$.
 The network class $\mathcal{G}_{k-centered}$ is a super-set of $\mathcal{G}_{1-centered}$, which contains the dynamic graphs containing a fixed spanning star.
@@ -268,20 +250,35 @@ Among the strongest level-up events, the nodes keep track of the age of the most
 On that purpose, they hold a $c_u$ and a $force_u$ variable.
 At any round, they "know" that $c_u$ rounds ago, some node reached a level equal to $force_u$ from the previous level,
 and they do not "know" any node which reached a level equal to $force_u$ (or higher) in any more recent round.
-With line \ref{line:force} and \ref{line:min-z-end}, they use at each round the values from their incoming neighbors to update theirs.
+With line~\ref{line:force} and \ref{line:min-z-end}, they use at each round the values from their incoming neighbors to update theirs.
 The presence of self-loops implies that these lines are always well-defined objects.
+
+\begin{figure}[h!]
+	\centering
+	\caption{case where every node is congruent to 0 in round $t-k$}
+	\includegraphics[width=0.7\columnwidth]{illustration-conc-1}
+	\label{fig:fig1}
+\end{figure}
+
+\begin{figure}[h!]
+	\centering
+	\caption{case where some node are not congruent to 0 in round $t-k$}
+	\includegraphics[width=0.7\columnwidth]{illustration-conc-2}
+	\label{fig:fig2}
+\end{figure}
+
 
 Secondly, \textbf{a node may level up only if its counter $c_u$ is congruent to 0 and the counter of $\gamma$ was also congruent to 0 $k$ rounds ago.}
 On that purpose, they use a $synch$ boolean variable.
-When the counter of some node $u$ becomes congruent to 0 in some round $t$, it sets its $synch_u$ variable to $true$ in line \ref{line:conc-true}.
-During all subsequent rounds $t+i$, it will check whether its incoming neighbors are congruent one another (line \ref{line:conc-gossip}).
+When the counter of some node $u$ becomes congruent to 0 in some round $t$, it sets its $synch_u$ variable to $true$ in line~\ref{line:conc-true}.
+During all subsequent rounds $t+i$, it will check whether its incoming neighbors are congruent one another (line~\ref{line:conc-gossip}).
 In the case they are not, the node will set its $synch_u$ variable to $false$ (see figure \ref{fig:fig2}).
-This $false$ value will spread in its outgoing neighbors (also line \ref{line:conc-gossip}).
+This $false$ value will spread in its outgoing neighbors (also line~\ref{line:conc-gossip}).
 If, in round $t+k$, its $synch_u$ variable is still true, it will know that no non-congruence was detected between round $t$ and round $t+k$.
 This means that $\cent$ was congruent with 0 in round $t$.
 In that case, a level-up is allowed (see figure \ref{fig:fig1}).
 In opposition, if some node $j \in In_u(t+1:t+k)$ is not congruent with 0 in round $t$,
-then the line \ref{line:conc-gossip} guarantees that $synch_u$ will ultimately be false at the beginning of round $t+k$ (see figure \ref{fig:fig2}).
+then the line~\ref{line:conc-gossip} guarantees that $synch_u$ will ultimately be false at the beginning of round $t+k$ (see figure \ref{fig:fig2}).
 In addition to $synch$, the $ready$ variable makes sure that $\cent$ is already at level 1.
 If not, the level-up to level 2 is forbidden.
 
@@ -301,7 +298,7 @@ If not, the level-up to level 2 is forbidden.
 	\Indp
 		send $\langle c_u, synch_u, force_u, ready_u \rangle$ to all  \;
 		{\small receive incoming messages: let $In^a$ the set of nodes from which a non-null messages is received.} \;
-		\If{all received messages are non-null}{
+		\If{all received messages are non-null}{ \label{line:nonull}
 			$synch_u \leftarrow \underset{v \in In^a}{\bigwedge} synch_v \wedge c_v \equiv c_u \mod k$ \; \label{line:conc-gossip}
 		}
 		\Else{$synch_u \leftarrow false$}
@@ -337,7 +334,7 @@ Let $s^{\max} = \max_{u \in \Pi} s(u) < \infty$ and let~$\cent$ denote one cente
 We note $c_u(t), synch_u(t), \dots$ the value of the $c, synch, \dots$ variables of node $u$ at the end of round $t$, if $u$ is active in round $t$.
 The variables $c_u(t), synch_u(t), \dots$ refer to the initial state if the node $u$ starts in round $t+1$.
 We also note $c^{pre}_u(t), synch^{pre}_u(t), \dots$ the value of the $c, synch, \dots$ variables
-of node $u$ at the beginning of line \ref{line:cond-levelup} during round $t$, if $u$ is active in round $t$.
+of node $u$ at the beginning of line~\ref{line:cond-levelup} during round $t$, if $u$ is active in round $t$.
 We now prove that this execution verifies both properties of the $\mathrm{mod}\,k$-synchronization problem.
 We note $In_u^a(t)$ the subset of nodes in $In_u(t)$ which are active in round $t-1$ in this execution.
 Some simple claims are deductible from the transition function.
@@ -356,31 +353,31 @@ We consider some node $u \in V$ and some round $t$ in which $u$ is active (i.e.,
 \end{lem}
 \begin{proof} \hfill
 	\begin{enumerate}[label=\upshape(\alph*),ref=\thethm (\alph*)]
-		\item The value of $level_u(t+1)$ is equal to $level_u(t)$, unless line \ref{line:level1} or \ref{line:level2} is executed in round $t+1$.
+		\item The value of $level_u(t+1)$ is equal to $level_u(t)$, unless line~\ref{line:level1} or \ref{line:level2} is executed in round $t+1$.
 			In that case, $level_u(t+1) = level_u(t)+1$.
-		\item The conditional statement starting in line \ref{line:cond-levelup} either set $c_u(t)$ to 0 (in line \ref{line:force3} or \ref{line:force4}),
+		\item The conditional statement starting in line~\ref{line:cond-levelup} either set $c_u(t)$ to 0 (in line~\ref{line:force3} or \ref{line:force4}),
 			or do not modify $c_u(t)$ nor $force_u(t)$.
 		\item In each case above, the value of $c_u(t)$ is not modified modulo $k$.
-		\item Firstly, $c_v^{pre}(t-1)$ is well-defined because $In_u(t) = In_u^a(t)$ (see line \ref{line:conc-gossip}). 
-			Moreover, the set $\{c_v(t-1), v \in In_u(t)\}$ contains integers which are mutually congruent modulo $k$ (see line \ref{line:conc-gossip}).
-			Because of line \ref{line:min-z-end}, we have $c_v(t-1) + 1 \equiv c_u^{pre}(t) \mod k$.
+		\item Firstly, $c_v^{pre}(t-1)$ is well-defined because $In_u(t) = In_u^a(t)$ (see line~\ref{line:nonull}). 
+			Moreover, the set $\{c_v(t-1), v \in In_u(t)\}$ contains integers which are mutually congruent modulo $k$ (see line~\ref{line:conc-gossip}).
+			Because of line~\ref{line:min-z-end}, we have $c_v(t-1) + 1 \equiv c_u^{pre}(t) \mod k$.
 			Finally, $c_v(t-1) \equiv c_v^{pre}(t-1) \mod k$ always holds.
-		\item If $c_u^{pre}(t) \not\equiv 1 \mod k \wedge synch_u^{pre}(t)$, then any incoming neighbor is active
-			and $v$ verifies $synch_v(t-1) \wedge c_v(t-1) \not\equiv 0 \mod k$ (see line \ref{line:conc-gossip}).
-			Then the conditional statement starting in line \ref{line:cond-levelup} is not executed by $v$ in round $t-1$.
+		\item If $c_u^{pre}(t) \not\equiv 1 \mod k$ and $synch_u^{pre}(t) = true$, then any incoming neighbor of $u$ is active in round $t-1$, because .
+			and $v$ verifies $synch_v(t-1) \wedge c_v(t-1) \not\equiv 0 \mod k$ (see line~\ref{line:conc-gossip}).
+			Then the conditional statement starting in line~\ref{line:cond-levelup} is not executed by $v$ in round $t-1$.
 			Then, from $synch_v(t-1)$, the variable $synch_v^{pre}(t-1)$ is true.
 		\item Assume that $c_u(t) \not\equiv 1 \mod k \wedge ready_u^{pre}(t) \wedge synch_u^{pre}(t)$.
 			Using previous proof, every incoming neighbor $v$ is active in round $t-1$ and
-			the conditional statement starting in line \ref{line:cond-levelup} is not executed by $v$ in round $t-1$.
-			Finally, by line \ref{line:ready-gossip}, $v$ verifies $ready_v^{pre}(t-1)$.
+			the conditional statement starting in line~\ref{line:cond-levelup} is not executed by $v$ in round $t-1$.
+			Finally, by line~\ref{line:ready-gossip}, $v$ verifies $ready_v^{pre}(t-1)$.
 		\item This property comes from lines \ref{line:force}, \ref{line:force2} and \ref{line:force5}.
 		\item If $force_v^{pre}(t) = force_v^{pre}(t-1)$, then $force_v(t) = force_u^{pre}(t-1)$ by Lemma \ref{lem:cl6}.
-			Then $c_u^{pre}(t) \leq 1+c_v(t-1) \leq 1+c_v^{pre}(t-1)$ by line \ref{line:min-z-end}.
+			Then $c_u^{pre}(t) \leq 1+c_v(t-1) \leq 1+c_v^{pre}(t-1)$ by line~\ref{line:min-z-end}.
 	\end{enumerate}
 \end{proof}
 
 \begin{lem} \label{lem:early-phase}
-	No node can level up in round $k-1$ or earlier.
+	No node can level-up in round $k-1$ or earlier.
 \end{lem}
 \begin{proof}
 	We prove by induction over $t$ that:
@@ -393,25 +390,25 @@ We consider some node $u \in V$ and some round $t$ in which $u$ is active (i.e.,
 			Or $u$ is active in round $t+1$.
 			By induction hypothesis, every active incoming neighbor $v$ of $u$ in round $t+1$ has $force_v(t) = 0 \wedge \neg synch_v(t)$.
 			Then $force_u^{pre}(t+1) = 0 \wedge \neg synch_u^{pre}(t+1)$.
-			Then using induction hypothesis and line \ref{line:min-z-end}, we have
+			Then using induction hypothesis and line~\ref{line:min-z-end}, we have
 			$t+1 \geq c_u(t)+1 \geq c_u^{pre}(t+1)$.
 
 			Then $c_u^{pre}(t+1) \in \{1, \cdots k-1\}$.
-			By line \ref{line:cond-levelup}, the variables of $u$ are not modified in round $t+1$ after line \ref{line:cond-levelup}.
+			By line~\ref{line:cond-levelup}, the variables of $u$ are not modified in round $t+1$ after line~\ref{line:cond-levelup}.
 			From previous claims, we obtain $c_u(t+1) \leq t+1 \wedge force_u(t+1) = 0 \wedge \neg synch_u(t+1)$.
 	\end{enumerate}
-	Using $\neg synch_u(t)$ and line \ref{line:conc-true}, we obtain that a level-up is impossible for every $u$, for every $t < k$.
+	Using $\neg synch_u(t)$ and line~\ref{line:conc-true}, we obtain that a level-up is impossible for every $u$, for every $t < k$.
 \end{proof}
 
 Each time some node reaches level 1 or 2, a few properties on its incoming neighbors can be deduced:
 \begin{lem} \label{lem:conc-safety}
 	Let $i$ be an integer, $0 \leq i < k$, and let $u$ and $v$ be two nodes such that  $u\in In_v(t-k+i+1:t)$.
-	If $v$ is active in round $t$ and $c^{pre}_v(t) \equiv 0 \mod k \wedge synch^{pre}_v(t)$, then:
+	If $v$ is active in round $t$ and $c^{pre}_v(t) \equiv 0 \mod k \wedge synch^{pre}_v(t)$, then
 	\begin{enumerate}[label=\upshape(\alph*),ref=\thethm (\alph*)]
 		\item $t \geq k$.
 		\item\label{lem:active-path} $u$ is active in round $t-k+i$.
 		\item $c_u^{pre}(t-k+i) \equiv i \mod k$.
-		\item $ready_v^{pre}(t) \wedge i > 0 \Rightarrow ready_u^{pre}(t-k+i)$.
+		\item If $ready_v^{pre}(t)$ and $i > 0$, then $ready_u^{pre}(t-k+i)$.
 	\end{enumerate}
 \end{lem}
 \begin{proof}
@@ -424,7 +421,7 @@ Each time some node reaches level 1 or 2, a few properties on its incoming neigh
 
 	\begin{enumerate}
 		\item The base case (i.e., $j = k$ and $w_{t-k+j} = v$) is by hypothesis.
-		\item For the induction case, we assume that $c_{w_{t-k+j+1}}^{pre}(t-k+j+1) \equiv j+1 \mod k$ and $synch_{w_{t-k+j+1}}^{pre}(t-k+j+1)$
+		\item For the inductive case, we assume that $c_{w_{t-k+j+1}}^{pre}(t-k+j+1) \equiv j+1 \mod k$ and $synch_{w_{t-k+j+1}}^{pre}(t-k+j+1)$
 			and $ready_v^{pre}(t) \Rightarrow ready_{w_{t-k+j+1}}^{pre}(t-k+j+1)$.
 			By Lemma \ref{lem:cl3}, $w_{t-k+j}$ is active in round $t-k+j$ and $c_{w_{t-k+j}}^{pre}(t-k+j) \equiv j \mod k$.
 			If $j > 0$, we get $synch_{w_{t-k+j}}^{pre}(t-k+j)$ by Lemma \ref{lem:cl4},
@@ -442,9 +439,9 @@ Each time some node reaches level 2, the $k$-centers are already in level 1.
 	The hypothesis of this lemma allow $v$ to move from level 0 to level 1 (see lines \ref{line:cond-levelup} and \ref{line:level1up}). By lemma \ref{lem:early-phase}, $t \geq k$.
 	We consider a $\cent \sim v$ path in the interval $[t-k+1,t]$, noted $w_{t-k}, w_{t-k+1}, \cdots w_t$.
 	Applying lemma \ref{lem:conc-safety} with $i = 1$ and $u = w_{t-k+1}$, we obtain that $w_{t-k+1}$ is active in round $t-k+1$ and $ready^{pre}_{w_{t-k+1}}(t-k+1)$.
-	Then $ready_\cent(t)$ is true using line \ref{line:ready-gossip}.
+	Then $ready_\cent(t)$ is true using line~\ref{line:ready-gossip}.
 	Applying lemma \ref{lem:conc-safety} with $i = 0$ and $u = \cent$, we obtain that $\cent$ is active in round $t-k$ and $c^{pre}_\cent(t-k) \equiv 0 \mod k$.
-	Finally, $level_\cent(t-k) > 0$ using line \ref{line:cond-levelup} and \ref{line:init-ready}.
+	Finally, $level_\cent(t-k) > 0$ using line~\ref{line:cond-levelup} and \ref{line:init-ready}.
 \end{proof}
 
 \begin{lem} \label{lem:no-close-level2}
@@ -481,7 +478,7 @@ Each time some node reaches level 2, the $k$-centers are already in level 1.
 \begin{proof}
 	We show this lemma by induction on $c_u^{pre}(t) \in \mathds{N}$.
 	\begin{enumerate}
-		\item The base case $c_u^{pre}(t) = 0$ is trivial, because $c_u^{pre}(t) \geq 1$ by line \ref{line:min-z-end}.
+		\item The base case $c_u^{pre}(t) = 0$ is trivial, because $c_u^{pre}(t) \geq 1$ by line~\ref{line:min-z-end}.
 		\item Let us fix some $c_u^{pre}(t) \geq 1$.
 			Then, $u$ received a message of the form $\langle c_u^{pre}(t)-1, *, force_u^{pre}(t), * \rangle$ from some node $v$ (see lines \ref{line:force} and \ref{line:min-z-end}).
 			If $c_u^{pre}(t) - 1 = 0$, then $v$ satisfies the lemma (see lines \ref{line:level1} and \ref{line:level2}).
@@ -504,10 +501,10 @@ The next lemma proves that this level-up is the most recent strongest level-up.
 \begin{proof}
 	\noindent The proof of the lemma is done by induction over $i > 0$.
 	\begin{enumerate}
-		\item If $i = 1$, then $level_u(t) \leq force_u(t) \leq force_v^{pre}(t+1)$ results from lemma \ref{lem:greater-force} and line \ref{line:force}.
+		\item If $i = 1$, then $level_u(t) \leq force_u(t) \leq force_v^{pre}(t+1)$ results from lemma \ref{lem:greater-force} and line~\ref{line:force}.
 			Moreover by hypothesis, $u$ levels up in round $t$.
 			Assuming $level_u(t) = force_u(t) = force_v^{pre}(t+1)$, one of the lines \ref{line:force3} and \ref{line:force4} is executed by $u$ in round $t$.
-			Then $v$ receives 0 from $u$. From line \ref{line:min-z-end}, $c^{pre}_v(t+1) \leq 1$.
+			Then $v$ receives 0 from $u$. From line~\ref{line:min-z-end}, $c^{pre}_v(t+1) \leq 1$.
 		\item Assume now that there exists an active $u \sim v$ path in the interval $[t,t+i+1]$ (noted $w_t, \cdots, w_{t+i+1}$).
 			By applying induction hypothesis to $w_{t+i}$ and Lemma \ref{lem:cl6}, $level_u(t) \leq force_{w_{t+i}}^{pre}(t+i) \leq force_v^{pre}(t+i+1)$.
 			Moreover, if $level_u(t) = force_{w_{t+i}}^{pre}(t+i) = force_v^{pre}(t+i+1)$,
@@ -523,7 +520,7 @@ The next lemma proves that this level-up is the most recent strongest level-up.
 	By lemma \ref{lem:early-phase}, $t \geq k$.
 	The Lemma \ref{lem:safety-force} implies the existence of a node $v$ which reached a level equal to $force_u^{pre}(t^u)$ in some round $t^v = t^u-c_u^{pre}(t^u)$. 
 
-	In the case $force_u^{pre}(t^u) = 2$, from Lemma \ref{lem:conc-safety-bis} and line \ref{line:cond-firing}, we get $level_\cent(t^v-k) \geq 1$. We obtain $t^v \geq t$, by definition of $t$.
+	In the case $force_u^{pre}(t^u) = 2$, from Lemma \ref{lem:conc-safety-bis} and line~\ref{line:cond-firing}, we get $level_\cent(t^v-k) \geq 1$. We obtain $t^v \geq t$, by definition of $t$.
 
 	In the case $force_u^{pre}(t^u) = 1$.
 	The Lemma \ref{lem:no-close-level2} tells us that $t^u-t \geq k$.
@@ -538,9 +535,42 @@ The next lemma proves that this level-up is the most recent strongest level-up.
 	where $w_t, w_{t+1}, \cdots w_{t^u}$ is the $\cent \sim u$ path constructed above.
 
 	In both possible cases, we have $t^v \geq t$.
-	By line \ref{line:cond-levelup}, we have $c_u^{pre}(t) \equiv 0 \mod k$.
+	By line~\ref{line:cond-levelup}, we have $c_u^{pre}(t) \equiv 0 \mod k$.
 	Recalling $t^v = t^u-c_u^{pre}(t^u)$, we obtain $t^v \equiv t^u \not\equiv t \mod k$.
 	This contradicts the fact that $u$ was the earliest such node.
+\end{proof}
+
+We say that the system is \textit{monovalent} in round $t$ if every node $u$ is active and the values in the family $(c_u^{pre}(t))_{u \in V}$ are mutually congruent modulo $k$.
+Moreover, we note $\bar c^{pre}(t)$ some integer which is congruent to every value $(c_u^{pre}(t))_{u \in V}$.
+
+\begin{lem} \label{lem:monovalent}
+	If the system is monovalent in round $t$, it is monovalent in any round $t+i$.
+	Moreover, $\bar c^{pre}(t+i) \equiv \bar c^{pre}(t)+i \mod k$.
+\end{lem}
+\begin{proof}
+	This can be showed by induction over $i$:
+	\begin{enumerate}
+		\item The base case is by hypothesis.
+		\item The inductive case results from line~\ref{line:min-z-end} and lemma \ref{lem:cl2}.
+	\end{enumerate}
+\end{proof}
+
+\begin{lem} \label{lem:termine}
+	If, in some round $t$, the system is monovalent, then every node $u$ is in level 2 in round $t+3k$.
+\end{lem}
+\begin{proof}
+	If the system is monovalent in round $t$, the by lemma \ref{lem:monovalent}), it is monovalent in every subsequent round, and
+	at some point between round $t$ and round $t+k$, the value of $\bar c^{pre}(t')$ will be congruent to 0. 
+
+	Let $t^0 \in \{t, \cdots t+k\}$ be the round in which that happens.
+	Then the nodes will simultaneously execute line~\ref{line:conc-true}.
+	From this round, for any $t' > t^0$, every node verifies $synch^{pre}_u(t') = synch_u(t') = true$, because line~\ref{line:conc-gossip} always returns true.
+	In round $t^0+k$, we have again $\bar c^{pre}(t^0+k) \equiv 0 \mod k$, then every node is guaranteed to be in level 1 (see lines \ref{line:cond-levelup} and \ref{line:level1up}).
+
+	Similarly, in round $t^0+k$, the nodes will simultaneously execute line~\ref{line:init-ready}.
+	From this round, for any $t' > t^0$, every node verifies $ready^{pre}_u(t') = ready_u(t') = true$, because line~\ref{line:ready-gossip} always returns true.
+	Then, in round $t^0+2k$, we have $\forall u \in V, c_u^{pre}(t^0+2k) \equiv 0 \mod k \wedge synch_u^{pre}(t^0+2k) \wedge ready_u^{pre}(t^0+2k)$.
+	At this point, every node is guaranteed to be in level 2 (see lines \ref{line:cond-levelup} and \ref{line:cond-firing}).
 \end{proof}
 
 \subsection{Correctness proof}
@@ -551,23 +581,23 @@ The next lemma proves that this level-up is the most recent strongest level-up.
 \end{lem}
 \begin{proof}
 	We fix some node $u$, and we assume that $u$ reaches level 2 in round $t^u$.
-	From lemma \ref{lem:conc-safety-bis} and line \ref{line:cond-firing}, we obtain $level_\cent(t^u-k) \geq 1$.
+	From lemma \ref{lem:conc-safety-bis} and line~\ref{line:cond-firing}, we obtain $level_\cent(t^u-k) \geq 1$.
 	Hence $t^u \geq t$, where $t$ is the round in which $\cent$ reaches level 1.
 	By lemma \ref{lem:later-level1}, $t^u \equiv t \mod k$.
 	That proves the $\mathrm{mod}\,k$-simultaneity property.
 \end{proof}
 
 \begin{lem}
-	Under the assumption of a complete activation schedule,
+	Under the assumptions of a complete activation schedule and of a $k$-centered dynamic graph,
 	any execution of the \SM algorithm verifies the termination property.
 \end{lem}
 \begin{proof}
 	We consider the set $Z = \{(f,t), \exists u \in V, level_u(t) = f \wedge level_u(t-1) \neq f\}$.
 	This set is the finite set of level-up events.
-	Using Lemma \ref{lem:safety-force}, any node $u$ verifies $(t-c_u^{pre}(t), force_u^{pre}(t)) \in Z$ in every round $t$ in which $u$ is active.
+	Using Lemma \ref{lem:safety-force}, any node $u$ verifies $(force_u^{pre}(t), t-c_u^{pre}(t)) \in Z$ in every round $t$ in which $u$ is active.
 	We note this tuple as $z_u(t)$.
 	We order $Z$ with lexicographic ordering.
-	Now let us prove that the sequence $z_u$ is (non-strictly) increasing:
+	Now let us prove that the sequence $z_u$ is non-decreasing:
 
 	We consider some node $u$ and some round $t$ in which $u$ is active.
 	By lemma \ref{lem:safety-force}, we obtain some node $v$ which reaches a level equal to $force_u^{pre}(t)$ in round $t-c_u^{pre}(t)$.
@@ -579,28 +609,32 @@ The next lemma proves that this level-up is the most recent strongest level-up.
 	
 	Given that $level_v(t-c_u^{pre}(t)) = force_u^{pre}(t)$, we obtain $z_u(t) \leq z_u(t+1)$.
 
-	Since $z_u$ is a non-strictly increasing sequence in a finite set, it eventually stabilizes to some value $z_u^{max}$.
+	Since $z_u$ is a non-decreasing sequence in a finite set, it eventually stabilizes to some value $z_u^{max}$.
 	Let $z^{min}$ be $min \{z_u^{max}, u \in V\}$.
-	We consider the round $t$ in which every node is active, and from which every $z_u$ sequence is stabilized.
+	We consider the round $t^0$ in which every node is active, and from which every $z_u$ sequence has stabilized.
 	We consider the subset $V_{min} = \{u \in V, z_u^{max} = z^{min}\}$.
-	We claim that $\forall t' > t, \forall u \in V_{min}, In_u(t') \subseteq V_{min}$.
-	Otherwise, if some $u \in V_{min}$ received a message from some node $w \notin V_{min}$,
-	it would increase its $z_u(t')$ (see lines \ref{line:force} and \ref{line:min-z-end}).
-	In the set $V_{min}$, every node $u$ has the same $c_u^{pre}$ in each round $t' > t$.
-	We note $c^{pre}_{min}(t')$ this common value.
-	By line \ref{line:min-z-end}, $c^{pre}_{min}(t'+1) = 1+c^{pre}_{min}(t')$.
-	As soon as, in some round $t^0 > t$, the value $c^{pre}_{min}(t^0)$ is congruent with 0, the nodes in $V_{min}$ will simultaneously execute lines \ref{line:conc-true} and \ref{line:init-ready}.
-	From this round, for any $t' > t^0$, every node $u \in V_{min}$ verifies $synch^{pre}_u(t') = true$, because line \ref{line:conc-gossip} always returns true.
-	Similarly, if the nodes $u \in V_{min}$ reached a final level greater than 1, then they verify $ready^{pre}_u(t') = true$.
+	We claim that $\forall t > t^0, \forall u \in V_{min}, In_u(t) \subseteq V_{min}$.
 
-	Then the nodes in $V_{min}$ are already in level 2, otherwise they would level up as soon as $c^{pre}_{min}(t')$ becomes congruent with 0 (that would increase their stabilized $z_u$).
-	Thus every other node is already in level 2, because every node $w$ verifies $z_w^{max} \geq z^{min}$.
-	That proves termination.
+	By contradiction, if in some round $t > t^0$, some $w \notin V_{min}$ belongs to $In_u(t)$,
+	then $u \in V_{min}$ received a message of the form $\langle c_w(t-1), *, force_w(t-1), * \rangle$.
+	Because, after $t^0$, the execution of lines \ref{line:force3} and \ref{line:force4} is impossible, we have $(force_w(t-1), t-c_w(t-1)) = (force_w^{pre}(t-1), t-c_w^{pre}(t-1)) > z_u(t)$.
+	By lines \ref{line:force} and \ref{line:min-z-end}, $u$ would adopt $z_u(t) > z_u(t-1)$. We get a contradiction.
+
+	Since $\forall t > t^0, \forall u \in V_{min}, In_u(t) \subseteq V_{min}$, we can apply lemma \ref{lem:termine} to the subsystem consisting of $V_{min}$.
+	We obtain a round $t^1 \geq t^0$ in which every node in $V_{min}$ is in level 2. By lemma \ref{lem:greater-force}, every node $u \in V_{min}$ verifies $force_u^{pre}(t^1) = 2$.
+	By definition of $V_{min}$, every node $u \in V$ verifies $force_u^{pre}(t^1) = 2$.
+	Now, we prove that in round $t^1$, the system is monovalent.
+
+	Let us consider two nodes $u_1$ and $u_2$. By lemma \ref{lem:safety-force},
+	we obtain two nodes $w_1$ and $w_2$ which reached level 2 in round $t^1-c_{u_1}^{pre}(t^1)$ and $t^1-c_{u_2}^{pre}(t^1)$ respectively.
+	By lemma \ref{lem:safety}, we obtain $c_{u_1}^{pre}(t^1) \equiv c_{u_2}^{pre}(t^1) \mod k$. That proves monovalence.
+
+	The termination property now results from lemma \ref{lem:termine}.
 \end{proof}
 
 The previous two lemmas yield the following correctness theorem:
 
-\begin{thm} \label{lem:safety} 
+\begin{thm}
 	Under the assumption of a $k$-centered dynamic graph, and a complete activation schedule,
 	the \SM algorithm solves the $\mathrm{mod}\,k$-synchronization problem for any integer $k$ greater than~2.
 \end{thm}
@@ -675,7 +709,7 @@ We call $OptSynchMod_k$ the following algorithm:
 \caption{The $OptSynchMod_k$ algorithm} 
 \end{algorithm}
 
-\begin{thm} \label{lem:safety} 
+\begin{thm} 
 	Under the assumption of a $k$-centered dynamic graph, and a complete activation schedule,
 	the $OptSynchMod_k$ solves the $\mathrm{mod}\,k$-synchronization problem.
 \end{thm}
@@ -769,7 +803,7 @@ It is possible to prove the following theorem:
 	The $SynchMod_4 \lozenge AdaptedUniformVoting$ algorithm solves the consensus problem under the condition of a centered dynamic graph and a complete activation schedule.
 \end{thm}
 
-The proof of validity and agreement for UniformVoting given in \cite{CBS09} can easily be transposed to \newline $SynchMod_4 \lozenge AdaptedUniformVoting$.
+The proof of validity and agreement for UniformVoting given in \cite{CBS09} can easily be transposed to \newline~$SynchMod_4 \lozenge AdaptedUniformVoting$.
 The proof of termination, which is radically different, is detailed below.
 
 \begin{proof}
@@ -779,10 +813,10 @@ The proof of termination, which is radically different, is detailed below.
 
 	We claim that the sequence $(x_\cent(r+i+1))_{i \in \mathds{N}}$ is decreasing.
 	\begin{enumerate}
-		\item If $i+2$ is odd, the line \ref{line:min_val} guarantees that $x_\cent(r+i+2) \leq x_\cent(r+i+1)$.
+		\item If $i+2$ is odd, the line~\ref{line:min_val} guarantees that $x_\cent(r+i+2) \leq x_\cent(r+i+1)$.
 		\item If $i+2$ is even and a node $u$ voted for $v$, the only possibility is $v = x_\cent(r+i+1)$. This is because $\cent$ sent $x_\cent(r+i+1)$ to $u$ in round $r+i+2$.
 			Then $x_\cent(r+i+2) = x_\cent(r+i+1)$.
-		\item If $i+2$ is even and no node voted, the line \ref{line:min_vote} guarantees that $x_\cent(r+i+2) \leq x_\cent(r+i+1)$.
+		\item If $i+2$ is even and no node voted, the line~\ref{line:min_vote} guarantees that $x_\cent(r+i+2) \leq x_\cent(r+i+1)$.
 	\end{enumerate}
 	That proves the claim.
 
@@ -790,12 +824,12 @@ The proof of termination, which is radically different, is detailed below.
 	We consider the earliest round $r_0 \geq \phi^{max}$ in which every node have already fired and the series has stabilized to $v$.
 
 	Without loss of generality, we assume that the round $r_0+1$ is a round of exchange of value (i.e., $\forall u \in V, \neg phase_u(r_0)$).
-	Since $x_\cent(r_0+1) = x_\cent(r_0)$, we know that $\cent$ only receives messages containing $v$ in round $r_0+1$ (see line \ref{line:min_val}).
-	Then $\cent$ must vote $v$ in round $r_0+2$ (see line \ref{line:cond2}).
-	Then every node must adopt $v$ in round $r_0+2$ (see line \ref{line:adopt_vote}).
+	Since $x_\cent(r_0+1) = x_\cent(r_0)$, we know that $\cent$ only receives messages containing $v$ in round $r_0+1$ (see line~\ref{line:min_val}).
+	Then $\cent$ must vote $v$ in round $r_0+2$ (see line~\ref{line:cond2}).
+	Then every node must adopt $v$ in round $r_0+2$ (see line~\ref{line:adopt_vote}).
 	Then, in round $r_0+3$ every node must send $v$ to all.
 	Then, in round $r_0+3$ every node can only receive $v$.
-	Then, in round $r_0+3$ every node must vote for $v$ (see line \ref{line:cond2}).
+	Then, in round $r_0+3$ every node must vote for $v$ (see line~\ref{line:cond2}).
 	Then, in round $r_0+4$ every node must decide $v$.
 	That proves termination.
 \end{proof}
